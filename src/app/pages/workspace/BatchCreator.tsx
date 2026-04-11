@@ -32,6 +32,7 @@ import {
   CircleHelp,
   UserRound,
   Layers,
+  Home,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
@@ -5157,6 +5158,16 @@ Thank you.`;
           <nav className="flex-1 px-4 space-y-1">
             <button
               type="button"
+              onClick={() => navigate('/')}
+              className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
+              title="Home"
+            >
+              <Home className="w-5 h-5" />
+              {isSidebarHovered && <span>Home</span>}
+            </button>
+
+            <button
+              type="button"
               onClick={() => toast.info('XML Previewer will be available soon')}
               className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
             >
@@ -5484,6 +5495,16 @@ Thank you.`;
           <nav className="flex-1 px-4 space-y-1">
             <button
               type="button"
+              onClick={() => navigate('/')}
+              className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              title="Home"
+            >
+              <Home className="w-5 h-5" />
+              {isSidebarHovered && <span>Home</span>}
+            </button>
+
+            <button
+              type="button"
               onClick={() => toast.info('XML Previewer will be available soon')}
               className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
             >
@@ -5607,7 +5628,7 @@ Thank you.`;
                       type="button"
                       onClick={() => {
                         setIsProfileMenuOpen(false);
-                        navigate('/workspace');
+                        navigate('/workspace/dashboard');
                       }}
                       className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
                     >
@@ -5922,6 +5943,9 @@ Thank you.`;
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
+              <Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}
+            </button>
             <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}
             </button>
@@ -5956,13 +5980,48 @@ Thank you.`;
                     <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
                   </button>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'Prof. Harrison'}</p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
-                  </div>
-                  <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
-                    <UserRound className="w-4 h-4" />
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                    className="flex items-center gap-3"
+                    aria-expanded={isProfileMenuOpen}
+                  >
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'Prof. Harrison'}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
+                      <UserRound className="w-4 h-4" />
+                    </div>
+                  </button>
+
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                    isProfileMenuOpen
+                      ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                      : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        toast.info('Profile page will be available soon');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Profile
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        navigate('/workspace/dashboard');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Dashboard
+                    </button>
                   </div>
                 </div>
               </div>
@@ -6363,6 +6422,7 @@ Thank you.`;
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
             <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}</button>
             <button type="button" className={`w-full flex items-center py-3 bg-[#0052CC]/5 text-[#0052CC] font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Upload className="w-5 h-5" /> {isSidebarHovered && <span>Batch Creator</span>}</button>
             <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}</button>
@@ -6385,12 +6445,47 @@ Thank you.`;
                   <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
                   <button type="button" onClick={() => toast.info('No new notifications')} className="text-slate-400 hover:text-slate-600 transition-colors relative" title="Notifications"><Bell className="w-5 h-5" /><span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" /></button>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                    className="flex items-center gap-3"
+                    aria-expanded={isProfileMenuOpen}
+                  >
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
+                  </button>
+
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                    isProfileMenuOpen
+                      ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                      : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        toast.info('Profile page will be available soon');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Profile
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        navigate('/workspace/dashboard');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Dashboard
+                    </button>
                   </div>
-                  <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
                 </div>
               </div>
             </div>
@@ -6592,6 +6687,7 @@ Thank you.`;
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
             <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}</button>
             <button type="button" className={`w-full flex items-center py-3 bg-[#0052CC]/5 text-[#0052CC] font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Upload className="w-5 h-5" /> {isSidebarHovered && <span>Batch Creator</span>}</button>
             <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}</button>
@@ -6614,12 +6710,47 @@ Thank you.`;
                   <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
                   <button type="button" onClick={() => toast.info('No new notifications')} className="text-slate-400 hover:text-slate-600 transition-colors relative" title="Notifications"><Bell className="w-5 h-5" /><span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" /></button>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                    className="flex items-center gap-3"
+                    aria-expanded={isProfileMenuOpen}
+                  >
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
+                  </button>
+
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                    isProfileMenuOpen
+                      ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                      : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        toast.info('Profile page will be available soon');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Profile
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        navigate('/workspace/dashboard');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Dashboard
+                    </button>
                   </div>
-                  <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
                 </div>
               </div>
             </div>
@@ -7200,6 +7331,7 @@ Thank you.`;
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
             <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}
             </button>
@@ -7236,13 +7368,48 @@ Thank you.`;
                     <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
                   </button>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
-                  </div>
-                  <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
-                    <UserRound className="w-4 h-4" />
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                    className="flex items-center gap-3"
+                    aria-expanded={isProfileMenuOpen}
+                  >
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
+                      <UserRound className="w-4 h-4" />
+                    </div>
+                  </button>
+
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                    isProfileMenuOpen
+                      ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                      : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        toast.info('Profile page will be available soon');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Profile
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        navigate('/workspace/dashboard');
+                      }}
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                    >
+                      Dashboard
+                    </button>
                   </div>
                 </div>
               </div>
@@ -7559,7 +7726,7 @@ Thank you.`;
                   type="button"
                   onClick={() => {
                     setIsProfileMenuOpen(false);
-                    navigate('/workspace');
+                    navigate('/workspace/dashboard');
                   }}
                   className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
                 >

@@ -1,0 +1,12 @@
+﻿node_modules
+.env
+.env.*
+dist
+logs
+*.log
+.vscode/
+.idea
+.DS_Store
+.prompt
+.sample
+.tsc_errors

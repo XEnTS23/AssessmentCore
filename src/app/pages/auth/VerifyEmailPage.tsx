@@ -39,7 +39,7 @@ export function VerifyEmailPage() {
                 Email not provided. Please register first.
               </AlertDescription>
             </Alert>
-            <Button className="w-full mt-4" onClick={() => navigate('/auth/register')}>
+            <Button className="w-full mt-4 bg-[#2457b8] hover:bg-[#1f4aa0] text-white" onClick={() => navigate('/auth/register')}>
               Back to Register
             </Button>
           </CardContent>
@@ -150,7 +150,7 @@ export function VerifyEmailPage() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-[#0F6CBD] hover:bg-[#0d4a94] text-white font-medium"
+              className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-medium"
               disabled={loading || code.length !== 6}
             >
               {loading ? (
@@ -171,7 +171,7 @@ export function VerifyEmailPage() {
               variant="outline"
               onClick={handleResend}
               disabled={resendLoading || resendCooldown > 0}
-              className="text-[#0F6CBD]"
+              className="border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff]"
             >
               {resendLoading ? (
                 <>
@@ -190,7 +190,7 @@ export function VerifyEmailPage() {
           <Button
             variant="ghost"
             onClick={() => navigate('/auth/register')}
-            className="w-full text-[#0F6CBD]"
+            className="w-full text-[#2457b8] hover:bg-[#eef4ff]"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Register

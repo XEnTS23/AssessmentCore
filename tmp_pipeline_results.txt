@@ -1,0 +1,86 @@
+
+==================================================
+  VALIDATION PAGE -- NUMBERS (test1.csv)
+==================================================
+
+  -- STATS CARDS ----------------------------------
+                               ORIGINAL       AFTER CLEANING
+  Total                        20             20
+  Valid                        12             13
+  Caution                      0              0
+  Rejected                     8              7
+
+  -- AUTOMATED CLEANING IMPACT --------------------
+                               ORIGINAL       AFTER CLEANING
+  Issues Before / After        20             22
+  Issues Resolved              +4             
+  Issues Revealed              -6             
+  Rows Improved                1              
+  Rows Degraded                0              
+  Rows Unmodified (already clean) 20             
+  Effectiveness                20%            
+  Field-level ops applied      39             
+
+  -- PASS 2 SAFETY --------------------------------
+  Rows skipped (already valid) 12             
+  Rows rolled back             0              
+
+  -- PER-ROW CHANGES ------------------------------
+  Row 1     valid     unchanged -> valid
+  Row 2     valid     unchanged -> valid
+  Row 3     valid     unchanged -> valid
+  Row 4     valid     unchanged -> valid
+  Row 5     valid     unchanged -> valid
+  Row 6     rejected  IMPROVED  -> valid
+  Row 7     rejected  unchanged -> rejected
+  Row 8     valid     unchanged -> valid
+  Row 9     valid     unchanged -> valid
+  Row 10    valid     unchanged -> valid
+  Row 11    rejected  unchanged -> rejected
+  Row 12    rejected  unchanged -> rejected
+  Row 13    rejected  unchanged -> rejected
+  Row 14    valid     unchanged -> valid
+  Row 15    rejected  unchanged -> rejected
+  Row 16    valid     unchanged -> valid
+  Row 17    valid     unchanged -> valid
+  Row 18    valid     unchanged -> valid
+  Row 19    rejected  unchanged -> rejected
+  Row 20    rejected  unchanged -> rejected
+
+  -- PASS 3: REMEDIATION SUGGESTIONS --------------
+  Suggestions generated        7              
+  High-confidence suggestions  1              
+  Medium-confidence suggestions 6              
+  Rows with suggestions        7              
+  Suggestion coverage (%)      100%           
+  Rows skipped (already valid) 13             
+
+  Suggestions by type:
+    MISSING_ANSWER_MULTIPLE_OPTIONS      1
+    PLACEHOLDER_ANSWER                   3
+    ANSWER_NOT_IN_OPTIONS                1
+    ORDER_MISMATCH                       1
+    FUZZY_MATCH                          1
+
+  Per-row suggestions:
+  Row 7    [MEDIUM] MISSING_ANSWER_MULTIPLE_OPTIONS      Answer is missing. 4 options available — user intervention r -> (blank)
+  Row 11   [MEDIUM] PLACEHOLDER_ANSWER                   Answer was "null" — appears to be a placeholder. Confirm int -> (blank)
+  Row 12   [MEDIUM] PLACEHOLDER_ANSWER                   Answer was "N/A" — appears to be a placeholder. Confirm inte -> (blank)
+  Row 13   [MEDIUM] PLACEHOLDER_ANSWER                   Answer was "undefined" — appears to be a placeholder. Confir -> (blank)
+  Row 15   [MEDIUM] ANSWER_NOT_IN_OPTIONS                Answer "Tokyo" does not match any available option — manual  -> (blank)
+  Row 19   [MEDIUM] ORDER_MISMATCH                       Order sequence has structural issues (INVALID_ORDER_ITEMS, I -> (blank)
+  Row 20   [HIGH  ] FUZZY_MATCH                          Answer "paris city" closely matches option A ("Paris") with  -> "A"
+
+  -- PASS 3 EXECUTION (applied fixes) -------------
+  Suggestions attempted        1              
+  Suggestions applied          1              
+    of which HIGH-confidence   1              
+  Suggestions rolled back      0              
+  Suggestions skipped (MEDIUM / no-op) 6              
+  Rows fixed by PASS 3         1              
+  Rejected before execution    7              
+  Rejected after execution     6              
+
+  Execution logs:
+  Row 20   [APPLIED  ] FUZZY_MATCH                          "paris city" -> "A"
+==================================================

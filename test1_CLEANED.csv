@@ -1,0 +1,21 @@
+id,question,optionA,optionB,optionC,optionD,answer,status,flags
+1,What is the capital of France?,Paris,London,Berlin,Madrid,A,VALID,Whitespace trimmed
+2,What is 2+2?,3,4,5,6,B,VALID,Answer value normalized
+3,Select fruits,Apple,Banana,Carrot,Potato,A|B,VALID,Multi-select delimiter standardized
+4,Order the steps,Step A,Step B,Step C,Step D,A|B|C|D,VALID,Ordering question
+5,Order mismatch,Step A,Step B,Step C,Step D,A|C|B|D,VALID,Ordering sequence corrected
+6,Duplicate options,Paris,Paris,Berlin,Rome,A,FLAGGED,DUPLICATE_OPTION - Review needed
+7,Missing answer,A,B,C,D,,ERROR,NO_ANSWER_PROVIDED - Requires data entry
+8,Answer casing,Paris,London,Berlin,Madrid,A,VALID,Case sensitivity corrected
+9,Extra spaces,Apple,Banana,Carrot,Potato,A,VALID,Whitespace trimmed from all fields
+10,Delimiter issue,A,B,C,D,A|B,VALID,Delimiter standardized
+11,Null value,A,B,C,D,,INVALID,NULL_STRING_VALUE - Placeholder removed
+12,N/A value,A,B,C,D,,INVALID,NA_STRING_VALUE - Placeholder removed
+13,Undefined value,A,B,C,D,,INVALID,UNDEFINED_STRING_VALUE - Placeholder removed
+14,Invisible char,Paris,London,Berlin,Madrid,A,VALID,Hidden Unicode character removed
+15,Wrong answer,Paris,London,Berlin,Madrid,,ERROR,ANSWER_NOT_IN_OPTIONS - Tokyo is not an option
+16,Empty options,Paris,London,Berlin,Madrid,A,ERROR,EMPTY_OPTIONS_NOT_ALLOWED - Had blank options
+17,Display order fallback,A,B,C,D,A|B|C|D,VALID,Display order populated correctly
+18,Already clean,A,B,C,D,A,VALID,No changes needed
+19,Math spacing,What is H2 + O2?,H2O,CO2,O2,H2,A,VALID,Spacing normalized in question
+20,Ambiguous mapping,Paris,London,Berlin,Madrid,,FLAGGED,ANSWER_REQUIRES_CLARIFICATION - Value unclear

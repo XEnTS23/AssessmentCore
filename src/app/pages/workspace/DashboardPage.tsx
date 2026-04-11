@@ -73,7 +73,7 @@ export function DashboardPage() {
             <CardDescription className="text-sm text-slate-600">Inspect individual XML/JSON quickly.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/workspace/qti-renderer")} className="bg-[linear-gradient(120deg,_#2457b8_0%,_#2f7ecf_100%)] hover:brightness-95 text-white rounded-md">
+            <Button onClick={() => navigate("/workspace/qti-renderer")} className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
               Open Renderer <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>
@@ -85,7 +85,7 @@ export function DashboardPage() {
             <CardDescription className="text-sm text-slate-600">Run full pipeline: clean, audit, configure, export.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/workspace/batch-creator")} className="bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-white rounded-md">
+            <Button onClick={() => navigate("/workspace/batch-creator")} className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
               Open Batch Creator <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>
@@ -97,7 +97,7 @@ export function DashboardPage() {
             <CardDescription className="text-sm text-slate-600">Prepare packages for Canvas and other LMS platforms.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/workspace/lms-export")} className="bg-[linear-gradient(120deg,_#2457b8_0%,_#5b3bb6_100%)] hover:brightness-95 text-white rounded-md">
+            <Button onClick={() => navigate("/workspace/lms-export")} className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
               Open LMS Export <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>

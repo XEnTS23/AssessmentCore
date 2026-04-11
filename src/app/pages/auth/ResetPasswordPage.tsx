@@ -133,7 +133,7 @@ export function ResetPasswordPage() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-[#0F6CBD] hover:bg-[#0d4a94] text-white font-medium"
+                                className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-medium"
                                 disabled={loading}
                             >
                                 {loading ? (

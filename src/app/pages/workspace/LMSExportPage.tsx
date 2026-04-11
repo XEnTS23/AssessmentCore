@@ -291,7 +291,7 @@ export function LMSExportPage() {
             </p>
             <Button
               onClick={() => navigate("/auth/login")}
-              className="bg-[#0F6CBD] hover:bg-[#0D5BA8] text-white"
+              className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold"
             >
               <LogIn className="w-4 h-4 mr-2" /> Sign In
             </Button>
@@ -311,14 +311,14 @@ export function LMSExportPage() {
             </div>
             <div className="flex items-center justify-center gap-2">
               <h2 className="text-xl font-bold text-[#111827]">Pro Feature</h2>
-              <Badge className="bg-gradient-to-r from-[#0F6CBD] to-[#7C3AED] text-white text-xs">
+              <Badge className="bg-[#2457b8] text-white text-xs">
                 PRO
               </Badge>
             </div>
             <p className="text-sm text-[#475569]">
               LMS package export is available for Pro users. Upgrade your plan to upload a QTI ZIP, configure a target LMS, and download a platform-adapted package.
             </p>
-            <Button disabled className="bg-[#0F6CBD] hover:bg-[#0D5BA8] text-white opacity-80">
+            <Button disabled className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold opacity-80">
               <Lock className="w-4 h-4 mr-2" /> Upgrade to Pro
             </Button>
           </CardContent>
@@ -372,7 +372,7 @@ export function LMSExportPage() {
               <button
                 type="button"
                 onClick={() => zipInputRef.current?.click()}
-                className="group flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-[#9cc2ff] bg-[linear-gradient(180deg,_#f8fbff_0%,_#eef6ff_60%,_#e9fbf3_100%)] px-6 py-12 text-center transition hover:border-[#2457b8] hover:bg-[linear-gradient(180deg,_#f3f9ff_0%,_#e3f0ff_65%,_#ddf5ec_100%)]"
+                className="group flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-[#9cc2ff] bg-[#f8fbff] px-6 py-12 text-center transition hover:border-[#2457b8] hover:bg-[#eef4ff]"
               >
                 <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm border border-[#DBEAFE]">
                   <FileArchive className="h-10 w-10 text-[#0F6CBD]" />
@@ -432,7 +432,7 @@ export function LMSExportPage() {
                   type="button"
                   onClick={() => setActiveTab("configure")}
                   disabled={!uploadedZipFile}
-                  className="bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-white"
+                  className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold"
                 >
                   Continue to Configuration
                 </Button>
@@ -473,7 +473,7 @@ export function LMSExportPage() {
                           onClick={() => setSelectedPlatform(platform.id)}
                           className={`rounded-2xl border p-4 text-left transition ${
                             isSelected
-                              ? "border-[#2457b8] bg-[linear-gradient(140deg,_#eff6ff_0%,_#e8f8f0_100%)] shadow-sm"
+                              ? "border-[#2457b8] bg-[#eef4ff] shadow-sm"
                               : "border-[#d7e5ff] bg-white hover:border-[#93C5FD]"
                           } ${!platform.available ? "opacity-70" : ""}`}
                         >
@@ -571,7 +571,7 @@ export function LMSExportPage() {
                       !selectedPlatformMeta.available ||
                       (selectedPlatform === "canvas" && !canvasPreview)
                     }
-                    className="w-full bg-[linear-gradient(120deg,_#2457b8_0%,_#5b3bb6_100%)] hover:brightness-95 text-white"
+                    className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white"
                   >
                     {isExporting ? (
                       <>

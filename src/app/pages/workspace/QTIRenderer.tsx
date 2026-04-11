@@ -871,7 +871,7 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
                 variant="default"
                 size="sm"
                 onClick={handleSave}
-                className="text-xs h-7 px-2 bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-white gap-1"
+                className="text-xs h-7 px-2 bg-[#2457b8] hover:bg-[#1f4aa0] text-white gap-1"
                 title="Render pasted source (Ctrl+Enter)"
               >
                 <Play className="w-3.5 h-3.5" />
@@ -1030,7 +1030,7 @@ function ControlsBar({
           onClick={onToggleCorrectAnswer}
           className={cn(
             "h-8 px-3 text-xs",
-            showCorrectAnswer && "bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-white border-transparent"
+            showCorrectAnswer && "bg-[#2457b8] hover:bg-[#1f4aa0] text-white border-transparent"
           )}
           title="Show/Hide correct answers"
         >
@@ -1053,7 +1053,7 @@ function ControlsBar({
           onClick={onToggleSourcePanel}
           className={cn(
             "h-8 px-3 text-xs",
-            showSourcePanel && "bg-[linear-gradient(120deg,_#2457b8_0%,_#5b3bb6_100%)] hover:brightness-95 text-white border-transparent"
+            showSourcePanel && "bg-[#2457b8] hover:bg-[#1f4aa0] text-white border-transparent"
           )}
           title="Toggle source panel"
         >
@@ -1158,7 +1158,7 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
         <Button
           onClick={handleCheck}
           disabled={!selectedAnswer || showResult}
-          className="bg-[#0F6CBD] hover:bg-[#0B5A9A] text-white rounded-lg px-5"
+          className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white rounded-lg px-5"
         >
           Check Answer
         </Button>
@@ -1226,7 +1226,7 @@ function TextEntryRenderer({ question }: { question: ParsedQuestion }) {
         <Button
           onClick={handleCheck}
           disabled={!userAnswer.trim() || showResult}
-          className="bg-[#0F6CBD] hover:bg-[#0B5A9A] text-white rounded-lg px-5"
+          className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white rounded-lg px-5"
         >
           Check Answer
         </Button>
@@ -1634,7 +1634,7 @@ export function QTIRenderer() {
             <div className="flex gap-3 justify-center mb-6">
               <Button
                 onClick={() => handleLoadSample('mcq')}
-                className="bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-white rounded-lg"
+                className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white rounded-lg"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 MCQ Example

@@ -364,7 +364,6 @@ export function BatchCreator() {
   const [cleaningMetrics, setCleaningMetrics] = useState<ImprovementMetrics | null>(null);
   const [cleaningLogs, setCleaningLogs] = useState<CleanLog[]>([]);
   const [rowImprovements, setRowImprovements] = useState<RowImprovementRecord[]>([]);
-  const [viewMode, setViewMode] = useState<'raw' | 'clean'>('raw');
   const [pass3Suggestions, setPass3Suggestions] = useState<RemediationSuggestion[]>([]);
   const [pass3Metrics, setPass3Metrics] = useState<Pass3Metrics | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
@@ -1578,33 +1577,23 @@ export function BatchCreator() {
         setValidationProgress(100);
       }
 
-      // Run dual-validation pipeline (PASS 1 + PASS 2) for cleaning metrics.
-      // Fallback to raw results on any error — zero regression risk.
-      try {
-        const dualResult = runDualValidation(keyedRows as any, detected, validationProfile);
-        setCleanValidationResults(dualResult.cleanResults);
-        setCleaningMetrics(dualResult.metrics);
-        setCleaningLogs(dualResult.cleanLogs);
-        setRowImprovements(dualResult.rowImprovements);
-        setPass3Suggestions(dualResult.pass3Result.suggestions);
-        setPass3Metrics(dualResult.pass3Result.pass3Metrics);
-        setPass3ExecutionMetrics(dualResult.pass3ExecutionResult.executionMetrics);
-        setPass3ExecutedRows(dualResult.pass3ExecutionResult.executedRows);
-        setManualFixedRows(new Map());
-        manualFixedRowsRef.current = new Map(); // Add this line
-        setManualFixResults(new Map());
-        setManualFixHistory(new Map());
-        setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
-        setManualFixInputs(new Map());
-      } catch (dualErr) {
-        console.warn('[DualValidation] Pipeline failed, skipping cleaning metrics:', dualErr);
-        setCleanValidationResults(null);
-        setCleaningMetrics(null);
-        setCleaningLogs([]);
-        setRowImprovements([]);
-        setPass3Suggestions([]);
-        setPass3Metrics(null);
-      }
+      // Validation stage is strictly raw. The dual-validation pipeline
+      // (PASS 1 + PASS 2 + PASS 3) runs later, on transition into clean-fix,
+      // so the downloadable report at this stage reflects only the upload.
+      setCleanValidationResults(null);
+      setCleaningMetrics(null);
+      setCleaningLogs([]);
+      setRowImprovements([]);
+      setPass3Suggestions([]);
+      setPass3Metrics(null);
+      setPass3ExecutionMetrics(null);
+      setPass3ExecutedRows([]);
+      setManualFixedRows(new Map());
+      manualFixedRowsRef.current = new Map();
+      setManualFixResults(new Map());
+      setManualFixHistory(new Map());
+      setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
+      setManualFixInputs(new Map());
 
       setValidationResults(resultsMap);
       setShowValidationReport(true);
@@ -3476,9 +3465,54 @@ export function BatchCreator() {
       setValidationProgress(100);
     }
 
-    // Refresh dual-validation pipeline results after re-validation
+    // Re-validation is pure: it reflects the current state of editedRows
+    // (which already include any committed Auto Fix or manual edits). The
+    // dual-validation pipeline is NOT re-run here — it only runs when the
+    // user explicitly enters clean-fix or clicks Apply Auto Fix.
+    setManualFixedRows(new Map());
+    manualFixedRowsRef.current = new Map();
+    setManualFixResults(new Map());
+    setManualFixHistory(new Map());
+    setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
+    setManualFixInputs(new Map());
+
+    setValidationResults(resultsMap);
+    setIsValidating(false);
+    return resultsMap;
+  };
+
+  const handleProceedToCleanFix = () => {
+    setCurrentStep('clean-fix');
+  };
+
+  /**
+   * Runs the full cleaning pipeline on click and commits the result in one
+   * step: PASS 1 + PASS 2 + HIGH-confidence PASS 3 suggestions are applied
+   * to editedRows, and the cleaning/pass3 state is populated so the UI can
+   * show the before/after comparison. Nothing runs until this button is
+   * clicked — the validation stage stays strictly raw.
+   */
+  const handleApplyAutomatedFixes = async () => {
+    if (editedRows.length === 0) {
+      toast.info('No rows available to clean.');
+      return;
+    }
+
+    const beforeSummary = buildStatsFromResultsMap(validationResults);
+    setIsApplyingAutoFixes(true);
+
     try {
-      const dualResult = runDualValidation(mergedRows as any, columnMapping, validationProfile);
+      let dualResult;
+      try {
+        dualResult = runDualValidation(editedRows as any, columnMapping, validationProfile);
+      } catch (dualErr) {
+        console.warn('[DualValidation] Pipeline failed during Auto Fix:', dualErr);
+        toast.error('Automatic cleaning failed. See console for details.');
+        return;
+      }
+
+      const suggestionsApplied = dualResult.pass3ExecutionResult.executionMetrics.suggestionsApplied ?? 0;
+
       setCleanValidationResults(dualResult.cleanResults);
       setCleaningMetrics(dualResult.metrics);
       setCleaningLogs(dualResult.cleanLogs);
@@ -3487,39 +3521,19 @@ export function BatchCreator() {
       setPass3Metrics(dualResult.pass3Result.pass3Metrics);
       setPass3ExecutionMetrics(dualResult.pass3ExecutionResult.executionMetrics);
       setPass3ExecutedRows(dualResult.pass3ExecutionResult.executedRows);
-      setManualFixedRows(new Map());
-      manualFixedRowsRef.current = new Map(); // Add this line
-      setManualFixResults(new Map());
-      setManualFixHistory(new Map());
-      setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
-      setManualFixInputs(new Map());
-    } catch (dualErr) {
-      console.warn('[DualValidation] Pipeline failed during re-validate:', dualErr);
-    }
 
-    setValidationResults(resultsMap);
-    setIsValidating(false);
-    return resultsMap;
-  };
-
-  const handleApplyAutomatedFixes = async () => {
-    const availableAutoFixCount = pass3ExecutionMetrics?.suggestionsApplied ?? 0;
-    if (pass3ExecutedRows.length === 0 || availableAutoFixCount <= 0) {
-      toast.info('No high-confidence automated fixes are available right now.');
-      return;
-    }
-
-    const beforeSummary = buildStatsFromResultsMap(validationResults);
-    const appliedAutoFixKeys = new Set(
-      pass3Suggestions
-        .filter((s) => s.confidence === 'HIGH')
-        .map((s) => s.rowKey)
-    );
-    setIsApplyingAutoFixes(true);
-    try {
-      const nextRows = ensureInternalRowKeys(pass3ExecutedRows as Record<string, any>[]);
+      const nextRows = ensureInternalRowKeys(
+        dualResult.pass3ExecutionResult.executedRows as Record<string, any>[],
+      );
       setEditedRows(nextRows);
+
+      const appliedAutoFixKeys = new Set(
+        dualResult.pass3Result.suggestions
+          .filter((s) => s.confidence === 'HIGH')
+          .map((s) => s.rowKey),
+      );
       setAutoFixedRowKeys(appliedAutoFixKeys);
+
       setManualFixedRows(new Map());
       manualFixedRowsRef.current = new Map();
       setManualFixResults(new Map());
@@ -3530,11 +3544,15 @@ export function BatchCreator() {
       setAutoFixComparison({
         before: beforeSummary,
         after: null,
-        autoFixedCount: availableAutoFixCount,
+        autoFixedCount: suggestionsApplied,
         applied: true,
       });
 
-      toast.success(`Applied ${availableAutoFixCount} high-confidence automated fixes.`);
+      if (suggestionsApplied > 0) {
+        toast.success(`Applied ${suggestionsApplied} high-confidence automated fixes. Re-run validation to see the cleaned report.`);
+      } else {
+        toast.info('Cleaning pipeline ran but no high-confidence fixes were applicable to your sheet.');
+      }
     } finally {
       setIsApplyingAutoFixes(false);
     }
@@ -3685,32 +3703,25 @@ export function BatchCreator() {
   };
 
   const getValidationStats = () => {
-    // When viewMode is 'clean', compute stats from the cleaned validation results.
-    const useClean = viewMode === 'clean' && cleanValidationResults !== null;
     const stats = {
       valid: 0,
       caution: 0,
       rejected: 0,
-      total: useClean ? Object.keys(cleanValidationResults!).length : validationResults.size,
+      total: validationResults.size,
       duplicates: 0,
       missingAnswers: 0,
       formattingIssues: 0,
     };
 
-    const iterate = (result: ValidationResult) => {
+    validationResults.forEach((result) => {
       stats[result.status]++;
       const issues = result.issues || [];
       const categories = new Set(result.categories || []);
       if (issues.some((i) => i.category === 'duplicate' || i.field === 'Duplicate')) stats.duplicates++;
       if (issues.some((i) => i.field === 'Correct Answer' || i.field === 'Correct Answers')) stats.missingAnswers++;
       if (categories.has('content_quality')) stats.formattingIssues++;
-    };
+    });
 
-    if (useClean) {
-      Object.values(cleanValidationResults!).forEach(iterate);
-    } else {
-      validationResults.forEach(iterate);
-    }
     return stats;
   };
 
@@ -3725,10 +3736,7 @@ export function BatchCreator() {
 
   /** Build report-ready rows and results that include manual fixes. */
   const getReportData = () => {
-    const baseResults: Map<string, ValidationResult> =
-      viewMode === 'clean' && cleanValidationResults
-        ? new Map(Object.entries(cleanValidationResults))
-        : new Map(validationResults);
+    const baseResults: Map<string, ValidationResult> = new Map(validationResults);
 
     // Overlay manual fix results
     manualFixResults.forEach((vr, key) => baseResults.set(key, vr));
@@ -4825,7 +4833,7 @@ export function BatchCreator() {
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
     a.href    = url;
-    a.download = `annotated_${viewMode === 'clean' ? 'cleaned' : 'original'}_${Date.now()}.xlsx`;
+    a.download = `annotated_${Date.now()}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -4941,7 +4949,7 @@ export function BatchCreator() {
             <div className="space-y-3">
               <Button
                 onClick={() => navigate('/auth/register')}
-                className="w-full bg-[#003a9f] hover:bg-[#0d4a94] text-white font-medium"
+                className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-medium"
                 size="lg"
               >
                 <LogIn className="mr-2 h-4 w-4" />
@@ -5058,7 +5066,7 @@ Thank you.`;
                   rel="noopener noreferrer"
                   className="flex-1"
                 >
-                  <Button variant="outline" className="w-full border-[#003a9f] text-[#003a9f] hover:bg-[#e7eeff] hover:text-[#004fd2] gap-2">
+                  <Button variant="outline" className="w-full border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] hover:text-[#2457b8] gap-2">
                     <MessageCircle className="w-4 h-4" />
                     WhatsApp
                   </Button>
@@ -5067,7 +5075,7 @@ Thank you.`;
                   href="mailto:hello@assessmentcore.in"
                   className="flex-1"
                 >
-                  <Button variant="outline" className="w-full border-[#003a9f] text-[#003a9f] hover:bg-[#e7eeff] gap-2">
+                  <Button variant="outline" className="w-full border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] gap-2">
                     <Mail className="w-4 h-4" />
                     Email
                   </Button>
@@ -5860,7 +5868,7 @@ Thank you.`;
                         <FileText className="w-4 h-4 text-[#a45a07]" />
                       </div>
                       <p className="text-xs text-[#7a4c1b] leading-relaxed">Detailed row-level diagnostics for every question in the batch.</p>
-                      <Button type="button" onClick={handleDownloadRowLevelReport} className="mt-auto w-full bg-[#a45a07] hover:bg-[#8c4d05] text-white text-xs font-semibold">
+                      <Button type="button" onClick={handleDownloadRowLevelReport} className="mt-auto w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
                         Download Analysis
                       </Button>
                     </div>
@@ -5871,7 +5879,7 @@ Thank you.`;
                         <FileJson className="w-4 h-4 text-[#18794e]" />
                       </div>
                       <p className="text-xs text-[#1f6c4a] leading-relaxed">Spreadsheet export with validation flags and context for remediation.</p>
-                      <Button type="button" onClick={handleDownloadAnnotatedSheet} className="mt-auto w-full bg-[#18794e] hover:bg-[#136541] text-white text-xs font-semibold">
+                      <Button type="button" onClick={handleDownloadAnnotatedSheet} className="mt-auto w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
                         Download Sheet
                       </Button>
                     </div>
@@ -5898,7 +5906,7 @@ Thank you.`;
 
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={() => setCurrentStep('clean-fix')}
+                  onClick={handleProceedToCleanFix}
                   className="group px-8 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors flex items-center gap-2"
                 >
                   Proceed to Clean &amp; Fix
@@ -6371,7 +6379,7 @@ Thank you.`;
             >
               <button
                 type="button"
-                onClick={() => setCurrentStep('clean-fix')}
+                onClick={handleProceedToCleanFix}
                 className="px-6 py-2.5 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors rounded-xl"
               >
                 Back to Clean & Fix Stage
@@ -7450,7 +7458,9 @@ Thank you.`;
                       Apply high-confidence automatic fixes, then re-run validation to compare updated outcomes.
                     </p>
                     <p className="text-xs font-semibold text-[#0052CC] mt-2">
-                      {availableAutoFixCount} high-confidence fixes available
+                      {autoFixComparison?.applied
+                        ? `${availableAutoFixCount} high-confidence fixes applied`
+                        : 'Click Fix now to analyze and apply automatic fixes'}
                     </p>
                   </div>
 
@@ -7458,7 +7468,7 @@ Thank you.`;
                     <Button
                       type="button"
                       onClick={handleApplyAutomatedFixes}
-                      disabled={isApplyingAutoFixes || availableAutoFixCount === 0}
+                      disabled={isApplyingAutoFixes || editedRows.length === 0 || autoFixComparison?.applied}
                       className="px-5 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors"
                     >
                       {isApplyingAutoFixes ? (
@@ -7472,7 +7482,7 @@ Thank you.`;
                       type="button"
                       onClick={handleReRunValidationAfterAutoFix}
                       disabled={!autoFixComparison?.applied || isValidating}
-                      className="px-5 py-2.5 text-xs font-semibold text-white bg-[#18794e] hover:bg-[#136541] rounded-md shadow-sm transition-colors"
+                      className="px-5 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors"
                     >
                       {isValidating ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Re-running...</>
@@ -7549,11 +7559,8 @@ Thank you.`;
                     rows={editedRows}
                     columns={fileData?.columns || []}
                     validationResults={(() => {
-                      const base = viewMode === 'clean' && cleanValidationResults
-                        ? new Map(Object.entries(cleanValidationResults))
-                        : validationResults;
-                      if (manualFixResults.size === 0) return base;
-                      const merged = new Map(base);
+                      if (manualFixResults.size === 0) return validationResults;
+                      const merged = new Map(validationResults);
                       manualFixResults.forEach((vr, key) => merged.set(key, vr));
                       return merged;
                     })()}
@@ -7879,29 +7886,10 @@ Thank you.`;
                 <h2 className="text-lg font-bold text-[#111c2d] mb-4">2. Automated Cleaning Impact</h2>
                 <Card className="border border-[#c5c5d4] bg-gradient-to-r from-[#e7eeff] to-[#e7eeff]">
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#111c2d]">
-                      <Sparkles className="w-4 h-4 text-[#004fd2]" />
-                      Automated Cleaning Impact
-                    </CardTitle>
-                    {cleanValidationResults && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-[#454652]">View:</span>
-                        <button
-                          onClick={() => setViewMode('raw')}
-                          className={`px-2 py-1 text-xs rounded ${viewMode === 'raw' ? 'bg-[#111c2d] text-white' : 'bg-white text-[#454652] border border-[#c5c5d4] hover:bg-[#f9f9ff]'}`}
-                        >
-                          Original
-                        </button>
-                        <button
-                          onClick={() => setViewMode('clean')}
-                          className={`px-2 py-1 text-xs rounded ${viewMode === 'clean' ? 'bg-[#004fd2] text-white' : 'bg-white text-[#454652] border border-[#c5c5d4] hover:bg-[#f9f9ff]'}`}
-                        >
-                          After Cleaning
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#111c2d]">
+                    <Sparkles className="w-4 h-4 text-[#004fd2]" />
+                    Automated Cleaning Impact
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -8007,12 +7995,9 @@ Thank you.`;
                   rows={editedRows}
                   columns={fileData?.columns || []}
                   validationResults={(() => {
-                    const base = viewMode === 'clean' && cleanValidationResults
-                      ? new Map(Object.entries(cleanValidationResults))
-                      : validationResults;
                     // Overlay manual fix results so the UI reflects applied fixes
-                    if (manualFixResults.size === 0) return base;
-                    const merged = new Map(base);
+                    if (manualFixResults.size === 0) return validationResults;
+                    const merged = new Map(validationResults);
                     manualFixResults.forEach((vr, key) => merged.set(key, vr));
                     return merged;
                   })()}
@@ -8080,7 +8065,7 @@ Thank you.`;
                 <Button
                   onClick={handleDownloadValidationReport}
                   variant="outline"
-                  className="font-semibold border border-[#003a9f] text-[#003a9f] hover:bg-[#e7eeff] rounded-md"
+                  className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download PDF Report
@@ -8088,7 +8073,7 @@ Thank you.`;
                 <Button
                   onClick={handleDownloadRowLevelReport}
                   variant="outline"
-                  className="font-semibold border border-[#003a9f] text-[#003a9f] hover:bg-[#e7eeff] rounded-md"
+                  className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   Download Row Analysis
@@ -8096,7 +8081,7 @@ Thank you.`;
                 <Button
                   onClick={handleDownloadAnnotatedSheet}
                   variant="outline"
-                  className="font-semibold border border-[#003a9f] text-[#003a9f] hover:bg-[#e7eeff] rounded-md"
+                  className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download Annotated Sheet
@@ -8105,7 +8090,7 @@ Thank you.`;
                   onClick={() => setShowValidationReport(!showValidationReport)}
                   variant={showValidationReport ? "default" : "outline"}
                   className={showValidationReport
-                    ? "font-semibold bg-[#003a9f] hover:bg-[#004fd2] active:bg-[#003a9f] text-white rounded-md"
+                    ? "font-semibold bg-[#2457b8] hover:bg-[#1f4aa0] active:bg-[#2457b8] text-white rounded-md"
                     : "font-semibold border border-[#111c2d] text-[#111c2d] hover:bg-[#f0f3ff] rounded-md"
                   }
                 >
@@ -8119,7 +8104,7 @@ Thank you.`;
                   <Button
                     onClick={handleDeduplicate}
                     variant="outline"
-                    className="font-semibold border border-[#8f4600] text-[#8f4600] hover:bg-[#ffdcc6] rounded-md"
+                    className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Remove Duplicates ({stats.duplicates})
@@ -8129,37 +8114,24 @@ Thank you.`;
             </div>
 
             {/* Validation Report */}
-            {showValidationReport && fileData && (() => {
-              // When viewMode is 'clean' and clean results exist, show the
-              // post-cleaning validation results in the detail table.
-              const activeResults: Map<string, ValidationResult> =
-                viewMode === 'clean' && cleanValidationResults
-                  ? new Map(Object.entries(cleanValidationResults))
-                  : validationResults;
-              // In clean view, rows come from the cleaned dataset (cleanedRows).
-              // The ValidationReport is read-only in this mode (onDataChange is a no-op)
-              // to avoid mixing edited-raw rows with cleaned results.
-              const activeRows =
-                viewMode === 'clean' && cleanValidationResults
-                  ? editedRows  // cleaned rows aren't stored separately; use editedRows for display
-                  : editedRows;
-              return editedRows.length > 1000 ? (
+            {showValidationReport && fileData && (
+              editedRows.length > 1000 ? (
                 <ValidationReportOptimized
                   columns={fileData.columns}
-                  rows={activeRows}
-                  validationResults={activeResults}
+                  rows={editedRows}
+                  validationResults={validationResults}
                   auditResults={auditResults}
-                  onDataChange={viewMode === 'clean' ? () => {} : handleDataChange}
+                  onDataChange={handleDataChange}
                 />
               ) : (
                 <ValidationReport
                   columns={fileData.columns}
-                  rows={activeRows}
-                  validationResults={activeResults}
-                  onDataChange={viewMode === 'clean' ? () => {} : handleDataChange}
+                  rows={editedRows}
+                  validationResults={validationResults}
+                  onDataChange={handleDataChange}
                 />
-              );
-            })()}
+              )
+            )}
           </div>
 
           {/* Gate 2: AI Audit */}
@@ -8178,7 +8150,7 @@ Thank you.`;
               <Button
                 onClick={() => setCurrentStep('ai-audit')}
                 disabled={(stats.valid + stats.caution) === 0}
-                className="bg-[#003a9f] hover:bg-[#004fd2] text-white font-semibold"
+                className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-semibold"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 Run AI Audit ({stats.valid + stats.caution} rows)
@@ -8206,7 +8178,7 @@ Thank you.`;
               <Button
                 onClick={revalidateAll}
                 disabled={isValidating}
-                className="bg-[#8f4600] hover:bg-[#8f4600] text-white font-semibold rounded-md shadow-sm"
+                className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-semibold rounded-md shadow-sm"
               >
                 {isValidating ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Re-running...</>
@@ -8219,14 +8191,14 @@ Thank you.`;
               <Button
                 onClick={handleDownloadValidationReport}
                 variant="outline"
-                className="font-semibold border border-[#003a9f] text-[#003a9f] hover:bg-[#e7eeff] rounded-md"
+                className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download Report
               </Button>
               <Button
                 onClick={() => setCurrentStep('configure')}
-                className="bg-[#003a9f] hover:bg-[#004fd2] active:bg-[#003a9f] text-white font-semibold rounded-md px-6 shadow-sm"
+                className="bg-[#2457b8] hover:bg-[#1f4aa0] active:bg-[#2457b8] text-white font-semibold rounded-md px-6 shadow-sm"
               >
                 Proceed to Configure →
               </Button>
@@ -8340,7 +8312,7 @@ Thank you.`;
                     <Button
                       onClick={exportMode === 'qti-package' ? exportToQTI : exportXmlMediaFolder}
                       disabled={isExporting || (stats.valid + stats.caution) === 0}
-                      className="font-semibold px-6 rounded-md bg-[#003a9f] hover:bg-[#004fd2] active:bg-[#003a9f] text-white"
+                      className="font-semibold px-6 rounded-md bg-[#2457b8] hover:bg-[#1f4aa0] active:bg-[#2457b8] text-white"
                       size="lg"
                     >
                       {isExporting ? (

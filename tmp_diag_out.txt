@@ -1,0 +1,61 @@
+﻿
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/krish/Downloads/AC[39m
+
+[90mstdout[2m | src/app/utils/__tests__/pipelineDiagnostic.test.ts[2m > [22m[2mPipeline Diagnostic ΓÇö test1.csv[2m > [22m[2mprints validation page numbers
+[22m[39m
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+   VALIDATION PAGE ΓÇö NUMBERS (test1.csv)
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+
+  ΓöÇΓöÇ STATS CARDS ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+                             ORIGINAL       AFTER CLEANING
+  Total                      20             20
+  Γ£à Valid                    12             13
+  ΓÜá∩╕Å  Caution                0              0
+  Γ¥î Rejected                 8              7
+
+  ΓöÇΓöÇ AUTOMATED CLEANING IMPACT ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+                             ORIGINAL       AFTER CLEANING
+  Issues Before/After        20             22
+  Issues Resolved (delta)    -2             
+  Rows Improved              1              
+  Rows Degraded              0              
+  Rows Unmodified            20             
+  Effectiveness              -10%           
+  Field-level ops applied    39             
+
+  ΓöÇΓöÇ PASS 2 SAFETY ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Rows skipped (valid)       12             
+  Rows rolled back           0              
+
+  ΓöÇΓöÇ PER-ROW CHANGES ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Row 1     valid     ΓåÆ  valid
+  Row 2     valid     ΓåÆ  valid
+  Row 3     valid     ΓåÆ  valid
+  Row 4     valid     ΓåÆ  valid
+  Row 5     valid     ΓåÆ  valid
+  Row 6     rejected  Γ¼å  valid
+  Row 7     rejected  ΓåÆ  rejected
+  Row 8     valid     ΓåÆ  valid
+  Row 9     valid     ΓåÆ  valid
+  Row 10    valid     ΓåÆ  valid
+  Row 11    rejected  ΓåÆ  rejected
+  Row 12    rejected  ΓåÆ  rejected
+  Row 13    rejected  ΓåÆ  rejected
+  Row 14    valid     ΓåÆ  valid
+  Row 15    rejected  ΓåÆ  rejected
+  Row 16    valid     ΓåÆ  valid
+  Row 17    valid     ΓåÆ  valid
+  Row 18    valid     ΓåÆ  valid
+  Row 19    rejected  ΓåÆ  rejected
+  Row 20    rejected  ΓåÆ  rejected
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+
+
+ [32mΓ£ô[39m src/app/utils/__tests__/pipelineDiagnostic.test.ts[2m > [22mPipeline Diagnostic ΓÇö test1.csv[2m > [22mprints validation page numbers
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m   Start at [22m 22:28:57
+[2m   Duration [22m 5.24s[2m (transform 423ms, setup 0ms, collect 932ms, tests 233ms, environment 0ms, prepare 242ms)[22m
+

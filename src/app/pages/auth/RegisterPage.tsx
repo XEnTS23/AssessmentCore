@@ -85,7 +85,7 @@ export function RegisterPage() {
         <div className="ml-auto flex items-center gap-3 text-sm">
           <span className="text-muted-foreground">Already have an account?</span>
           <Link to="/auth/login">
-            <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-accent">
+            <Button variant="outline" size="sm" className="border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff]">
               Sign In
             </Button>
           </Link>
@@ -320,7 +320,7 @@ export function RegisterPage() {
               {/* CTA — same height/style as login */}
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary text-primary-foreground font-semibold h-12 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-semibold h-12 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                 disabled={loading || success}
               >
                 {loading ? (

@@ -1131,7 +1131,7 @@ export function DataFixingWorkspace({
                         {currentRowEditCount > 0 && (
                           <Button
                             size="sm"
-                            className="h-8 text-xs px-3 bg-[#003a9f] hover:bg-[#004fd2] text-white shadow-sm"
+                            className="h-8 text-xs px-3 bg-[#2457b8] hover:bg-[#1f4aa0] text-white shadow-sm"
                             onMouseDown={(e) => {
                               e.preventDefault(); // prevent blur from firing first
                               handleSaveRow(activeRowKey);
@@ -1291,7 +1291,7 @@ function IssueCard({
           className={`h-6 text-[10px] px-2 py-0 text-white ${
             isBlocked
               ? 'bg-[#ba1a1a] hover:bg-[#93000a]'
-              : 'bg-[#003a9f] hover:bg-[#004fd2]'
+              : 'bg-[#2457b8] hover:bg-[#1f4aa0]'
           }`}
           onClick={(e) => {
             e.stopPropagation();
@@ -1336,7 +1336,7 @@ function SuggestionActions({
     return (
       <Button
         size="sm"
-        className="h-8 text-xs bg-[#8f4600] hover:bg-[#8f4600] text-white shadow-sm"
+        className="h-8 text-xs bg-[#2457b8] hover:bg-[#1f4aa0] text-white shadow-sm"
         onClick={() =>
           wrappedApplyManualFix(suggestion.rowKey, suggestion, suggestion.suggestedValue)
         }
@@ -1386,7 +1386,7 @@ function SuggestionActions({
         <Button
           size="sm"
           disabled={!manualFixInputs.get(suggestion.rowKey)}
-          className="h-8 text-xs bg-[#8f4600] hover:bg-[#8f4600] text-white disabled:opacity-50 self-start mt-2 shadow-sm"
+          className="h-8 text-xs bg-[#2457b8] hover:bg-[#1f4aa0] text-white disabled:opacity-50 self-start mt-2 shadow-sm"
           onClick={() => {
             const val = manualFixInputs.get(suggestion.rowKey);
             if (val) wrappedApplyManualFix(suggestion.rowKey, suggestion, val);

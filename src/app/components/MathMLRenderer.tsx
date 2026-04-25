@@ -22,11 +22,10 @@ export function MathMLRenderer({ content, className = '', inline = false }: Math
       return;
     }
 
-    // Sanitize before injection — allow MathML/SVG elements, strip scripts and event handlers
+    // Sanitize before injection — allow MathML/SVG elements, strip all event handlers and dangerous tags
     const clean = DOMPurify.sanitize(content, {
       USE_PROFILES: { mathMl: true, svg: true, html: true },
-      FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+      FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'base', 'link', 'meta'],
     });
     el.innerHTML = clean;
   }, [content]);

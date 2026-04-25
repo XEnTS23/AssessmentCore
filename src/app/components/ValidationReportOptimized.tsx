@@ -22,7 +22,7 @@ import {
 } from './ui/collapsible';
 import type { ValidationResult } from '../utils/questionValidator.js';
 import { computeDataQualityMetrics } from '../utils/questionValidator.js';
-import type { AuditResult } from '../services/aiAuditService.js';
+import type { AuditResult } from '../../services/aiAuditService';
 
 interface ValidationReportProps {
   columns: string[];
@@ -139,7 +139,7 @@ export function ValidationReportOptimized({
       case 'caution':
         return 'bg-yellow-50 border-yellow-200';
       case 'rejected':
-        return 'bg-red-50 border-red-200';
+        return 'bg-destructive-light border-destructive';
       default:
         return 'bg-gray-50 border-gray-200';
     }
@@ -163,7 +163,7 @@ export function ValidationReportOptimized({
         );
       case 'rejected':
         return (
-          <Badge className="bg-red-100 text-red-800 gap-1">
+          <Badge className="bg-destructive-light text-red-800 gap-1">
             <XCircle className="w-3 h-3" />
             Rejected
           </Badge>
@@ -195,7 +195,7 @@ export function ValidationReportOptimized({
         );
       case 'LOW_CONFIDENCE_FAIL':
         return (
-          <Badge className="bg-red-100 text-red-800 gap-1">
+          <Badge className="bg-destructive-light text-red-800 gap-1">
             <XCircle className="w-3 h-3" />
             Rejected
           </Badge>
@@ -273,7 +273,7 @@ export function ValidationReportOptimized({
               <Badge className="bg-yellow-100 text-yellow-800">
                 {stats.cautionCount} Caution
               </Badge>
-              <Badge className="bg-red-100 text-red-800">
+              <Badge className="bg-destructive-light text-red-800">
                 {stats.rejectedCount} Rejected
               </Badge>
             </div>
@@ -311,7 +311,7 @@ export function ValidationReportOptimized({
                       ))}
                       <button
                         onClick={addCustomColumn}
-                        className="text-blue-600 hover:text-blue-800 border-r border-gray-300 px-3 py-2 font-semibold bg-gray-50 text-sm"
+                        className="text-primary hover:text-blue-800 border-r border-gray-300 px-3 py-2 font-semibold bg-gray-50 text-sm"
                         title="Add custom column"
                       >
                         <Plus className="w-5 h-5" />
@@ -336,12 +336,12 @@ export function ValidationReportOptimized({
                         const rowKey = getRowValidationKey(row, absoluteIndex);
                         const validation = validationResults.get(rowKey);
                         const isSelected = selectedRowKey === rowKey;
-                        const statusColor = validation ? getStatusColor(validation.status) : 'bg-white';
+                        const statusColor = validation ? getStatusColor(validation.status) : 'bg-card';
 
                         return (
                           <tr
                             key={rowKey}
-                            className={isSelected ? `border-b-2 border-blue-500 bg-blue-50 transition-colors` : `border-b border-gray-200 ${statusColor} transition-colors`}
+                            className={isSelected ? `border-b-2 border-blue-500 bg-primary-light transition-colors` : `border-b border-gray-200 ${statusColor} transition-colors`}
                           >
                             <td className="border-r border-gray-300 px-3 py-2 text-center bg-gray-50 font-medium">
                               {absoluteIndex + 1}
@@ -356,7 +356,7 @@ export function ValidationReportOptimized({
                               return (
                                 <td
                                   key={`${rowKey}-${col}`}
-                                  className={`border-r border-gray-300 px-3 py-2 cursor-pointer hover:bg-blue-50 max-w-xs overflow-hidden text-ellipsis ${hasErrorMsg ? 'bg-red-50' : ''}`}
+                                  className={`border-r border-gray-300 px-3 py-2 cursor-pointer hover:bg-primary-light max-w-xs overflow-hidden text-ellipsis ${hasErrorMsg ? 'bg-destructive-light' : ''}`}
                                   onClick={() => {
                                     if (onRowClick) onRowClick(rowKey);
                                     if (!isEditing) {
@@ -369,7 +369,7 @@ export function ValidationReportOptimized({
                                     <span className={`text-xs ${hasErrorMsg ? 'text-red-900 font-medium' : ''}`}>
                                       {String(cellValue || '').substring(0, 100)}
                                     </span>
-                                    {hasErrorMsg && <AlertCircle className="w-3 h-3 text-red-500 ml-1 shrink-0" />}
+                                    {hasErrorMsg && <AlertCircle className="w-3 h-3 text-destructive ml-1 shrink-0" />}
                                   </div>
                                 </td>
                               );
@@ -387,7 +387,7 @@ export function ValidationReportOptimized({
                               {validation && (
                                 <div className="text-xs text-gray-600">
                                   {validation.errorCount > 0 && (
-                                    <span className="text-red-600 font-semibold">{validation.errorCount}e</span>
+                                    <span className="text-destructive font-semibold">{validation.errorCount}e</span>
                                   )}
                                   {validation.warningCount > 0 && (
                                     <span className={validation.errorCount > 0 ? 'ml-1 text-yellow-600' : 'text-yellow-600'}>
@@ -467,7 +467,7 @@ export function ValidationReportOptimized({
                         </Button>
                         <Button
                           onClick={saveEdit}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-primary hover:bg-blue-700"
                         >
                           Save
                         </Button>

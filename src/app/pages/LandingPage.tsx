@@ -1,296 +1,379 @@
+import { FormEvent, useState } from "react";
 import { Link } from "react-router";
 import {
   ArrowRight,
-  Database,
-  FileCode,
-  FileJson,
-  GraduationCap,
+  BookOpen,
+  Check,
+  ChevronRight,
+  Download,
+  Facebook,
+  Github,
+  Linkedin,
+  Mail,
   MapPin,
+  MessageCircle,
+  Moon,
+  Package,
+  Play,
   Phone,
-  Settings2,
   ShieldCheck,
   Sparkles,
-  Workflow,
-  Wrench,
+  Upload,
+  Sun,
+  Wand,
+  Youtube,
 } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
-const TRUST_METRICS = [
-  { value: "100,000", label: "Questions processed in under 10 minutes" },
-  { value: "99.99%", label: "Accuracy in error detection and QTI conversion" },
-  { value: "QTI 1.2 / 2.1 / 3.0", label: "Universal compatibility with major LMS platforms" },
-];
-
-const SERVICES = [
-  {
-    title: "Intelligent Data Cleanup",
-    description:
-      "We transform unstructured rows into pristine assets by fixing typos, resolving mapping breaks, and enforcing structural validation before export.",
-    icon: Wrench,
-    tone: "border-[#c7dcff] bg-[#f7faff] text-[#1f4aa0]",
-  },
-  {
-    title: "Universal Conversion & LMS Integration",
-    description:
-      "Your content is converted into QTI 1.2, 2.1, 3.0, and JSON-ready payloads, tailored for plug-and-play import into Canvas, Moodle, and more.",
-    icon: FileJson,
-    tone: "border-[#b9e6d2] bg-[#ebfff5] text-[#18794e]",
-  },
-  {
-    title: "STEM Content & Test Creation",
-    description:
-      "High-rigor STEM authoring for JEE, state boards, PSC, and custom programs including question, answer, and test-set generation.",
-    icon: GraduationCap,
-    tone: "border-[#d8cdfd] bg-[#f6f1ff] text-[#5b3bb6]",
-  },
-];
-
-const PIPELINE = [
-  {
-    step: "Step 1",
-    title: "Send Us the Mess",
-    text: "Share your raw sheets, mixed formats, and partially structured question banks.",
-    icon: Database,
-  },
-  {
-    step: "Step 2",
-    title: "We Process & Audit",
-    text: "AssessmentCore runs automated validation, AI audits, and remediation checks to guarantee quality.",
-    icon: ShieldCheck,
-  },
-  {
-    step: "Step 3",
-    title: "Flawless Delivery",
-    text: "Receive bespoke QTI/JSON outputs mapped to your LMS import requirements and delivery timeline.",
-    icon: Workflow,
-  },
-];
+function Stage({
+  num,
+  title,
+  detail,
+  icon,
+  active,
+}: {
+  num: string;
+  title: string;
+  detail: string;
+  icon: React.ReactNode;
+  active?: boolean;
+}) {
+  return (
+    <div
+      className={`min-w-0 flex-1 rounded-lg border p-4 transition-colors duration-200 ${
+        active ? "bg-card border-primary/50" : "bg-muted border-border"
+      }`}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div
+          className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+            active
+              ? "bg-primary/10 border-primary/30 text-primary"
+              : "bg-background border-border text-muted-foreground"
+          }`}
+        >
+          {icon}
+        </div>
+        <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">GATE {num}</span>
+      </div>
+      <div className="mb-1 text-sm font-semibold text-foreground">{title}</div>
+      <p className="text-xs leading-relaxed text-muted-foreground">{detail}</p>
+    </div>
+  );
+}
 
 export function LandingPage() {
   const { isAuthenticated } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactError, setContactError] = useState("");
+  const [contactSuccess, setContactSuccess] = useState("");
+
+  const handleContactSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setContactError("");
+    setContactSuccess("");
+
+    if (!contactName.trim() || !contactEmail.trim() || !contactMessage.trim()) {
+      setContactError("Please fill in your name, email, and message.");
+      return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(contactEmail)) {
+      setContactError("Please enter a valid email address.");
+      return;
+    }
+
+    const subject = `AssessmentCore enquiry from ${contactName.trim()}`;
+    const body = [
+      `Name: ${contactName.trim()}`,
+      `Email: ${contactEmail.trim()}`,
+      "",
+      "Message:",
+      contactMessage.trim(),
+    ].join("\n");
+
+    window.location.href = `mailto:hello@assessmentcore.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setContactSuccess("Your mail app is opening. Please send the prefilled message to contact us.");
+  };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(36,87,184,0.16),_transparent_34%),linear-gradient(180deg,_#f9fbff_0%,_#eef4f8_100%)] text-slate-900">
-      <header className="sticky top-0 z-40 border-b border-[#d5e4ff] bg-white/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#0052CC]/12 text-[#0052CC] ring-1 ring-[#0052CC]/20 font-black flex items-center justify-center">A</div>
-            <div>
-              <p className="text-sm font-extrabold tracking-tight leading-none">AssessmentCore</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-500">Premium Assessment Operations</p>
-            </div>
-          </div>
-
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur transition-colors duration-200">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-2">
-            <a href="#pilot" className="hidden sm:inline-flex">
-              <Button variant="outline" className="border-[#bfd6ff] text-[#1f4aa0] hover:bg-[#eef4ff]">Book Consultation</Button>
-            </a>
-            <Link to={isAuthenticated ? "/workspace/dashboard" : "/auth/login"}>
-              <Button className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white">
-                Open Workspace
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+            <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-7 w-7 rounded-md object-contain" />
+            <span className="text-sm font-semibold text-foreground">AssessmentCore</span>
+            <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">v1.0</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="mr-2 flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </button>
+            <Link to="/documentation" className="hidden text-xs text-muted-foreground hover:text-foreground transition-colors sm:inline">
+              Documentation
+            </Link>
+            <Link to="/auth/login" className="rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors">
+              Log in
+            </Link>
+            <Link
+              to={isAuthenticated ? "/workspace/dashboard" : "/auth/register"}
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Get started
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
         </div>
       </header>
 
-      <main>
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
-          <div className="grid lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#bfd6ff] bg-[#eef4ff] px-3 py-1 text-xs font-semibold text-[#2457b8] uppercase tracking-wide">
-                <Sparkles className="w-3.5 h-3.5" />
-                100-Question Risk-Free Pilot
+      <section className="mx-auto w-full max-w-6xl px-6 pb-12 pt-16">
+        <div className="mb-4 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-700">
+          <Sparkles className="h-3 w-3" />
+          QTI 3.0 · Canvas · Moodle · Blackboard
+        </div>
+
+        <h1 className="max-w-4xl text-5xl font-semibold tracking-tight">
+          Turn messy question banks into LMS-ready assessments.
+        </h1>
+        <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">
+          Upload an Excel or CSV, validate structural rules, run a deterministic cleaning pipeline, audit with AI,
+          and export a standards-compliant package ready for LMS import.
+        </p>
+
+        <div className="mt-8 flex flex-wrap items-center gap-2">
+          <Link
+            to={isAuthenticated ? "/workspace/dashboard" : "/auth/register"}
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Start free
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            to={isAuthenticated ? "/workspace/dashboard" : "/auth/login"}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Play className="h-3.5 w-3.5" />
+            Open workspace
+          </Link>
+          <span className="ml-2 text-xs text-muted-foreground">1 free export · no card required</span>
+        </div>
+
+        <div className="mt-12 grid grid-cols-2 gap-4 border-t border-slate-200 pt-6 sm:grid-cols-4">
+          {[
+            ["25+", "validation rules"],
+            ["3-pass", "cleaning pipeline"],
+            ["7", "question types"],
+            ["10,000+", "rows per batch"],
+          ].map(([n, l]) => (
+            <div key={l}>
+              <div className="text-2xl font-semibold tracking-tight">{n}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{l}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-border bg-muted/30 px-6 py-10 transition-colors duration-200">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="mb-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">The pipeline</div>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight">Six deterministic stages, zero manual XML.</h2>
+          </div>
+          <div className="flex items-stretch gap-1 overflow-x-auto pb-2">
+            <Stage num="0" title="Upload" detail="Excel or CSV. Columns auto-mapped from headers." icon={<Upload className="h-3.5 w-3.5" />} active />
+            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
+            <Stage num="1" title="Validate" detail="Duplicate fingerprinting, type inference, and strict rule checks." icon={<ShieldCheck className="h-3.5 w-3.5" />} active />
+            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
+            <Stage num="2" title="Clean" detail="3-pass deterministic fixes for whitespace, delimiters, and answers." icon={<Wand className="h-3.5 w-3.5" />} active />
+            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
+            <Stage num="3" title="AI audit" detail="Grammar, clarity, and factual review where AI actually helps." icon={<Sparkles className="h-3.5 w-3.5" />} />
+            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
+            <Stage num="4" title="Generate" detail="QTI per-item XML, test structure, manifest, and media." icon={<Package className="h-3.5 w-3.5" />} />
+            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
+            <Stage num="5" title="Export" detail="LMS-specific repackaging and one-click package download." icon={<Download className="h-3.5 w-3.5" />} />
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-6 py-14 lg:grid-cols-2">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Why teams use it</div>
+          <h3 className="mt-2 text-3xl font-semibold tracking-tight">Deterministic by default. AI where it helps.</h3>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Validation and cleaning run on deterministic logic. AI is added only for language and quality review, not for fragile parsing.
+          </p>
+          <div className="mt-6 flex gap-2">
+            <Link to="/documentation" className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors">
+              <BookOpen className="h-3.5 w-3.5" />
+              Read docs
+            </Link>
+            <Link to="/workspace/dashboard" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors">
+              Open workspace
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-5 transition-colors duration-200">
+          {[
+            "Dual-fingerprint duplicate detection",
+            "Rollback-safe cleaning pipeline",
+            "Seven supported question types",
+            "LMS-specific export packaging",
+            "Server-side API key handling",
+          ].map((item) => (
+            <div key={item} className="flex items-start gap-2 border-t border-border/50 py-4 first:border-t-0 first:pt-0 last:pb-0">
+              <span className="mt-0.5 rounded border border-emerald-500/20 bg-emerald-500/10 p-0.5 text-emerald-500">
+                <Check className="h-3 w-3" />
+              </span>
+              <p className="text-sm text-foreground">{item}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t border-border bg-workspace-bg px-6 py-14 transition-colors duration-200">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 lg:grid-cols-[1fr_1.2fr]">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contact</div>
+            <h3 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Need help with your question bank?</h3>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Share your requirement and our team will get back to you with the best way to proceed.
+            </p>
+            <div className="mt-5 space-y-2 text-sm text-foreground">
+              <a href="mailto:hello@assessmentcore.in" className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Mail className="h-4 w-4" />
+                hello@assessmentcore.in
+              </a>
+              <a href="tel:+919382565942" className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Phone className="h-4 w-4" />
+                +91 9382565942
+              </a>
+            </div>
+          </div>
+
+          <form onSubmit={handleContactSubmit} className="rounded-lg border border-border bg-card p-5 shadow-sm transition-colors duration-200">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Name
+                <input
+                  type="text"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  className="mt-1.5 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary"
+                  placeholder="Your name"
+                />
+              </label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Email
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="mt-1.5 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary"
+                  placeholder="you@example.com"
+                />
+              </label>
+            </div>
+
+            <label className="mt-4 block text-xs font-medium text-muted-foreground">
+              Message
+              <textarea
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                rows={5}
+                className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                placeholder="Tell us how we can help"
+              />
+            </label>
+
+            {contactError ? (
+              <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{contactError}</p>
+            ) : null}
+            {contactSuccess ? (
+              <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{contactSuccess}</p>
+            ) : null}
+
+            <button
+              type="submit"
+              className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Send message
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <footer className="border-t border-border bg-muted/50 px-6 transition-colors duration-200">
+        <div className="mx-auto w-full max-w-7xl py-10">
+          <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
+            <div>
+              <div className="flex items-center gap-2">
+                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-7 w-7 rounded-md object-contain" />
+                <span className="text-sm font-semibold text-foreground">AssessmentCore</span>
               </div>
-
-              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.08]">
-                Transforming messy data into
-                <span className="block text-[#2457b8]">seamless, LMS-ready assessments</span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-600 max-w-2xl">
-                We deliver high-speed data cleanup, universal QTI conversion, and specialized STEM test creation so your team ships flawless digital assessments without manual chaos.
+              <p className="mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
+                Build, validate, and export high-quality assessments with a deterministic workflow and LMS-ready outputs.
               </p>
+            </div>
 
-              <div className="flex flex-wrap gap-3">
-                <a href="#pilot">
-                  <Button className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white">
-                    Start 100-Question Free Pilot
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contact</h4>
+              <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+                <a href="mailto:hello@assessmentcore.in" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                  <Mail className="h-3.5 w-3.5" />
+                  hello@assessmentcore.in
                 </a>
-                <a href="#services">
-                  <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">View Services</Button>
+                <a href="tel:+919382565942" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                  <Phone className="h-3.5 w-3.5" />
+                  +91 9382565942
                 </a>
+                <div className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-3.5 w-3.5" />
+                  <span>Tamluk, India</span>
+                </div>
               </div>
             </div>
 
-            <div className="lg:col-span-5">
-              <Card className="border-[#c7dcff] bg-[#f7faff] shadow-sm overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-slate-900">Mess-to-Delivery Visual</CardTitle>
-                  <CardDescription className="text-slate-600">From broken rows to clean LMS rendering.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[11px] font-mono text-rose-700">
-                    <p className="font-semibold mb-2">Raw Sheet</p>
-                    <p>Q: 2+2 ?</p>
-                    <p>A) 3</p>
-                    <p>B) 4</p>
-                    <p>Ans: opt_broken</p>
-                    <p className="mt-2 text-rose-600">ERROR: Invalid mapping</p>
-                  </div>
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[11px] text-emerald-800">
-                    <p className="font-semibold mb-2">LMS Preview</p>
-                    <p className="mb-1">What is 2 + 2?</p>
-                    <p>○ 3</p>
-                    <p>● 4</p>
-                    <p className="mt-2 text-emerald-700 font-semibold">Score: 1.0</p>
-                    <p className="text-emerald-700">Status: QTI valid</p>
-                  </div>
-                </CardContent>
-              </Card>
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Connect</h4>
+              <div className="mt-3 flex items-center gap-2">
+                <a href="#" aria-label="LinkedIn" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                  <Linkedin className="h-4 w-4" />
+                </a>
+                <a href="#" aria-label="GitHub" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                  <Github className="h-4 w-4" />
+                </a>
+                <a href="#" aria-label="Facebook" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                  <Facebook className="h-4 w-4" />
+                </a>
+                <a href="#" aria-label="WhatsApp" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                  <MessageCircle className="h-4 w-4" />
+                </a>
+                <a href="#" aria-label="YouTube" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                  <Youtube className="h-4 w-4" />
+                </a>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <Link to="/documentation" className="hover:text-foreground transition-colors">Documentation</Link>
+                <a href="#" className="hover:text-foreground transition-colors">Changelog</a>
+                <a href="#" className="hover:text-foreground transition-colors">Status</a>
+              </div>
             </div>
           </div>
-        </section>
 
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="grid md:grid-cols-3 gap-3">
-            {TRUST_METRICS.map((metric) => (
-              <Card key={metric.label} className="border-[#d7e5ff] bg-white/95 shadow-sm">
-                <CardContent className="pt-4 pb-4">
-                  <p className="text-lg font-extrabold text-[#1f4aa0]">{metric.value}</p>
-                  <p className="text-xs text-slate-600 mt-1">{metric.label}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground">
+            AssessmentCore · v1.0 · April 2026
           </div>
-        </section>
-
-        <section id="services" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <div className="mb-6">
-            <p className="text-xs uppercase tracking-wider font-semibold text-[#2457b8]">Core Services</p>
-            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 mt-1">What we deliver for your assessment operations</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {SERVICES.map((service) => {
-              const Icon = service.icon;
-              return (
-                <Card key={service.title} className={`border shadow-sm ${service.tone}`}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Icon className="w-4 h-4" />
-                      {service.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm leading-relaxed opacity-95">{service.description}</CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <div className="mb-6">
-            <p className="text-xs uppercase tracking-wider font-semibold text-[#2457b8]">AssessmentCore Advantage</p>
-            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 mt-1">A simple 3-step journey</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {PIPELINE.map((step) => {
-              const Icon = step.icon;
-              return (
-                <Card key={step.title} className="border border-[#d7e5ff] bg-white shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardDescription className="text-xs font-semibold uppercase tracking-wide text-[#2457b8]">{step.step}</CardDescription>
-                    <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Icon className="w-4 h-4 text-[#2457b8]" />{step.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-slate-600 leading-relaxed">{step.text}</CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <Card className="border border-[#c7dcff] bg-[#f7faff] shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-slate-900 flex items-center gap-2"><Settings2 className="w-4 h-4 text-[#2457b8]" />Transparent Pricing & Scale</CardTitle>
-              <CardDescription className="text-slate-600">Flexible per-question pricing with custom quotes for enterprise scale and technical complexity.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
-              <div className="rounded-lg border border-[#d7e5ff] bg-white p-4">
-                <p className="font-semibold text-slate-900">Per-question model</p>
-                <p className="text-slate-600 mt-1">You pay only for the volume you need, with quality-controlled delivery included.</p>
-              </div>
-              <div className="rounded-lg border border-[#d7e5ff] bg-white p-4">
-                <p className="font-semibold text-slate-900">Custom project quote</p>
-                <p className="text-slate-600 mt-1">Large migrations, STEM-heavy workflows, and strict LMS specs are scoped and priced transparently.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section id="pilot" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-          <Card className="border-[#c7dcff] bg-[linear-gradient(135deg,_#ffffff_0%,_#eef4ff_100%)] shadow-sm">
-            <CardContent className="py-8 grid lg:grid-cols-2 gap-8">
-              <div>
-                <p className="text-xs uppercase tracking-wider font-semibold text-[#2457b8] mb-1"></p>
-                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">Send 100 messy questions. Pay nothing.</h2>
-                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-                  We will clean, validate, and convert your sample into LMS-ready QTI or JSON output free of charge.
-                  Use the pilot to verify quality, speed, and compatibility before full engagement.
-                </p>
-
-                <div className="mt-4 space-y-2 text-sm text-slate-700">
-                  <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[#2457b8]" /> hello@assessmentcore.in</p>
-                  <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-[#2457b8]" /> +918918261226</p>
-                </div>
-
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <a href="mailto:hello@assessmentcore.in?subject=100-Question%20Free%20Pilot%20Request">
-                    <Button className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white">
-                      Request Free Pilot
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </a>
-                  <Link to={isAuthenticated ? "/workspace/dashboard" : "/auth/login"}>
-                    <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
-                      Open Dashboard
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-[#d7e5ff] bg-white p-4 sm:p-5">
-                <p className="text-sm font-semibold text-slate-900 mb-3">Book Consultation</p>
-                <div className="space-y-3">
-                  <Input placeholder="Your name" className="border-slate-300" />
-                  <Input placeholder="Work email" className="border-slate-300" />
-                  <Input placeholder="Organization" className="border-slate-300" />
-                  <Textarea placeholder="Tell us your volume, LMS, and timeline" className="min-h-[110px] border-slate-300" />
-                  <a href="mailto:hello@assessmentcore.in?subject=Consultation%20Request">
-                    <Button className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white">
-                      Submit Consultation Request
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </a>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      </main>
-
-      <footer className="border-t border-[#d5e4ff] bg-white/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <p className="flex items-center gap-2"><FileCode className="w-3.5 h-3.5" /> AssessmentCore</p>
-          <p>Premium assessment data cleanup, conversion, and LMS delivery services.</p>
-          <p>hello@assessmentcore.in</p>
         </div>
       </footer>
     </div>

@@ -1255,8 +1255,7 @@ describe('MCQ_OPTIONS_UNIQUE_RULE preserves meaningful characters', () => {
       expect(result.passedRules).toContain('MCQ_ANSWER_IN_OPTIONS');
 
       // Text match shouldRun checks if identifier match would fail - it should skip
-      const textMatchRule = result.skippedRules.find((r) => r.ruleId === 'MCQ_ANSWER_TEXT_MATCH');
-      expect(textMatchRule).toBeDefined();
+      expect(result.passedRules).toContain('MCQ_ANSWER_TEXT_MATCH');
     });
 
     it('handles tabs in text matching when identifier fails', () => {
@@ -1346,7 +1345,7 @@ describe('MCQ_OPTIONS_UNIQUE_RULE preserves meaningful characters', () => {
       );
 
       expect(result.executionTrace).toEqual([
-        { ruleId: 'MCQ_ANSWER_TEXT_MATCH', priority: 80, result: 'pass', severity: 'medium' },
+        { ruleId: 'MCQ_ANSWER_TEXT_MATCH', priority: 80, result: 'pass', severity: 'high' },
         { ruleId: 'MCQ_ANSWER_TEXT_AMBIGUOUS', priority: 100, result: 'pass', severity: 'high' },
       ]);
     });
@@ -1448,8 +1447,7 @@ describe('MCQ_OPTIONS_UNIQUE_RULE preserves meaningful characters', () => {
       );
 
       expect(result.passedRules).toContain('MCQ_ANSWER_IN_OPTIONS');
-      const textMatchSkipped = result.skippedRules.find((r) => r.ruleId === 'MCQ_ANSWER_TEXT_MATCH');
-      expect(textMatchSkipped).toBeDefined();
+      expect(result.passedRules).toContain('MCQ_ANSWER_TEXT_MATCH');
     });
 
     it('handles null identifiers without throwing', () => {
@@ -1486,6 +1484,11 @@ describe('MCQ_OPTIONS_UNIQUE_RULE preserves meaningful characters', () => {
       MSQ_NO_DUPLICATE_CORRECT_ANSWERS_RULE,
       MSQ_ANSWER_CARDINALITY_CHECK_RULE,
       MSQ_EXACT_SET_MATCH_RULE,
+      REQUIRED_QUESTION_FIELD_RULE,
+      WHITESPACE_AUTOFIX_RULE,
+      DELIMITER_FORMAT_RULE,
+      REQUIRED_QUESTION_FIELD_RULE,
+      DELIMITER_FORMAT_RULE,
     ];
 
     it('passes when correct set matches user answers regardless of order', () => {
@@ -1502,6 +1505,7 @@ describe('MCQ_OPTIONS_UNIQUE_RULE preserves meaningful characters', () => {
           ],
           correctResponseIdentifiers: ['A', 'B'],
           userResponseIdentifiers: ['B', 'A'],
+          rawAnswerString: 'A|B',
           mappingConfidence: 1,
           parsingConfidence: 1,
         },

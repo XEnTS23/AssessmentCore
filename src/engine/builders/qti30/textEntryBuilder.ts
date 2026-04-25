@@ -45,6 +45,38 @@ class TextEntryBuilder30 implements QuestionBuilder {
     const escapedTitle = escapeXml(stripMath(question.stem).substring(0, 100));
     const stemContent = convertTextWithMath(question.stem);
     const escapedAnswer = escapeXml(question.correct_answer);
+    const explanation = String(question.explanation ?? '').trim();
+    const explanationContent = explanation ? convertTextWithMath(explanation) : '';
+
+    const feedbackOutcomeDeclaration = explanation
+      ? `
+  <outcomeDeclaration identifier="FEEDBACK" cardinality="single" baseType="identifier">
+    <defaultValue>
+      <value>CORRECT</value>
+    </defaultValue>
+  </outcomeDeclaration>`
+      : '';
+
+    const feedbackBlocks = explanation
+      ? `
+  <modalFeedback outcomeIdentifier="FEEDBACK" identifier="INCORRECT" showHide="show">
+    <p>${explanationContent}</p>
+  </modalFeedback>`
+      : '';
+
+    const feedbackOnCorrect = explanation
+      ? `
+        <setOutcomeValue identifier="FEEDBACK">
+          <baseValue baseType="identifier">CORRECT</baseValue>
+        </setOutcomeValue>`
+      : '';
+
+    const feedbackOnIncorrect = explanation
+      ? `
+        <setOutcomeValue identifier="FEEDBACK">
+          <baseValue baseType="identifier">INCORRECT</baseValue>
+        </setOutcomeValue>`
+      : '';
 
     // Calculate expected length based on answer length
     const answerLength = question.correct_answer.length;
@@ -70,7 +102,7 @@ class TextEntryBuilder30 implements QuestionBuilder {
     <defaultValue>
       <value>0</value>
     </defaultValue>
-  </outcomeDeclaration>
+  </outcomeDeclaration>${feedbackOutcomeDeclaration}
 
   <itemBody>
     <div>
@@ -79,7 +111,7 @@ class TextEntryBuilder30 implements QuestionBuilder {
         <prompt>Enter your answer:</prompt>
       </textEntryInteraction>
     </div>
-  </itemBody>
+  </itemBody>${feedbackBlocks}
 
   <responseProcessing>
     <responseCondition>
@@ -90,12 +122,12 @@ class TextEntryBuilder30 implements QuestionBuilder {
         </stringMatch>
         <setOutcomeValue identifier="SCORE">
           <baseValue baseType="float">1.0</baseValue>
-        </setOutcomeValue>
+        </setOutcomeValue>${feedbackOnCorrect}
       </responseIf>
       <responseElse>
         <setOutcomeValue identifier="SCORE">
           <baseValue baseType="float">0.0</baseValue>
-        </setOutcomeValue>
+        </setOutcomeValue>${feedbackOnIncorrect}
       </responseElse>
     </responseCondition>
   </responseProcessing>

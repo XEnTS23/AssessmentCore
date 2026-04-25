@@ -2,10 +2,20 @@
 // Performs semantic quality audit on a single assessment question row using OpenRouter.
 // OPENROUTER_API_KEY is read from server-side secrets — never exposed to the browser.
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = [
+  'https://assessmentcore.vercel.app',
+  ...(Deno.env.get('ALLOWED_ORIGIN') ? [Deno.env.get('ALLOWED_ORIGIN')!] : []),
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') ?? '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Vary': 'Origin',
+  };
+}
 
 interface AuditIssue {
   issue_type: 'grammar' | 'logic' | 'clarity' | 'factual';
@@ -210,8 +220,10 @@ function isGenericStemHallucination(issues: AuditIssue[]): boolean {
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS });
+    return new Response('ok', { headers: CORS });
   }
 
   try {
@@ -228,7 +240,7 @@ Deno.serve(async (req: Request) => {
     if (rowKey == null || stem == null) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: rowKey, stem' }),
-        { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -350,7 +362,7 @@ Rules:
     }
 
     return new Response(JSON.stringify(result), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -369,7 +381,7 @@ Rules:
       error: message,
     };
     return new Response(JSON.stringify(fallback), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

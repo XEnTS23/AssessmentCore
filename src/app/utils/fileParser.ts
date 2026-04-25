@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import Papa from 'papaparse';
 
 export interface ParsedFileData {
@@ -48,70 +48,129 @@ export async function parseFile(file: File): Promise<ParsedFileData> {
 }
 
 /**
- * Parse XLSX file
+ * Normalize an ExcelJS cell value to a simple JS primitive.
+ * Handles rich text, hyperlinks, formula results, errors, and dates.
  */
-function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result as ArrayBuffer;
-        const workbook = XLSX.read(data, { type: 'array' });
+function normalizeCellValue(cell: ExcelJS.Cell): unknown {
+  const val = cell.value;
+  if (val == null) return undefined;
 
-        // Try each sheet in order; use the first one that has at least 1 data row.
-        let jsonData: Record<string, any>[] = [];
-        let usedSheet = '';
-        for (const sheetName of workbook.SheetNames) {
-          const worksheet = workbook.Sheets[sheetName];
-          const candidate = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
-          if (candidate.length > 0) {
-            jsonData = candidate;
-            usedSheet = sheetName;
-            break;
-          }
+  // Rich text → concatenate all text runs
+  if (typeof val === 'object' && 'richText' in val) {
+    return (val as ExcelJS.CellRichTextValue).richText
+      .map((r) => r.text)
+      .join('');
+  }
+
+  // Hyperlink → return the display text or the hyperlink itself
+  if (typeof val === 'object' && 'hyperlink' in val) {
+    return (val as ExcelJS.CellHyperlinkValue).text || (val as ExcelJS.CellHyperlinkValue).hyperlink;
+  }
+
+  // Formula → return the computed result
+  if (typeof val === 'object' && 'formula' in val) {
+    return (val as ExcelJS.CellFormulaValue).result ?? '';
+  }
+
+  // Error → return empty string
+  if (typeof val === 'object' && 'error' in val) {
+    return '';
+  }
+
+  // Date → ISO string
+  if (val instanceof Date) {
+    return val.toISOString();
+  }
+
+  return val;
+}
+
+/**
+ * Parse XLSX file using ExcelJS
+ */
+async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> {
+  const arrayBuffer = await file.arrayBuffer();
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(arrayBuffer);
+
+  // Try each sheet in order; use the first one that has at least 1 data row.
+  let jsonData: Record<string, any>[] = [];
+  let usedSheet = '';
+
+  for (const worksheet of workbook.worksheets) {
+    if (!worksheet || worksheet.rowCount < 2) continue; // need header + at least 1 data row
+
+    const headers: string[] = [];
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      headers[colNumber] = String(normalizeCellValue(cell) ?? `Column${colNumber}`).trim();
+    });
+
+    if (headers.filter(Boolean).length === 0) continue;
+
+    const rows: Record<string, any>[] = [];
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return; // skip header row
+
+      const rowObj: Record<string, any> = {};
+      let hasValue = false;
+
+      row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+        const header = headers[colNumber];
+        if (!header) return;
+        const val = normalizeCellValue(cell);
+        if (val !== undefined && val !== '') {
+          rowObj[header] = val;
+          hasValue = true;
         }
+      });
 
-        if (jsonData.length === 0) {
-          const tried = workbook.SheetNames.join(', ') || '(none)';
-          reject(new Error(`No data found in the sheet. Tried: ${tried}. Make sure the file has at least one row of data below the header.`));
-          return;
-        }
+      if (hasValue) rows.push(rowObj);
+    });
 
-        console.log(`[fileParser] Using sheet "${usedSheet}" (${jsonData.length} rows)`);
+    if (rows.length > 0) {
+      jsonData = rows;
+      usedSheet = worksheet.name;
+      break;
+    }
+  }
 
-        // Extract columns from first row
-        const columns = Object.keys(jsonData[0]);
+  if (jsonData.length === 0) {
+    const tried = workbook.worksheets.map((ws) => ws.name).join(', ') || '(none)';
+    throw new Error(`No data found in the sheet. Tried: ${tried}. Make sure the file has at least one row of data below the header.`);
+  }
 
-        // Add compatibility id fallback, but preserve whether source id was explicitly missing.
-        const rows = jsonData.map((rawRow, index) => {
-          const row = sanitizeRow(rawRow);
-          const idKey = Object.keys(row).find((key) => key.toLowerCase() === 'id');
-          const sourceIdRaw = idKey ? row[idKey] : undefined;
-          const sourceIdNormalized = sourceIdRaw == null ? '' : String(sourceIdRaw).trim();
-          const explicitIdMissing = sourceIdNormalized.length === 0;
+  if (import.meta.env.DEV) {
+    console.log(`[fileParser] Using sheet "${usedSheet}" (${jsonData.length} rows)`);
+  }
 
-          return {
-            ...row,
-            id: explicitIdMissing ? `row_${index}` : sourceIdRaw,
-            __sourceRowNumber: index + 1,
-            __sourceIdRaw: sourceIdRaw ?? '',
-            __explicitIdMissing: explicitIdMissing,
-          };
-        });
+  // Extract columns from first row
+  const columns = Object.keys(jsonData[0]);
 
-        resolve({
-          columns,
-          rows,
-          fileName,
-          fileType: 'xlsx',
-        });
-      } catch (error) {
-        reject(new Error(`Failed to parse XLSX file: ${error}`));
-      }
+  // Add compatibility id fallback, but preserve whether source id was explicitly missing.
+  const rows = jsonData.map((rawRow, index) => {
+    const row = sanitizeRow(rawRow);
+    const idKey = Object.keys(row).find((key) => key.toLowerCase() === 'id');
+    const sourceIdRaw = idKey ? row[idKey] : undefined;
+    const sourceIdNormalized = sourceIdRaw == null ? '' : String(sourceIdRaw).trim();
+    const explicitIdMissing = sourceIdNormalized.length === 0;
+
+    return {
+      ...row,
+      id: explicitIdMissing ? `row_${index}` : sourceIdRaw,
+      __sourceRowNumber: index + 1,
+      __sourceIdRaw: sourceIdRaw ?? '',
+      __explicitIdMissing: explicitIdMissing,
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsArrayBuffer(file);
   });
+
+  return {
+    columns,
+    rows,
+    fileName,
+    fileType: 'xlsx',
+  };
 }
 
 /**
@@ -177,9 +236,16 @@ export function detectQuestionColumns(columns: string[]): {
   titleCol?: string;
   subjectCol?: string;
   topicCol?: string;
+  subtopicCol?: string;
   toleranceCol?: string;
   orderCol?: string;
   imageCol?: string;
+  bloomCol?: string;
+  negativeMarksCol?: string;
+  tagsCol?: string;
+  gradeCol?: string;
+  languageCol?: string;
+  examCol?: string;
 } {
   const lowerColumns = columns.map(c => c.toLowerCase());
 
@@ -216,8 +282,19 @@ export function detectQuestionColumns(columns: string[]): {
   result.questionCol = foundIndex >= 0 ? columns[foundIndex] : undefined;
 
   // Detect answer/correct answer column
-  const answerPatterns = ['answer', 'correct'];
-  result.answerCol = columns[lowerColumns.findIndex(c => answerPatterns.some(p => c.includes(p)))];
+  // Prefer explicit exact matches or obvious correct answer fields
+  const preferredAnswerPatterns = ['correct_answer', 'correct answer', 'answer_key', 'answer key', 'correct option'];
+  let ansIdx = lowerColumns.findIndex(c => preferredAnswerPatterns.some(p => c === p || c.includes(p)));
+
+  if (ansIdx < 0) {
+    // Fallback: match 'answer' or 'correct', but exclude 'answer type', 'is_correct', etc.
+    const answerPatterns = ['answer', 'correct'];
+    ansIdx = lowerColumns.findIndex(c => {
+      if (c.includes('type') || c.includes('is_correct') || c.includes('incorrect') || c.includes('format')) return false;
+      return answerPatterns.some(p => c.includes(p));
+    });
+  }
+  result.answerCol = ansIdx >= 0 ? columns[ansIdx] : undefined;
 
   // Detect option columns (A-H or Option 1-8, etc.)
   const optionCols: string[] = [];
@@ -258,9 +335,16 @@ export function detectQuestionColumns(columns: string[]): {
   const subjectPatterns = ['subject', 'category', 'domain'];
   result.subjectCol = columns[lowerColumns.findIndex(c => subjectPatterns.some(p => c.includes(p)))];
 
-  // Detect topic column
-  const topicPatterns = ['topic', 'subtopic', 'unit', 'chapter'];
-  result.topicCol = columns[lowerColumns.findIndex(c => topicPatterns.some(p => c.includes(p)))];
+  // Detect topic column (exclude subtopic — detected separately)
+  const topicPatterns = ['topic', 'unit', 'chapter'];
+  result.topicCol = columns[lowerColumns.findIndex(c => {
+    if (c.includes('subtopic') || c.includes('sub_topic') || c.includes('sub topic')) return false;
+    return topicPatterns.some(p => c.includes(p));
+  })];
+
+  // Detect subtopic column
+  const subtopicPatterns = ['subtopic', 'sub_topic', 'sub topic'];
+  result.subtopicCol = columns[lowerColumns.findIndex(c => subtopicPatterns.some(p => c.includes(p)))];
 
   // Detect tolerance column (for numeric questions)
   const tolerancePatterns = ['tolerance', 'margin', 'tolerance_value'];
@@ -283,13 +367,47 @@ export function detectQuestionColumns(columns: string[]): {
   if (preferredOrderIndex >= 0) {
     result.orderCol = columns[preferredOrderIndex];
   } else {
+    // Fallback: match generic order/sequence/arrange patterns, but exclude columns
+    // that are clearly sequence *metadata* (e.g. Question_Sequence_ID, sequence_number)
+    // rather than ordering-item data.
     const orderPatterns = ['order', 'sequence', 'arrange'];
-    result.orderCol = columns[lowerColumns.findIndex((c) => orderPatterns.some((p) => c.includes(p)))];
+    const metadataSuffixes = ['_id', ' id', '_no', ' no', '_number', ' number', '_num', ' num', '_seq', 'sequenceid', 'sequenceno'];
+    result.orderCol = columns[lowerColumns.findIndex((c) => {
+      if (metadataSuffixes.some((s) => c.includes(s))) return false;
+      return orderPatterns.some((p) => c.includes(p));
+    })];
   }
 
   // Detect image/diagram column (for media support)
   const imagePatterns = ['image', 'img', 'picture', 'media', 'figure', 'graphic', 'diagram', 'illustration'];
   result.imageCol = columns[lowerColumns.findIndex(c => imagePatterns.some(p => c.includes(p)))];
+
+  // Detect Bloom's taxonomy column
+  const bloomPatterns = ['bloom', 'taxonomy', 'cognitive', 'cognitive_level', 'thinking_skill'];
+  result.bloomCol = columns[lowerColumns.findIndex(c => bloomPatterns.some(p => c.includes(p)))];
+
+  // Detect negative marks column (exclude plain 'marks' — already caught by points)
+  const negativeMarksPatterns = ['negative_mark', 'negative mark', 'negmark', 'neg_mark', 'penalty', 'negative_score', 'negative score'];
+  result.negativeMarksCol = columns[lowerColumns.findIndex(c => negativeMarksPatterns.some(p => c.includes(p)))];
+
+  // Detect tags/keywords column
+  const tagsPatterns = ['tags', 'keywords', 'keyword', 'label'];
+  result.tagsCol = columns[lowerColumns.findIndex(c => {
+    if (c.includes('option') || c.includes('choice')) return false;
+    return tagsPatterns.some(p => c.includes(p));
+  })];
+
+  // Detect grade/class level column (exclude 'grade' if already matched by points)
+  const gradePatterns = ['class', 'grade_level', 'grade level', 'standard', 'year_group'];
+  result.gradeCol = columns[lowerColumns.findIndex(c => gradePatterns.some(p => c.includes(p)))];
+
+  // Detect language column
+  const languagePatterns = ['language', 'lang', 'medium'];
+  result.languageCol = columns[lowerColumns.findIndex(c => languagePatterns.some(p => c.includes(p)))];
+
+  // Detect exam/source column
+  const examPatterns = ['exam', 'source', 'paper', 'exam_name', 'exam name', 'test_name', 'pyq', 'previous_year'];
+  result.examCol = columns[lowerColumns.findIndex(c => examPatterns.some(p => c.includes(p)))];
 
   return result;
 }

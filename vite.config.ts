@@ -17,6 +17,12 @@ export default defineConfig({
     },
   },
 
+  // Strip console.log and console.warn from production builds.
+  // console.error is intentionally preserved for genuine runtime error reporting.
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

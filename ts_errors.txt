@@ -1,5 +1,0 @@
-src/app/pages/workspace/BatchCreator.tsx(1516,15): error TS2322: Type '{ id: any; upload_id: string; identifier: string; stem: string; type: "MCQ"; options: any; correct_answer: string; correctAnswer: string; validation_status: "Valid" | "Caution"; }' is not assignable to type 'Question'.
-  Object literal may only specify known properties, but 'correctAnswer' does not exist in type 'Question'. Did you mean to write 'correct_answer'?
-src/app/pages/workspace/BatchCreator.tsx(1543,15): error TS2322: Type '{ id: any; upload_id: string; identifier: string; stem: string; type: "ShortAnswer"; options: never[]; correct_answer: string; correctAnswer: string; validation_status: "Valid" | "Caution"; }' is not assignable to type 'Question'.
-  Object literal may only specify known properties, but 'correctAnswer' does not exist in type 'Question'. Did you mean to write 'correct_answer'?
-src/app/utils/templateXmlApplier.ts(89,5): error TS18047: 'correctResponse' is possibly 'null'.

@@ -446,17 +446,17 @@ export function DataFixingWorkspace({
       const hasDuplicateIssue = issues.some((i) => i.category === 'duplicate' || i.field === 'Duplicate');
 
       let label = 'Needs Review';
-      let tone = 'bg-amber-50 border-amber-200 text-amber-800';
+      let tone = 'bg-warning-light border-warning text-amber-800';
 
       if (manualFixedRows.has(rowKey)) {
         label = 'Manual Fixed';
-        tone = 'bg-blue-50 border-blue-200 text-blue-800';
+        tone = 'bg-muted border-border text-foreground';
       } else if (autoFixedRowKeys.has(rowKey)) {
         label = 'Auto Fixed';
-        tone = 'bg-indigo-50 border-indigo-200 text-indigo-800';
+        tone = 'bg-muted border-border text-foreground';
       } else if (ignoredRowKeys.has(rowKey)) {
         label = 'Ignored';
-        tone = 'bg-slate-100 border-slate-300 text-slate-700';
+        tone = 'bg-muted border-border/60 text-foreground';
       } else if (actionable?.source === 'validation_error') {
         label = 'Hard Block';
         tone = 'bg-rose-50 border-rose-200 text-rose-800';
@@ -465,10 +465,10 @@ export function DataFixingWorkspace({
         tone = 'bg-orange-50 border-orange-200 text-orange-800';
       } else if (vr?.status === 'valid') {
         label = 'Valid';
-        tone = 'bg-emerald-50 border-emerald-200 text-emerald-800';
+        tone = 'bg-success-light border-success text-emerald-800';
       } else if (vr?.status === 'caution') {
         label = 'Needs Review';
-        tone = 'bg-amber-50 border-amber-200 text-amber-800';
+        tone = 'bg-warning-light border-warning text-amber-800';
       } else if (vr?.status === 'rejected') {
         label = 'Rejected';
         tone = 'bg-rose-50 border-rose-200 text-rose-800';
@@ -682,28 +682,28 @@ export function DataFixingWorkspace({
   // Compact view when there are no pending issues left
   if (pendingCount === 0 && !forceExpanded) {
     return (
-      <Card className="border border-slate-200 bg-white rounded-xl overflow-hidden shadow-sm transition-all duration-300">
-        <CardHeader className="bg-white border-b border-slate-200 py-4 px-5">
+      <Card className="border border-border bg-card rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+        <CardHeader className="bg-card border-b border-border py-4 px-5">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2 text-[#111c2d]">
-              <span className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+            <CardTitle className="text-base flex items-center gap-2 text-[#0f172a]">
+              <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
                 <LayoutPanelLeft className="w-4 h-4 text-[#0052CC]" />
               </span>
               Fixing Workspace
             </CardTitle>
-            <Badge className="hover:bg-inherit bg-slate-100 text-slate-700 border border-slate-200">
+            <Badge className="hover:bg-inherit bg-muted text-foreground border border-border">
               Ready to export
             </Badge>
           </div>
         </CardHeader>
-        <div className="flex items-center justify-center py-6 bg-white">
+        <div className="flex items-center justify-center py-6 bg-card">
           <div className="text-center">
-            <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-[#004fd2]" />
-            <p className="text-sm font-semibold text-[#004fd2]">
+            <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-[#1f2937]" />
+            <p className="text-sm font-semibold text-[#1f2937]">
               {totalActionable > 0 ? 'All issues resolved' : 'No issues found'}
             </p>
             {totalActionable > 0 && (
-              <p className="text-xs text-[#454652] mt-1">
+              <p className="text-xs text-[#475569] mt-1">
                 {userFixedCount} fixed &middot; {ignoredCount} ignored &middot; {autoFixedCount} auto-fixed
               </p>
             )}
@@ -715,30 +715,30 @@ export function DataFixingWorkspace({
 
   return (
     <Card
-      className={`border border-slate-200 bg-white rounded-xl overflow-hidden flex flex-col shadow-sm transition-all duration-300 ${
+      className={`border border-border bg-card rounded-xl overflow-hidden flex flex-col shadow-sm transition-all duration-300 ${
         isFullscreen
           ? 'fixed inset-0 z-50 h-screen w-screen rounded-none border-none'
           : 'h-[650px]'
       }`}
     >
-      <CardHeader className="bg-white border-b border-slate-200 py-4 px-5 shrink-0">
+      <CardHeader className="bg-card border-b border-border py-4 px-5 shrink-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2 text-[#111c2d]">
-            <span className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+          <CardTitle className="text-base flex items-center gap-2 text-[#0f172a]">
+            <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
               <LayoutPanelLeft className="w-4 h-4 text-[#0052CC]" />
             </span>
             Fixing Workspace
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge
-              className="hover:bg-inherit bg-slate-100 text-slate-700 border border-slate-200"
+              className="hover:bg-inherit bg-muted text-foreground border border-border"
             >
               {pendingCount} issues blocking export
             </Badge>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-[#454652] hover:text-[#111c2d] hover:bg-[#c5c5d4]"
+              className="h-8 w-8 p-0 text-[#475569] hover:text-[#0f172a] hover:bg-[#e2e8f0]"
               onClick={handleToggleWorkspaceView}
               title={isFullscreen && forceExpanded && onRequestMinimize
                 ? 'Back to Fixing Workspace summary card'
@@ -754,30 +754,30 @@ export function DataFixingWorkspace({
 
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* ─── LEFT PANEL: Unified Issues List ─── */}
-        <div className="w-1/3 border-r border-slate-200 flex flex-col min-h-0 bg-white">
+        <div className="w-1/3 border-r border-border flex flex-col min-h-0 bg-card">
           {/* Progress header */}
-          <div className="p-4 bg-white border-b border-slate-200 shrink-0 space-y-3">
-            <div className="text-xs font-semibold text-[#454652] uppercase tracking-wider mb-1">
+          <div className="p-4 bg-card border-b border-border shrink-0 space-y-3">
+            <div className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-1">
               Fix Progress
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
+            <div className="w-full bg-muted rounded-full h-2 mb-2">
               <div
-                className="bg-[#004fd2] h-2 rounded-full transition-all duration-300"
+                className="bg-[#1f2937] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
             <div className="grid grid-cols-3 gap-1 text-center">
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
-                <div className="text-sm font-bold text-[#004fd2]">{autoFixedCount}</div>
-                <div className="text-[10px] text-[#454652] leading-tight">Auto-fixed</div>
+              <div className="bg-muted border border-border rounded-lg p-2">
+                <div className="text-sm font-bold text-[#1f2937]">{autoFixedCount}</div>
+                <div className="text-[10px] text-[#475569] leading-tight">Auto-fixed</div>
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
-                <div className="text-sm font-bold text-[#003a9f]">{userFixedCount}</div>
-                <div className="text-[10px] text-[#454652] leading-tight">You fixed</div>
+              <div className="bg-muted border border-border rounded-lg p-2">
+                <div className="text-sm font-bold text-[#111827]">{userFixedCount}</div>
+                <div className="text-[10px] text-[#475569] leading-tight">You fixed</div>
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+              <div className="bg-muted border border-border rounded-lg p-2">
                 <div className="text-sm font-bold text-[#ba1a1a]">{pendingCount}</div>
-                <div className="text-[10px] text-[#454652] leading-tight">Remaining</div>
+                <div className="text-[10px] text-[#475569] leading-tight">Remaining</div>
               </div>
             </div>
             <div className="relative" ref={filterMenuRef}>
@@ -785,7 +785,7 @@ export function DataFixingWorkspace({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-8 text-xs font-semibold border-[#b4c5ff] text-[#003a9f] bg-[#eef4ff] hover:bg-[#e7eeff]"
+                  className="flex-1 h-8 text-xs font-semibold border-[#b4c5ff] text-[#111827] bg-[#eef4ff] hover:bg-[#f1f5f9]"
                   onClick={() => setIsFilterMenuOpen((prev) => !prev)}
                 >
                   Filter Questions
@@ -794,7 +794,7 @@ export function DataFixingWorkspace({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 w-8 p-0 border-[#b4c5ff] text-[#003a9f] bg-[#eef4ff] hover:bg-[#e7eeff] disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-8 w-8 p-0 border-[#b4c5ff] text-[#111827] bg-[#eef4ff] hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed"
                   title={canLoadMoreFilteredRows ? `Load next ${ROW_LIST_BATCH_SIZE} rows` : 'Apply a filter to load additional rows'}
                   disabled={!canLoadMoreFilteredRows}
                   onClick={() => setLoadedFilterBatches((prev) => prev + 1)}
@@ -803,33 +803,33 @@ export function DataFixingWorkspace({
                 </Button>
               </div>
               {isFilterMenuOpen && (
-                <div className="absolute left-0 right-0 mt-2 z-30 rounded-lg border border-slate-200 bg-white shadow-lg p-3 space-y-2">
-                  <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Filter by Category</p>
+                <div className="absolute left-0 right-0 mt-2 z-30 rounded-lg border border-border bg-card shadow-lg p-3 space-y-2">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Filter by Category</p>
                   <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
                     {availableRowCategories.map((category) => {
                       const checked = rowCategoryFilters.has(category);
                       return (
-                        <label key={`row-filter-${category}`} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                        <label key={`row-filter-${category}`} className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleRowCategoryFilter(category)}
-                            className="w-3.5 h-3.5 rounded border-slate-300 text-[#003a9f] focus:ring-[#003a9f]"
+                            className="w-3.5 h-3.5 rounded border-border/60 text-[#111827] focus:ring-[#111827]"
                           />
                           <span>{category}</span>
                         </label>
                       );
                     })}
                   </div>
-                  <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
+                  <div className="pt-1 border-t border-border flex items-center justify-between">
                     <button
                       type="button"
                       onClick={() => setRowCategoryFilters(new Set())}
-                      className="text-[11px] font-semibold text-[#003a9f] hover:text-[#004fd2]"
+                      className="text-[11px] font-semibold text-[#111827] hover:text-[#1f2937]"
                     >
                       Clear all
                     </button>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-muted-foreground">
                       {rowCategoryFilters.size === 0 ? 'Showing all' : `${rowCategoryFilters.size} selected`}
                     </span>
                   </div>
@@ -841,35 +841,35 @@ export function DataFixingWorkspace({
           {/* Scrollable issue list */}
           <div className="overflow-y-auto flex-1 p-2 space-y-2">
             <div className="space-y-2">
-              <div className="text-xs font-medium text-[#003a9f] mb-1 px-1 pt-1">
+              <div className="text-xs font-medium text-[#111827] mb-1 px-1 pt-1">
                 All Question Rows ({visibleRowsStatusFeed.length}/{filteredRowsStatusFeed.length})
               </div>
               {visibleRowsStatusFeed.map((row) => (
                 <div
                   key={row.key}
                   onClick={() => onRowClick(row.key)}
-                  className={`p-2 rounded-lg border text-sm cursor-pointer transition-all ${row.tone} ${selectedRowKey === row.key ? 'ring-2 ring-[#003a9f]/25 border-[#003a9f]' : 'hover:shadow-sm'}`}
+                  className={`p-2 rounded-lg border text-sm cursor-pointer transition-all ${row.tone} ${selectedRowKey === row.key ? 'ring-2 ring-[#111827]/25 border-[#111827]' : 'hover:shadow-sm'}`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-semibold">Row {row.rowNumber}</span>
-                    <Badge className="text-[10px] px-1.5 py-0 border-none bg-white/70 text-inherit">{row.label}</Badge>
+                    <Badge className="text-[10px] px-1.5 py-0 border-none bg-card/70 text-inherit">{row.label}</Badge>
                   </div>
                   <p className="text-xs line-clamp-1 opacity-90">{row.questionText}</p>
                 </div>
               ))}
               {!isRowFilterApplied && filteredRowsStatusFeed.length > ROW_LIST_BATCH_SIZE && (
-                <p className="px-1 text-[11px] text-[#757684]">
+                <p className="px-1 text-[11px] text-[#64748b]">
                   Showing first {ROW_LIST_BATCH_SIZE} rows. Apply a filter to load more in batches.
                 </p>
               )}
               {canLoadMoreFilteredRows && (
-                <p className="px-1 text-[11px] text-[#003a9f]">
+                <p className="px-1 text-[11px] text-[#111827]">
                   More rows available. Use the side arrow to load next {ROW_LIST_BATCH_SIZE}.
                 </p>
               )}
             </div>
 
-            <div className="border-t border-[#c5c5d4] mt-3 pt-3" />
+            <div className="border-t border-[#e2e8f0] mt-3 pt-3" />
 
             {/* Hard Blocks (raw validation errors without suggestions) */}
             {pendingItems.filter((i) => i.source === 'validation_error').length > 0 && (
@@ -912,8 +912,8 @@ export function DataFixingWorkspace({
                       selected={selectedRowKey === item.rowKey}
                       badgeLabel="PENDING"
                       badgeClass="bg-[#ffdcc6] text-[#8f4600]"
-                      cardClass="border-amber-200 bg-amber-50/50 hover:border-amber-300"
-                      selectedClass="border-amber-500 bg-amber-50 ring-2 ring-amber-500/20 shadow-sm"
+                      cardClass="border-warning bg-warning-light/50 hover:border-amber-300"
+                      selectedClass="border-amber-500 bg-warning-light ring-2 ring-amber-500/20 shadow-sm"
                       onSelect={() => onRowClick(item.rowKey)}
                       onIgnore={(e) => handleIgnore(item.rowKey, e)}
                     />
@@ -924,7 +924,7 @@ export function DataFixingWorkspace({
             {/* Resolved */}
             {resolvedItems.length > 0 && (
               <div className="space-y-2 mt-4">
-                <div className="text-xs font-medium text-[#454652] mb-1 px-1 pt-2 border-t border-[#c5c5d4]">
+                <div className="text-xs font-medium text-[#475569] mb-1 px-1 pt-2 border-t border-[#e2e8f0]">
                   Recently Resolved
                 </div>
                 {resolvedItems.map((item) => {
@@ -935,25 +935,25 @@ export function DataFixingWorkspace({
                       onClick={() => onRowClick(item.rowKey)}
                       className={`p-2 rounded-lg border text-sm cursor-pointer transition-all ${
                         selectedRowKey === item.rowKey
-                          ? 'border-[#003a9f] bg-[#e7eeff]'
+                          ? 'border-[#111827] bg-[#f1f5f9]'
                           : isFixed
-                          ? 'border-[#d8e3fb] bg-[#e7eeff]'
-                          : 'border-[#c5c5d4] bg-[#f9f9ff]'
+                          ? 'border-[#e2e8f0] bg-[#f1f5f9]'
+                          : 'border-[#e2e8f0] bg-[#f8fafc]'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-semibold text-[#111c2d]">Row {item.rowIndex}</span>
+                        <span className="font-semibold text-[#0f172a]">Row {item.rowIndex}</span>
                         {isFixed ? (
-                          <Badge className="bg-[#e7eeff] text-[#004fd2] text-[10px] px-1.5 py-0 border-none">
+                          <Badge className="bg-[#f1f5f9] text-[#1f2937] text-[10px] px-1.5 py-0 border-none">
                             FIXED
                           </Badge>
                         ) : (
-                          <Badge className="bg-[#f0f3ff] text-[#454652] text-[10px] px-1.5 py-0 border-none">
+                          <Badge className="bg-[#f0f3ff] text-[#475569] text-[10px] px-1.5 py-0 border-none">
                             IGNORED
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-[#454652] line-clamp-1">{item.primaryMessage}</p>
+                      <p className="text-xs text-[#475569] line-clamp-1">{item.primaryMessage}</p>
                     </div>
                   );
                 })}
@@ -963,7 +963,7 @@ export function DataFixingWorkspace({
             {/* Informational / Auto-fixed */}
             {informationalSuggestions.length > 0 && (
               <div className="space-y-2 mt-4">
-                <div className="text-xs font-medium text-[#004fd2] mb-1 px-1 pt-2 border-t border-[#c5c5d4]">
+                <div className="text-xs font-medium text-[#1f2937] mb-1 px-1 pt-2 border-t border-[#e2e8f0]">
                   Informational / Auto-fixed
                 </div>
                 {informationalSuggestions.map((s) => {
@@ -974,23 +974,23 @@ export function DataFixingWorkspace({
                       onClick={() => onRowClick(s.rowKey)}
                       className={`p-2 rounded-lg border text-sm cursor-pointer transition-all ${
                         selectedRowKey === s.rowKey
-                          ? 'border-[#003a9f] bg-[#e7eeff]'
-                          : 'border-[#c5c5d4] bg-[#f9f9ff]'
+                          ? 'border-[#111827] bg-[#f1f5f9]'
+                          : 'border-[#e2e8f0] bg-[#f8fafc]'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-semibold text-[#111c2d]">Row {s.rowIndex}</span>
+                        <span className="font-semibold text-[#0f172a]">Row {s.rowIndex}</span>
                         {isAutoHigh ? (
-                          <Badge className="bg-[#e7eeff] text-[#004fd2] text-[10px] px-1.5 py-0 border-none">
+                          <Badge className="bg-[#f1f5f9] text-[#1f2937] text-[10px] px-1.5 py-0 border-none">
                             AUTO FIXED
                           </Badge>
                         ) : (
-                          <Badge className="bg-[#f0f3ff] text-[#454652] text-[10px] px-1.5 py-0 border-none">
+                          <Badge className="bg-[#f0f3ff] text-[#475569] text-[10px] px-1.5 py-0 border-none">
                             INFO
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-[#454652] line-clamp-1">{s.message}</p>
+                      <p className="text-xs text-[#475569] line-clamp-1">{s.message}</p>
                     </div>
                   );
                 })}
@@ -1001,18 +1001,18 @@ export function DataFixingWorkspace({
         </div>
 
         {/* ─── RIGHT PANEL: Detail + Editable Grid ─── */}
-        <div className="w-2/3 bg-[#f9f9ff] flex flex-col min-h-0">
+        <div className="w-2/3 bg-[#f8fafc] flex flex-col min-h-0">
           {canEditSelectedRow ? (
             <div className="flex flex-col h-full overflow-hidden">
               {/* Header with issue details — collapsible */}
-              <div className="bg-white border-b border-[#c5c5d4] shrink-0 shadow-sm">
+              <div className="bg-card border-b border-[#e2e8f0] shrink-0 shadow-sm">
                 <div
-                  className="flex items-center justify-between px-4 py-2 cursor-pointer select-none hover:bg-[#f9f9ff] transition-colors"
+                  className="flex items-center justify-between px-4 py-2 cursor-pointer select-none hover:bg-[#f8fafc] transition-colors"
                   onClick={() => setIsDetailCollapsed((prev) => !prev)}
                 >
                   <div className="flex items-center gap-2">
-                    <Wrench className={`w-4 h-4 shrink-0 ${isDetailCollapsed ? 'text-[#454652]' : 'text-[#003a9f]'}`} />
-                    <h3 className="font-semibold text-sm text-[#111c2d]">
+                    <Wrench className={`w-4 h-4 shrink-0 ${isDetailCollapsed ? 'text-[#475569]' : 'text-[#111827]'}`} />
+                    <h3 className="font-semibold text-sm text-[#0f172a]">
                       Row {selectedItem?.rowIndex ?? selectedRowStatusEntry?.rowNumber ?? '-'}
                       {selectedItem?.source === 'validation_error' && (
                         <Badge className="ml-2 bg-[#ffdad6] text-[#ba1a1a] text-[10px] px-1.5 py-0 border-none align-middle">
@@ -1020,14 +1020,14 @@ export function DataFixingWorkspace({
                         </Badge>
                       )}
                       {!selectedItem && selectedLabel && (
-                        <Badge className="ml-2 bg-[#f0f3ff] text-[#003a9f] text-[10px] px-1.5 py-0 border-none align-middle">
+                        <Badge className="ml-2 bg-[#f0f3ff] text-[#111827] text-[10px] px-1.5 py-0 border-none align-middle">
                           {selectedLabel.toUpperCase()}
                         </Badge>
                       )}
                     </h3>
                   </div>
                   <span
-                    className={`text-xs font-semibold ${isDetailCollapsed ? 'text-[#454652]' : 'text-[#003a9f]'}`}
+                    className={`text-xs font-semibold ${isDetailCollapsed ? 'text-[#475569]' : 'text-[#111827]'}`}
                   >
                     {isDetailCollapsed ? 'Show suggested fix' : 'Hide suggested fix'}
                   </span>
@@ -1035,13 +1035,13 @@ export function DataFixingWorkspace({
 
                 {!isDetailCollapsed && (
                   <div className="px-4 pb-3">
-                    <div className="p-3 bg-[#f9f9ff] rounded border border-[#c5c5d4]">
-                      <h4 className="text-xs font-semibold text-[#111c2d] mb-2 flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5 text-[#003a9f]" />
+                    <div className="p-3 bg-[#f8fafc] rounded border border-[#e2e8f0]">
+                      <h4 className="text-xs font-semibold text-[#0f172a] mb-2 flex items-center gap-1.5">
+                        <Wrench className="w-3.5 h-3.5 text-[#111827]" />
                         Suggested Fix
                       </h4>
                       {selectedItem?.source === 'suggestion' && selectedItem.suggestion ? (
-                        <ul className="text-xs text-[#111c2d] list-disc list-inside space-y-1">
+                        <ul className="text-xs text-[#0f172a] list-disc list-inside space-y-1">
                           <li>Review the suggestion and update the row fields in the editable section below.</li>
                           {selectedItem.suggestion.suggestedValue !== '' && !manualFixedRows.has(selectedItem.rowKey) && (
                             <li>
@@ -1050,7 +1050,7 @@ export function DataFixingWorkspace({
                           )}
                         </ul>
                       ) : (selectedItem?.blockIssues.length ?? 0) > 0 ? (
-                        <ul className="text-xs text-[#111c2d] list-disc list-inside space-y-1">
+                        <ul className="text-xs text-[#0f172a] list-disc list-inside space-y-1">
                           {selectedItem?.blockIssues.flatMap((issue, idx) =>
                             getIssueSuggestions(issue).map((hint, hintIndex) => (
                               <li key={`${issue.code}-${idx}-${hintIndex}`}>{hint}</li>
@@ -1058,17 +1058,17 @@ export function DataFixingWorkspace({
                           )}
                         </ul>
                       ) : (
-                        <p className="text-xs text-[#454652]">
+                        <p className="text-xs text-[#475569]">
                           This row is marked as <strong>{selectedLabel ?? 'Needs Review'}</strong>. Update relevant fields below and save.
                         </p>
                       )}
                     </div>
 
                     {/* Action buttons */}
-                    <div className="mt-3 pt-3 border-t border-[#c5c5d4] flex items-center gap-2 flex-wrap">
+                    <div className="mt-3 pt-3 border-t border-[#e2e8f0] flex items-center gap-2 flex-wrap">
                       {selectedItem && manualFixedRows.has(selectedItem.rowKey) ? (
                         <div className="flex items-center gap-3">
-                          <Badge className="bg-[#e7eeff] text-[#004fd2] px-2 py-1 flex items-center gap-1">
+                          <Badge className="bg-[#f1f5f9] text-[#1f2937] px-2 py-1 flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Fix Applied
                           </Badge>
                           <Button
@@ -1090,12 +1090,12 @@ export function DataFixingWorkspace({
                           getRowOptionsForSuggestion={getRowOptionsForSuggestion}
                         />
                       ) : selectedItem?.source === 'validation_error' ? (
-                        <p className="text-xs text-[#454652] italic flex items-center gap-1.5">
+                        <p className="text-xs text-[#475569] italic flex items-center gap-1.5">
                           <Edit3 className="w-3.5 h-3.5" />
                           Edit the fields below to fix this row. Changes apply on blur.
                         </p>
                       ) : (
-                        <p className="text-xs text-[#454652] italic flex items-center gap-1.5">
+                        <p className="text-xs text-[#475569] italic flex items-center gap-1.5">
                           <Edit3 className="w-3.5 h-3.5" />
                           Edit fields below for this row and save your changes.
                         </p>
@@ -1107,15 +1107,15 @@ export function DataFixingWorkspace({
 
               {/* Editable Row Data Grid */}
               <div className="flex-1 overflow-y-auto p-4 bg-[#f4f7ff]">
-                <div className="rounded-2xl border border-[#d8e3fb] bg-white shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[#d8e3fb] bg-[#f5f8ff]">
+                <div className="rounded-2xl border border-[#e2e8f0] bg-card shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#e2e8f0] bg-[#f5f8ff]">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <h4 className="text-xs font-semibold text-[#2a3550] uppercase tracking-wider flex items-center gap-1.5">
                         <Edit3 className="w-3.5 h-3.5" />
                         Editable Row Data
                       </h4>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge className="bg-[#f0f3ff] text-[#003a9f] border border-[#d8e3fb] text-[10px] px-2 py-0.5">
+                        <Badge className="bg-[#f0f3ff] text-[#111827] border border-[#e2e8f0] text-[10px] px-2 py-0.5">
                           {columns.length} fields
                         </Badge>
                         {problematicFieldCount > 0 && (
@@ -1124,14 +1124,14 @@ export function DataFixingWorkspace({
                           </Badge>
                         )}
                         {currentRowEditCount > 0 && (
-                          <Badge className="bg-[#e7eeff] text-[#004fd2] border border-[#c5d8ff] text-[10px] px-2 py-0.5">
+                          <Badge className="bg-[#f1f5f9] text-[#1f2937] border border-[#c5d8ff] text-[10px] px-2 py-0.5">
                             {currentRowEditCount} unsaved change{currentRowEditCount > 1 ? 's' : ''}
                           </Badge>
                         )}
                         {currentRowEditCount > 0 && (
                           <Button
                             size="sm"
-                            className="h-8 text-xs px-3 bg-[#2457b8] hover:bg-[#1f4aa0] text-white shadow-sm"
+                            className="h-8 text-xs px-3 bg-[#111827] hover:bg-[#1f2937] text-primary-foreground shadow-sm"
                             onMouseDown={(e) => {
                               e.preventDefault(); // prevent blur from firing first
                               handleSaveRow(activeRowKey);
@@ -1192,10 +1192,10 @@ export function DataFixingWorkspace({
                               )
                             }
                             rows={2}
-                            className={`w-full min-h-[2.5rem] max-h-[24rem] text-sm rounded-md px-2.5 py-1.5 bg-white text-[#111c2d] font-data focus:outline-none focus:ring-1 border transition-colors resize-y overflow-auto ${
+                            className={`w-full min-h-[2.5rem] max-h-[24rem] text-sm rounded-md px-2.5 py-1.5 bg-card text-[#0f172a] font-data focus:outline-none focus:ring-1 border transition-colors resize-y overflow-auto ${
                               isProblematic
                                 ? 'border-[#ffb786] focus:border-[#8f4600] focus:ring-[#8f4600]'
-                                : 'border-[#c5cfe8] focus:border-[#003a9f] focus:ring-[#003a9f]'
+                                : 'border-[#c5cfe8] focus:border-[#111827] focus:ring-[#111827]'
                             }`}
                           />
                         </div>
@@ -1225,9 +1225,9 @@ export function DataFixingWorkspace({
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-[#757684] p-8 text-center">
-              <LayoutPanelLeft className="w-12 h-12 mb-3 text-[#c5c5d4]" />
-              <p className="text-base font-medium text-[#454652]">
+            <div className="flex-1 flex flex-col items-center justify-center text-[#64748b] p-8 text-center">
+              <LayoutPanelLeft className="w-12 h-12 mb-3 text-[#e2e8f0]" />
+              <p className="text-base font-medium text-[#475569]">
                 {isSelectedValidRow ? 'This row is already valid' : isSelectedDeletedRow ? 'This row was deleted during deduplication' : 'Select an issue to fix'}
               </p>
               <p className="text-sm mt-1">
@@ -1273,25 +1273,25 @@ function IssueCard({
       onClick={onSelect}
       className={`p-3 rounded-lg border text-sm cursor-pointer transition-all ${
         selected
-          ? selectedClass ?? 'border-[#003a9f] bg-[#e7eeff] shadow-sm'
-          : cardClass ?? 'border-[#c5c5d4] bg-white hover:border-[#757684]'
+          ? selectedClass ?? 'border-[#111827] bg-[#f1f5f9] shadow-sm'
+          : cardClass ?? 'border-[#e2e8f0] bg-card hover:border-[#64748b]'
       }`}
     >
       <div className="flex justify-between items-start mb-1">
-        <span className="font-semibold text-[#111c2d]">Row {item.rowIndex}</span>
+        <span className="font-semibold text-[#0f172a]">Row {item.rowIndex}</span>
         <Badge className={`${badgeClass} text-[10px] px-1.5 py-0 border-none`}>
           {badgeLabel}
         </Badge>
       </div>
-      <p className="text-xs text-[#454652] line-clamp-2">{item.primaryMessage}</p>
+      <p className="text-xs text-[#475569] line-clamp-2">{item.primaryMessage}</p>
       <div className="mt-2 flex gap-2">
         <Button
           size="sm"
           variant="default"
-          className={`h-6 text-[10px] px-2 py-0 text-white ${
+          className={`h-6 text-[10px] px-2 py-0 text-primary-foreground ${
             isBlocked
               ? 'bg-[#ba1a1a] hover:bg-[#93000a]'
-              : 'bg-[#2457b8] hover:bg-[#1f4aa0]'
+              : 'bg-[#111827] hover:bg-[#1f2937]'
           }`}
           onClick={(e) => {
             e.stopPropagation();
@@ -1306,7 +1306,7 @@ function IssueCard({
           className={`h-6 text-[10px] px-2 py-0 ${
             isBlocked
               ? 'text-[#93000a] hover:text-[#93000a] hover:bg-[#ffdad6]'
-              : 'text-[#454652] hover:text-[#454652] hover:bg-[#f0f3ff]'
+              : 'text-[#475569] hover:text-[#475569] hover:bg-[#f0f3ff]'
           }`}
           onClick={onIgnore}
         >
@@ -1336,7 +1336,7 @@ function SuggestionActions({
     return (
       <Button
         size="sm"
-        className="h-8 text-xs bg-[#2457b8] hover:bg-[#1f4aa0] text-white shadow-sm"
+        className="h-8 text-xs bg-[#8f4600] hover:bg-[#8f4600] text-primary-foreground shadow-sm"
         onClick={() =>
           wrappedApplyManualFix(suggestion.rowKey, suggestion, suggestion.suggestedValue)
         }
@@ -1353,7 +1353,7 @@ function SuggestionActions({
     const options = getRowOptionsForSuggestion(suggestion.rowIndex);
     return (
       <div className="flex flex-col gap-2 w-full mt-2">
-        <p className="text-xs font-semibold text-[#111c2d]">Select the correct option:</p>
+        <p className="text-xs font-semibold text-[#0f172a]">Select the correct option:</p>
         <div className="grid grid-cols-2 gap-2">
           {options.map((o) => (
             <div
@@ -1363,19 +1363,19 @@ function SuggestionActions({
               }
               className={`cursor-pointer border rounded-md p-2 text-xs flex items-center transition-all ${
                 manualFixInputs.get(suggestion.rowKey) === o.label
-                  ? 'border-[#003a9f] bg-[#e7eeff] text-[#003a9f] ring-1 ring-[#003a9f]'
-                  : 'border-[#c5c5d4] bg-white text-[#454652] hover:bg-[#f9f9ff]'
+                  ? 'border-[#111827] bg-[#f1f5f9] text-[#111827] ring-1 ring-[#111827]'
+                  : 'border-[#e2e8f0] bg-card text-[#475569] hover:bg-[#f8fafc]'
               }`}
             >
               <div
                 className={`w-3 h-3 rounded-full border mr-2 flex items-center justify-center shrink-0 ${
                   manualFixInputs.get(suggestion.rowKey) === o.label
-                    ? 'border-[#003a9f]'
-                    : 'border-[#c5c5d4]'
+                    ? 'border-[#111827]'
+                    : 'border-[#e2e8f0]'
                 }`}
               >
                 {manualFixInputs.get(suggestion.rowKey) === o.label && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#003a9f]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#111827]" />
                 )}
               </div>
               <span className="font-semibold mr-1">{o.label}:</span>
@@ -1386,7 +1386,7 @@ function SuggestionActions({
         <Button
           size="sm"
           disabled={!manualFixInputs.get(suggestion.rowKey)}
-          className="h-8 text-xs bg-[#2457b8] hover:bg-[#1f4aa0] text-white disabled:opacity-50 self-start mt-2 shadow-sm"
+          className="h-8 text-xs bg-[#8f4600] hover:bg-[#8f4600] text-primary-foreground disabled:opacity-50 self-start mt-2 shadow-sm"
           onClick={() => {
             const val = manualFixInputs.get(suggestion.rowKey);
             if (val) wrappedApplyManualFix(suggestion.rowKey, suggestion, val);
@@ -1400,7 +1400,7 @@ function SuggestionActions({
 
   // No special action — user can fix via the editable row data grid below
   return (
-    <p className="text-xs text-[#454652] italic flex items-center gap-1.5">
+    <p className="text-xs text-[#475569] italic flex items-center gap-1.5">
       <Edit3 className="w-3.5 h-3.5" />
       Edit the fields below to fix this row, then click Save Changes.
     </p>

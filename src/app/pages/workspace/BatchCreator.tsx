@@ -33,6 +33,9 @@ import {
   UserRound,
   Layers,
   Home,
+  Plus,
+  Tags,
+  X,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
@@ -56,7 +59,7 @@ import { AIValidationReport } from "../../components/AIValidationReport";
 import { MathMLRenderer } from "../../components/MathMLRenderer";
 import { parseFile, detectQuestionColumns } from "../../utils/fileParser";
 import { buildValidationDatasetInsights, buildValidationProfile, validateAllQuestions, computeDataQualityMetrics, computeDatasetRecoveryMetrics, ValidationResult } from "../../utils/questionValidator";
-import { runDualValidation, type ImprovementMetrics, type CleanLog, type RowImprovementRecord, type RemediationSuggestion, type Pass3Metrics, type Pass3ExecutionMetrics } from "../../utils/dataCleaningPipeline";
+import { runDualValidation, type ImprovementMetrics, type CleanLog, type RowImprovementRecord, type RemediationSuggestion, type Pass3Metrics, type Pass3ExecutionMetrics, type Pass3ExecutionLog } from "../../utils/dataCleaningPipeline";
 import { validateAllQuestionsChunked } from "../../utils/chunkedValidator";
 import { convertToQTIQuestion, generateJSON, generateQTI } from "../../utils/qtiConverter";
 import { applyTemplateXmlToGeneratedItem } from "../../utils/templateXmlApplier";
@@ -69,7 +72,7 @@ import {
   generateQTIByVersion,
   Question as QTIQuestion 
 } from "../../../engine";
-import { processXmlMath } from "../../utils/mathmlConverter";
+import { processXmlMath, detectMathInRows, type MathDetectionResult } from "../../utils/mathmlConverter";
 import { replacePlaceholder, hasFeedbackPlaceholders, listPlaceholdersInNode, removePlaceholderSection } from "../../utils/placeholderHandler";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
@@ -104,6 +107,7 @@ import {
 } from "../../utils/mediaUtils";
 import { uploadMediaFilesToSupabase, UploadedMediaUrl } from "../../../services/mediaUploadService";
 import ExcelJS from 'exceljs';
+import { useTheme } from "../../../contexts/ThemeContext";
 
 
 
@@ -333,6 +337,29 @@ function ensureInternalRowKeys(rows: Record<string, any>[]): Record<string, any>
   }));
 }
 
+// ── Metadata field definitions for user-added metadata ──────────────────────
+interface MetadataFieldDef {
+  key: string;          // column key used in row data
+  label: string;        // display label
+  placeholder: string;  // input placeholder
+  detectedCol?: string; // maps to fileParser detected column name
+}
+
+const AVAILABLE_METADATA_FIELDS: MetadataFieldDef[] = [
+  { key: '__meta_subject',        label: 'Subject',         placeholder: 'e.g. Mathematics, Physics' },
+  { key: '__meta_topic',          label: 'Topic / Chapter',  placeholder: 'e.g. Kinematics, Algebra' },
+  { key: '__meta_subtopic',       label: 'Subtopic',        placeholder: 'e.g. Projectile Motion' },
+  { key: '__meta_difficulty',     label: 'Difficulty',       placeholder: 'Easy / Medium / Hard' },
+  { key: '__meta_bloom',          label: "Bloom's Level",    placeholder: 'Remember / Understand / Apply / Analyze / Evaluate / Create' },
+  { key: '__meta_marks',          label: 'Marks / Points',   placeholder: 'e.g. 4' },
+  { key: '__meta_negative_marks', label: 'Negative Marks',   placeholder: 'e.g. -1' },
+  { key: '__meta_tags',           label: 'Tags / Keywords',  placeholder: 'e.g. PYQ, Important, Tricky' },
+  { key: '__meta_grade',          label: 'Grade / Class',    placeholder: 'e.g. Class 11, UG' },
+  { key: '__meta_language',       label: 'Language',         placeholder: 'e.g. English, Hindi' },
+  { key: '__meta_exam',           label: 'Exam / Source',    placeholder: 'e.g. JEE Main 2023, NEET 2022' },
+  { key: '__meta_explanation',    label: 'Explanation',      placeholder: 'Solution or rationale' },
+];
+
 function getRowValidationKey(row: Record<string, any>, index?: number): string {
   if (row.__rowKey && String(row.__rowKey).trim()) {
     return String(row.__rowKey);
@@ -351,7 +378,10 @@ function getRowValidationKey(row: Record<string, any>, index?: number): string {
 
 export function BatchCreator() {
   const navigate = useNavigate();
-  const { isAuthenticated, loading, user, userUsage, trackExport, trackQuestionsConverted, refreshUsage } = useAuth();
+  const { isDark } = useTheme();
+  const { isAuthenticated, loading, user, userUsage, trackExport, trackQuestionsConverted, refreshUsage, logout } = useAuth();
+  const isPremium = !!userUsage?.is_premium;
+  const canUseAIValidation = isPremium;
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [fileData, setFileData] = useState<FileData | null>(null);
   const [uploadPreviewColumns, setUploadPreviewColumns] = useState<string[]>([]);
@@ -364,12 +394,16 @@ export function BatchCreator() {
   const [cleaningMetrics, setCleaningMetrics] = useState<ImprovementMetrics | null>(null);
   const [cleaningLogs, setCleaningLogs] = useState<CleanLog[]>([]);
   const [rowImprovements, setRowImprovements] = useState<RowImprovementRecord[]>([]);
+  const [viewMode, setViewMode] = useState<'raw' | 'clean'>('raw');
   const [pass3Suggestions, setPass3Suggestions] = useState<RemediationSuggestion[]>([]);
   const [pass3Metrics, setPass3Metrics] = useState<Pass3Metrics | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [pass3ExecutionMetrics, setPass3ExecutionMetrics] = useState<Pass3ExecutionMetrics | null>(null);
   // PASS 3 user-assisted execution state
   const [pass3ExecutedRows, setPass3ExecutedRows] = useState<any[]>([]);
+  const [pass3ExecutionLogs, setPass3ExecutionLogs] = useState<Pass3ExecutionLog[]>([]);
+  const [appliedCleaningLogs, setAppliedCleaningLogs] = useState<CleanLog[] | null>(null);
+  const [appliedPass3Logs, setAppliedPass3Logs] = useState<Pass3ExecutionLog[] | null>(null);
   const [manualFixedRows, setManualFixedRows] = useState<Map<string, any>>(new Map());
   const manualFixedRowsRef = useRef<Map<string, any>>(new Map()); // ADD THIS LINE
   const [manualFixResults, setManualFixResults] = useState<Map<string, ValidationResult>>(new Map());
@@ -378,6 +412,7 @@ export function BatchCreator() {
   const [manualFixInputs, setManualFixInputs] = useState<Map<string, string>>(new Map());
   const [isFixingWorkspaceOpen, setIsFixingWorkspaceOpen] = useState(false);
   const [isApplyingAutoFixes, setIsApplyingAutoFixes] = useState(false);
+  const [hasProceededToManualFix, setHasProceededToManualFix] = useState(false);
   const [autoFixComparison, setAutoFixComparison] = useState<{
     before: ValidationStatsSummary;
     after: ValidationStatsSummary | null;
@@ -413,6 +448,8 @@ export function BatchCreator() {
   const [containsImages, setContainsImages] = useState<"yes" | "no" | "">("");
   const [containsMath, setContainsMath] = useState<"yes" | "no" | "">("");
   const [mathFormat, setMathFormat] = useState<"mathjax" | "mathml" | "">("");
+  const [mathDetection, setMathDetection] = useState<MathDetectionResult | null>(null);
+  const [mathAutoApplied, setMathAutoApplied] = useState(false);
   const [hasTemplateXml, setHasTemplateXml] = useState<"yes" | "no" | "">("");
   const [templateXmlFile, setTemplateXmlFile] = useState<File | null>(null);
   const [templateXmlContent, setTemplateXmlContent] = useState<string>("");
@@ -427,37 +464,128 @@ export function BatchCreator() {
   // Wizard step state
   type WizardStep = 'upload' | 'validating' | 'clean-fix' | 'ai-audit' | 'configure' | 'transform';
   const [currentStep, setCurrentStep] = useState<WizardStep>('upload');
+  const [aiAuditStageEnabled, setAiAuditStageEnabled] = useState(true);
   const [transformDone, setTransformDone] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [expandedFixRow, setExpandedFixRow] = useState<string | null>(null);
   const [selectedAuditRowKey, setSelectedAuditRowKey] = useState<string | null>(null);
+  const [validationSearch, setValidationSearch] = useState('');
+  const [validationFilter, setValidationFilter] = useState<'all' | 'valid' | 'caution' | 'rejected'>('all');
+  const [validationRuleFilter, setValidationRuleFilter] = useState<string | null>(null);
+  const [selectedValidationRowKey, setSelectedValidationRowKey] = useState<string | null>(null);
+  const [manualAuditStarted, setManualAuditStarted] = useState(false);
+  const [selectedCleanRowKey, setSelectedCleanRowKey] = useState<string | null>(null);
+  const [acceptedCleanSuggestionKeys, setAcceptedCleanSuggestionKeys] = useState<Set<string>>(new Set());
+  const [manualCleanEditKey, setManualCleanEditKey] = useState<string | null>(null);
+  const [manualCleanDraftValue, setManualCleanDraftValue] = useState('');
+  const [manualCleanDraftRow, setManualCleanDraftRow] = useState<Record<string, string> | null>(null);
+  const [cleaningPass, setCleaningPass] = useState(0);
+  const [isValidationExportMenuOpen, setIsValidationExportMenuOpen] = useState(false);
+  const handleLogout = async () => {
+    const res = await logout();
+    if (res.success) {
+      navigate('/auth/login');
+    } else {
+      toast.error(res.error || "Logout failed");
+    }
+  };
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const validationExportMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const stepOrder: WizardStep[] = ['upload', 'validating', 'clean-fix', 'ai-audit', 'configure', 'transform'];
   const stepLabels: Record<WizardStep, string> = {
     upload: 'Upload',
     validating: 'Validation',
     'clean-fix': 'Fixing',
     'ai-audit': 'AI Audit',
-    configure: 'Preview',
+    configure: 'Configure',
     transform: 'Export',
   };
 
-  const canNavigateToStep = (step: WizardStep): boolean => {
-    if (step === 'upload') return true;
-    if (step === 'validating') return uploadedFiles.length > 0;
+  const stepOrder: WizardStep[] = useMemo(
+    () => (
+      aiAuditStageEnabled
+        ? ['upload', 'validating', 'clean-fix', 'ai-audit', 'configure', 'transform']
+        : ['upload', 'validating', 'clean-fix', 'configure', 'transform']
+    ),
+    [aiAuditStageEnabled],
+  );
+
+  const nextStepAfterCleanFix: WizardStep = aiAuditStageEnabled ? 'ai-audit' : 'configure';
+  const previousStepBeforeConfigure: WizardStep = aiAuditStageEnabled ? 'ai-audit' : 'clean-fix';
+
+  const handleProceedAfterCleanFix = () => {
+    // Enter AI audit as a stage transition only; auditing starts only via explicit run buttons.
+    if (nextStepAfterCleanFix === 'ai-audit') {
+      setAuditProgress({ current: 0, total: 0 });
+      handleStepperJump('ai-audit');
+      return;
+    }
+    handleStepperJump('configure');
+  };
+
+  const handleOpenAiAuditStage = () => {
+    setAuditProgress({ current: 0, total: 0 });
+    handleStepperJump('ai-audit');
+  };
+
+  const isStepComplete = (step: WizardStep): boolean => {
+    if (step === 'upload') return !!fileData && uploadedFiles.length > 0;
+    if (step === 'validating') return !!fileData && validationResults.size > 0 && !isValidating;
     if (step === 'clean-fix') return !!fileData && validationResults.size > 0;
-    if (step === 'ai-audit') return !!fileData && validationResults.size > 0;
-    if (step === 'configure') return !!fileData && editedRows.length > 0;
-    if (step === 'transform') return !!fileData && isExportConfigComplete();
+    if (step === 'ai-audit') return !aiAuditStageEnabled || (!!fileData && editedRows.length > 0);
+    if (step === 'configure') return !!fileData && isExportConfigComplete();
+    if (step === 'transform') return transformDone;
+    return false;
+  };
+
+  const canNavigateToStep = (step: WizardStep): boolean => {
+    const targetIndex = stepOrder.indexOf(step);
+    if (targetIndex < 0) return false;
+
+    // Premium Check: AI Audit, Configure, and Transform are locked for free users
+    const isPremiumStep = ['ai-audit', 'configure', 'transform'].includes(step);
+    if (!isPremium && isPremiumStep) return false;
+
+    const currentIndex = Math.max(stepOrder.indexOf(currentStep), 0);
+
+    if (step === 'ai-audit' && !aiAuditStageEnabled) return false;
+    if (step === 'transform' && (!fileData || !isExportConfigComplete())) return false;
+    if ((step === 'validating' || step === 'clean-fix' || step === 'configure') && !fileData) return false;
+
+    // Always allow current or previous stages; future stages unlock strictly one-by-one.
+    if (targetIndex <= currentIndex) return true;
+    if (targetIndex === currentIndex + 1) return isStepComplete(currentStep);
     return false;
   };
 
   const handleStepperJump = (step: WizardStep) => {
-    if (!canNavigateToStep(step)) return;
+    if (!canNavigateToStep(step)) {
+      if (!isPremium && ['ai-audit', 'configure', 'transform'].includes(step)) {
+        toast.error("This is a premium feature. Please upgrade to access AI Audit and Export stages.", {
+          action: {
+            label: "View Pricing",
+            onClick: () => navigate("/workspace/dashboard")
+          }
+        });
+      }
+      return;
+    }
     setCurrentStep(step);
   };
+
+  useEffect(() => {
+    if (!aiAuditStageEnabled && currentStep === 'ai-audit') {
+      setCurrentStep('configure');
+    }
+  }, [aiAuditStageEnabled, currentStep]);
+
+  // Hard guard for free users - redirect away from premium steps if they somehow land there
+  useEffect(() => {
+    if (!isPremium && ['ai-audit', 'configure', 'transform'].includes(currentStep)) {
+      setCurrentStep('clean-fix');
+    }
+  }, [isPremium, currentStep]);
 
   const fixingNavigationRowKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -470,7 +598,99 @@ export function BatchCreator() {
     return Array.from(keys);
   }, [pass3Suggestions, validationResults]);
 
-  const currentStepIndex = stepOrder.indexOf(currentStep);
+  const currentStepIndex = Math.max(stepOrder.indexOf(currentStep), 0);
+
+  const activeValidationMap = useMemo(() => {
+    const base = viewMode === 'clean' && cleanValidationResults
+      ? new Map<string, ValidationResult>(Object.entries(cleanValidationResults))
+      : new Map<string, ValidationResult>(validationResults);
+    if (manualFixResults.size > 0) {
+      manualFixResults.forEach((vr, key) => base.set(key, vr));
+    }
+    return base;
+  }, [viewMode, cleanValidationResults, validationResults, manualFixResults]);
+
+  const validationRows = useMemo(() => {
+    return editedRows.map((row, idx) => {
+      const rowKey = getRowValidationKey(row, idx);
+      const result = activeValidationMap.get(rowKey);
+      const rowId = String((row as any).id ?? (row as any).question_id ?? (row as any).questionId ?? `row-${idx + 2}`);
+      const mappedQuestionValue = columnMapping?.questionCol ? (row as any)?.[columnMapping.questionCol] : undefined;
+      const validatedQuestionValue = (result as any)?.data?.questionText ?? (result as any)?.rawData?.[columnMapping?.questionCol || ''];
+      const stem = String(mappedQuestionValue ?? (row as any).question_text ?? (row as any).stem ?? (row as any).question ?? validatedQuestionValue ?? '').trim();
+      const answer = String((row as any).correct_answer ?? (row as any).answer ?? (row as any).correctOption ?? '');
+      const mappedTypeValue = columnMapping?.questionTypeCol ? (row as any)?.[columnMapping.questionTypeCol] : undefined;
+      const type = String(mappedTypeValue ?? (row as any).question_type ?? (row as any).type ?? result?.detectedType ?? 'unknown');
+      return {
+        row,
+        rowKey,
+        idx,
+        rowNumber: idx + 2,
+        rowId,
+        stem,
+        answer,
+        type,
+        result,
+      };
+    });
+  }, [editedRows, activeValidationMap, columnMapping?.questionTypeCol, columnMapping?.questionCol]);
+
+  const validationRuleCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    validationRows.forEach(({ result }) => {
+      (result?.issues ?? []).forEach((issue) => {
+        counts[issue.code] = (counts[issue.code] ?? 0) + 1;
+      });
+    });
+    return counts;
+  }, [validationRows]);
+
+  const filteredValidationRows = useMemo(() => {
+    const q = validationSearch.trim().toLowerCase();
+    return validationRows.filter(({ result, rowId, stem, answer }) => {
+      const status = result?.status ?? 'valid';
+      if (validationFilter !== 'all' && status !== validationFilter) return false;
+      if (validationRuleFilter && !(result?.issues ?? []).some((issue) => issue.code === validationRuleFilter)) return false;
+      if (q && !(`${rowId} ${stem} ${answer}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [validationRows, validationSearch, validationFilter, validationRuleFilter]);
+
+  const validationByType = useMemo(() => {
+    const counts: Record<string, number> = {
+      mcq: 0,
+      true_false: 0,
+      msq: 0,
+      text: 0,
+      numeric: 0,
+      order: 0,
+      other: 0,
+    };
+
+    const normalizeType = (rawType: string): keyof typeof counts => {
+      const t = String(rawType || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+      if (!t) return 'other';
+      if (t === 'mcq' || t === 'single_choice' || t === 'singlechoice') return 'mcq';
+      if (t === 'true_false' || t === 'truefalse' || t === 'tf' || t === 't/f') return 'true_false';
+      if (t === 'msq' || t === 'multi_select' || t === 'multiselect' || t === 'multiple_select') return 'msq';
+      if (t === 'text_entry' || t === 'text' || t === 'shortanswer' || t === 'short_answer') return 'text';
+      if (t === 'numeric' || t === 'number' || t === 'numerical') return 'numeric';
+      if (t === 'order' || t === 'ordering' || t === 'sequence') return 'order';
+      return 'other';
+    };
+
+    validationRows.forEach(({ type }) => {
+      const key = normalizeType(type);
+      counts[key] = (counts[key] ?? 0) + 1;
+    });
+
+    return counts;
+  }, [validationRows]);
+
+  const selectedValidationRow = useMemo(
+    () => validationRows.find((item) => item.rowKey === selectedValidationRowKey) ?? null,
+    [validationRows, selectedValidationRowKey],
+  );
   const stepProgressPercent = ((currentStepIndex + 1) / stepOrder.length) * 100;
   const sidebarCollapsedWidth = 72;
   const sidebarExpandedWidth = 256;
@@ -501,18 +721,21 @@ export function BatchCreator() {
 
   const freeQuestionQuota = 100;
   const exportedQuestions = userUsage?.total_questions_converted || 0;
-  const quotaUsedPercent = userUsage?.is_unlimited
-    ? 100
-    : Math.min((exportedQuestions / freeQuestionQuota) * 100, 100);
-  const quotaSummary = userUsage?.is_unlimited
-    ? `Unlimited plan - ${exportedQuestions} questions converted`
+  const quotaUsedPercent = userUsage?.is_premium
+    ? 0
+    : Math.min(100, ((userUsage?.total_questions_converted || 0) / 100) * 100);
+  const quotaSummary = userUsage?.is_premium
+    ? `Premium plan - ${exportedQuestions} questions converted`
     : `${Math.max(freeQuestionQuota - exportedQuestions, 0)} of ${freeQuestionQuota} questions left`;
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
-      if (!profileMenuRef.current) return;
-      if (!profileMenuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
         setIsProfileMenuOpen(false);
+      }
+      if (validationExportMenuRef.current && !validationExportMenuRef.current.contains(target)) {
+        setIsValidationExportMenuOpen(false);
       }
     };
 
@@ -526,6 +749,33 @@ export function BatchCreator() {
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onEscape);
     };
+  }, []);
+
+  useEffect(() => {
+    if (!isApplyingAutoFixes) {
+      setCleaningPass(0);
+      return;
+    }
+
+    setCleaningPass(1);
+    const t1 = window.setTimeout(() => setCleaningPass(2), 450);
+    const t2 = window.setTimeout(() => setCleaningPass(3), 900);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [isApplyingAutoFixes]);
+
+  // Close metadata dropdown on click outside
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!metadataDropdownRef.current) return;
+      if (!metadataDropdownRef.current.contains(event.target as Node)) {
+        setIsMetadataDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
 
   // AI Validation state
@@ -562,6 +812,7 @@ export function BatchCreator() {
 
   const AI_AUDIT_PAGE_SIZE = 100;
   const [isAuditing, setIsAuditing] = useState(false);
+  const auditAbortRef = useRef(false);
   const [auditResults, setAuditResults] = useState<Record<string, AuditResult>>({});
   const [auditProgress, setAuditProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   const [auditOverrides, setAuditOverrides] = useState<Set<string>>(new Set());
@@ -570,6 +821,12 @@ export function BatchCreator() {
   const [aiAuditStatusFilter, setAiAuditStatusFilter] = useState<'ALL' | 'FAILED' | 'PASSED'>('ALL');
   const [aiAuditEditingRowKey, setAiAuditEditingRowKey] = useState<string | null>(null);
   const [aiAuditDraftRows, setAiAuditDraftRows] = useState<Map<string, Record<string, any>>>(new Map());
+
+  // User-added metadata columns state
+  const [addedMetadataKeys, setAddedMetadataKeys] = useState<string[]>([]);
+  const [metadataValues, setMetadataValues] = useState<Map<string, Record<string, string>>>(new Map()); // rowKey -> { metaKey -> value }
+  const [isMetadataDropdownOpen, setIsMetadataDropdownOpen] = useState(false);
+  const metadataDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const aiAuditQueueRows = useMemo(() => {
     const rows: Array<{
@@ -664,6 +921,37 @@ export function BatchCreator() {
     if (visibleAiAuditQueueRows.length === 0) return null;
     return visibleAiAuditQueueRows.find((row) => row.rowKey === selectedAuditRowKey) || visibleAiAuditQueueRows[0];
   }, [visibleAiAuditQueueRows, selectedAuditRowKey]);
+
+  // Metadata fields that the uploaded sheet already covers (via column detection)
+  const detectedMetadataKeys = useMemo(() => {
+    const detected = new Set<string>();
+    if (!columnMapping) return detected;
+    if (columnMapping.subjectCol) detected.add('__meta_subject');
+    if (columnMapping.topicCol) detected.add('__meta_topic');
+    if (columnMapping.subtopicCol) detected.add('__meta_subtopic');
+    if (columnMapping.difficultyCol) detected.add('__meta_difficulty');
+    if (columnMapping.bloomCol) detected.add('__meta_bloom');
+    if (columnMapping.pointsCol) detected.add('__meta_marks');
+    if (columnMapping.negativeMarksCol) detected.add('__meta_negative_marks');
+    if (columnMapping.tagsCol) detected.add('__meta_tags');
+    if (columnMapping.gradeCol) detected.add('__meta_grade');
+    if (columnMapping.languageCol) detected.add('__meta_language');
+    if (columnMapping.examCol) detected.add('__meta_exam');
+    if (columnMapping.solutionCol) detected.add('__meta_explanation');
+    return detected;
+  }, [columnMapping]);
+
+  // Metadata fields available to add (not already in the sheet and not already added)
+  const availableMetadataToAdd = useMemo(() => {
+    return AVAILABLE_METADATA_FIELDS.filter(
+      (f) => !detectedMetadataKeys.has(f.key) && !addedMetadataKeys.includes(f.key)
+    );
+  }, [detectedMetadataKeys, addedMetadataKeys]);
+
+  // Combined list of added metadata field definitions (for UI rendering)
+  const addedMetadataFields = useMemo(() => {
+    return AVAILABLE_METADATA_FIELDS.filter((f) => addedMetadataKeys.includes(f.key));
+  }, [addedMetadataKeys]);
 
   const totalXmlReviewPages = Math.max(1, Math.ceil(generatedXmlItems.length / XML_REVIEW_PAGE_SIZE));
   const visibleXmlReviewStart = xmlReviewPageIndex * XML_REVIEW_PAGE_SIZE;
@@ -951,9 +1239,7 @@ export function BatchCreator() {
     }
   }, [visibleAiAuditQueueRows, selectedAuditRowKey]);
 
-  // Batch Creator access: requires a provisioned token to have been redeemed
-  const hasBatchAccess = !!userUsage?.batch_creator_access;
-  const canUseAIValidation = !!userUsage?.is_unlimited;
+
 
   useEffect(() => {
     if (!canUseAIValidation && aiValidationEnabled) {
@@ -1546,6 +1832,12 @@ export function BatchCreator() {
       const detected = detectQuestionColumns(parsed.columns);
       console.log('Detected column mapping:', detected);
 
+      if (!detected.typeCol) {
+        toast.error('No question type column is present in the uploaded sheet.');
+        // We do not return here; the system will proceed, but based on strict mode,
+        // no structural fallback will be applied, so all rows will be 'unknown'.
+      }
+
       const keyedRows = ensureInternalRowKeys(parsed.rows);
       setFileData({ ...parsed, rows: keyedRows });
       setColumnMapping(detected);
@@ -1553,6 +1845,22 @@ export function BatchCreator() {
       setUploadedMediaUrls([]);
       setMediaUploadError('');
       setAutoMappedImageRows(0);
+
+      const detection = detectMathInRows(keyedRows as Array<Record<string, unknown>>);
+      setMathDetection(detection);
+      const autoContainsMath: 'yes' | 'no' = detection.hasMath ? 'yes' : 'no';
+      const autoMathFormat: 'mathml' | '' = detection.hasMath ? 'mathml' : '';
+      setContainsMath(autoContainsMath);
+      setMathFormat(autoMathFormat);
+      setMathAutoApplied(true);
+
+      const detectedValidationProfile = buildValidationProfile({
+        outputFormat,
+        exportMode,
+        hasTemplateXml,
+        containsMath: autoContainsMath,
+        containsImages,
+      });
 
       setValidationProgressText(`Validating ${parsed.rows.length} questions...`);
       let resultsMap: Map<string, ValidationResult>;
@@ -1566,10 +1874,10 @@ export function BatchCreator() {
             setValidationProgress(progress);
             setValidationProgressText(`Validated ${processedCount} of ${keyedRows.length} questions...`);
           },
-          validationProfile
+          detectedValidationProfile
         );
       } else {
-        const results = validateAllQuestions(keyedRows as any, detected, validationProfile);
+        const results = validateAllQuestions(keyedRows as any, detected, detectedValidationProfile);
         resultsMap = new Map<string, ValidationResult>();
         results.forEach(result => {
           resultsMap.set(result.rowId, result);
@@ -1577,27 +1885,41 @@ export function BatchCreator() {
         setValidationProgress(100);
       }
 
-      // Validation stage is strictly raw. The dual-validation pipeline
-      // (PASS 1 + PASS 2 + PASS 3) runs later, on transition into clean-fix,
-      // so the downloadable report at this stage reflects only the upload.
-      setCleanValidationResults(null);
-      setCleaningMetrics(null);
-      setCleaningLogs([]);
-      setRowImprovements([]);
-      setPass3Suggestions([]);
-      setPass3Metrics(null);
-      setPass3ExecutionMetrics(null);
-      setPass3ExecutedRows([]);
-      setManualFixedRows(new Map());
-      manualFixedRowsRef.current = new Map();
-      setManualFixResults(new Map());
-      setManualFixHistory(new Map());
-      setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
-      setManualFixInputs(new Map());
+      // Run dual-validation pipeline (PASS 1 + PASS 2) for cleaning metrics.
+      // Fallback to raw results on any error — zero regression risk.
+      try {
+        const dualResult = runDualValidation(keyedRows as any, detected, detectedValidationProfile);
+        setCleanValidationResults(dualResult.cleanResults);
+        setCleaningMetrics(dualResult.metrics);
+        setCleaningLogs(dualResult.cleanLogs);
+        setRowImprovements(dualResult.rowImprovements);
+        setPass3Suggestions(dualResult.pass3Result.suggestions);
+        setPass3Metrics(dualResult.pass3Result.pass3Metrics);
+        setPass3ExecutionMetrics(dualResult.pass3ExecutionResult.executionMetrics);
+        setPass3ExecutedRows(dualResult.pass3ExecutionResult.executedRows);
+        setPass3ExecutionLogs(dualResult.pass3ExecutionResult.executionLogs);
+        setManualFixedRows(new Map());
+        manualFixedRowsRef.current = new Map(); // Add this line
+        setManualFixResults(new Map());
+        setManualFixHistory(new Map());
+        setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
+        setManualFixInputs(new Map());
+      } catch (dualErr) {
+        console.warn('[DualValidation] Pipeline failed, skipping cleaning metrics:', dualErr);
+        setCleanValidationResults(null);
+        setCleaningMetrics(null);
+        setCleaningLogs([]);
+        setRowImprovements([]);
+        setPass3Suggestions([]);
+        setPass3Metrics(null);
+      }
 
       setValidationResults(resultsMap);
       setShowValidationReport(true);
+      setCleaningMetrics(null);
+      setCleaningLogs([]);
       setAutoFixComparison(null);
+      setHasProceededToManualFix(false);
       setAutoFixedRowKeys(new Set());
       setDedupDeletedRows([]);
       setIsValidating(false);
@@ -1649,7 +1971,7 @@ export function BatchCreator() {
     }
     setConfigurationValidationError('');
     setTransformDone(false);
-    setCurrentStep('transform');
+    handleStepperJump('transform');
     // Export functions manage their own isExporting state
     if (outputFormat === 'json') {
       await exportToJSON();
@@ -1659,6 +1981,33 @@ export function BatchCreator() {
       await exportXmlMediaFolder();
     }
     setTransformDone(true);
+  };
+
+  const resetBatchWorkflow = () => {
+    setCurrentStep('upload');
+    setFileData(null);
+    setUploadedFiles([]);
+    setValidationResults(new Map());
+    setEditedRows([]);
+    setShowValidationReport(false);
+    setMediaZipFile(null);
+    setMediaFiles(new Map());
+    setMediaValidationErrors([]);
+    setContainsImages('');
+    setContainsMath('');
+    setMathFormat('');
+    setMathDetection(null);
+    setMathAutoApplied(false);
+    setHasTemplateXml('');
+    setTemplateXmlFile(null);
+    setConfigurationValidationError('');
+    setShowConfigErrors(false);
+    setOutputFormat('');
+    setExportMode('');
+    setTransformDone(false);
+    setUploadedMediaUrls([]);
+    setAutoMappedImageRows(0);
+    setMediaUploadError('');
   };
 
 
@@ -2164,6 +2513,7 @@ export function BatchCreator() {
               type: isMsq ? 'MSQ' : 'MCQ',
               options: optionValues.map((v: any) => String(v)),
               correct_answer: resolvedAnswer,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: (validationResult?.status as string) === 'valid' ? 'Valid' : 'Caution',
             };
 
@@ -2192,6 +2542,7 @@ export function BatchCreator() {
               type: 'ShortAnswer',
               options: [],
               correct_answer: resolvedAnswer,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: (validationResult?.status as string) === 'valid' ? 'Valid' : 'Caution',
             };
 
@@ -2227,6 +2578,7 @@ export function BatchCreator() {
               type: 'OrderInteraction',
               options: orderedItems,
               correct_answer: resolvedOrder,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: (validationResult?.status as string) === 'valid' ? 'Valid' : 'Caution',
             };
 
@@ -2262,6 +2614,7 @@ export function BatchCreator() {
               type: 'OrderInteraction',
               options: orderedItems,
               correct_answer: resolvedOrder,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: (validationResult?.status as string) === 'valid' ? 'Valid' : 'Caution',
             };
 
@@ -2297,6 +2650,7 @@ export function BatchCreator() {
               type: 'OrderInteraction',
               options: orderedItems,
               correct_answer: resolvedOrder,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: 'Valid',
             };
 
@@ -2572,6 +2926,7 @@ export function BatchCreator() {
               type: isMsq ? 'MSQ' : 'MCQ',
               options: optionValues.map((v: any) => String(v)),
               correct_answer: resolvedAnswer,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: (validationResult?.status as string) === 'valid' ? 'Valid' : 'Caution',
             };
 
@@ -2600,6 +2955,7 @@ export function BatchCreator() {
               type: 'ShortAnswer',
               options: [],
               correct_answer: resolvedAnswer,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: (validationResult?.status as string) === 'valid' ? 'Valid' : 'Caution',
             };
 
@@ -2874,6 +3230,198 @@ export function BatchCreator() {
     setIsAuditing(false);
   };
 
+  const handleDownloadCorrectedSheet = async () => {
+    const targetRows = currentStep === 'validating'
+      ? editedRows.map((row, idx) => ({ rowKey: getRowValidationKey(row, idx), rowData: row, aiStatus: 'PENDING' as any }))
+      : aiAuditQueueRows;
+
+    let finalRows = [...targetRows];
+    if (!isPremium && finalRows.length > 100) {
+      finalRows = finalRows.slice(0, 100);
+      toast.info("Free Tier Limit: Only the first 100 rows were included in the export. Upgrade for unlimited rows.");
+    }
+
+    if (!fileData || finalRows.length === 0) {
+      toast.error('No data available to export.');
+      return;
+    }
+
+    try {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'AssessmentCore';
+      wb.created = new Date();
+
+      // ── Palette (matched to website: #111827 / #0052CC family) ─────
+      const PRIMARY       = 'FF2457B8';
+      const PRIMARY_DARK  = 'FF1F4AA0';
+      const PRIMARY_LIGHT = 'FFEEF4FF';
+      const PRIMARY_WASH  = 'FFF7FAFF';
+      const BORDER_LIGHT  = 'FFD7E5FF';
+      const BORDER_MID    = 'FFC7DCFF';
+      const WHITE         = 'FFFFFFFF';
+      const GRAY_50       = 'FFF9FBFF';
+      const GRAY_300      = 'FFCBD5E1';
+      const GRAY_500      = 'FF64748B';
+      const GRAY_800      = 'FF1E293B';
+      const META_TEXT      = 'FF2457B8';
+
+      const lightBorder = (color: string): Partial<ExcelJS.Border> => ({
+        style: 'thin' as const,
+        color: { argb: color },
+      });
+
+      // ── Build columns ────────────────────────────────────────────────
+      const originalCols = fileData.columns.filter(c => !c.startsWith('__'));
+      const metaCols = addedMetadataFields.map((f) => f.label);
+      const allHeaders = ['#', ...originalCols, ...metaCols];
+      const totalCols = allHeaders.length;
+      const metaColStartIdx = originalCols.length + 2; // 1-based
+      const metaColEndIdx = metaColStartIdx + metaCols.length - 1;
+
+      const dateStr = new Date().toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+      });
+
+      // ── Worksheet ────────────────────────────────────────────────────
+      const ws = wb.addWorksheet('Corrected Data', {
+        properties: { tabColor: { argb: PRIMARY } },
+      });
+
+      // Column widths
+      allHeaders.forEach((h, i) => {
+        let w = 20;
+        if (h === '#') w = 5;
+        else if (/question|stem|text/i.test(h)) w = 52;
+        else if (/option/i.test(h)) w = 28;
+        else if (/answer/i.test(h)) w = 18;
+        else if (/explanation|solution/i.test(h)) w = 40;
+        else if (/subject|topic|chapter/i.test(h)) w = 22;
+        else if (metaCols.includes(h)) w = 20;
+        ws.getColumn(i + 1).width = w;
+      });
+
+      // ── Row 1: Brand banner ──────────────────────────────────────────
+      ws.mergeCells(1, 1, 1, totalCols);
+      const brandCell = ws.getCell(1, 1);
+      brandCell.value = 'AssessmentCore';
+      brandCell.font = { name: 'Aptos', size: 16, bold: true, color: { argb: WHITE } };
+      brandCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY } };
+      brandCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      ws.getRow(1).height = 38;
+
+      // ── Row 2: File info ─────────────────────────────────────────────
+      ws.mergeCells(2, 1, 2, totalCols);
+      const infoCell = ws.getCell(2, 1);
+      const infoParts = [
+        `${fileData.fileName}`,
+        `${dateStr}`,
+        `${aiAuditQueueRows.length} questions`,
+      ];
+      if (addedMetadataKeys.length > 0) {
+        infoParts.push(addedMetadataFields.map(f => f.label).join(', '));
+      }
+      infoCell.value = infoParts.join('   ·   ');
+      infoCell.font = { name: 'Aptos', size: 9, color: { argb: 'FFB0C4FF' } };
+      infoCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY } };
+      infoCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      ws.getRow(2).height = 20;
+
+      // ── Row 3: Column headers ────────────────────────────────────────
+      const HEADER_ROW = 3;
+      const headerRow = ws.getRow(HEADER_ROW);
+      allHeaders.forEach((h, i) => {
+        headerRow.getCell(i + 1).value = h;
+      });
+      headerRow.height = 30;
+      headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        const isMeta = colNumber >= metaColStartIdx && colNumber <= metaColEndIdx;
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isMeta ? PRIMARY_LIGHT : PRIMARY_DARK } };
+        cell.font = {
+          name: 'Aptos',
+          size: 10,
+          bold: true,
+          color: { argb: isMeta ? PRIMARY_DARK : WHITE },
+        };
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: colNumber === 1 ? 'center' : 'left',
+          indent: colNumber === 1 ? 0 : 1,
+        };
+        cell.border = {
+          bottom: lightBorder(BORDER_MID),
+        };
+      });
+
+      // ── Data rows (starting at row 4) ─────────────────────────────────
+      finalRows.forEach((queueRow, rowIdx) => {
+        const rowData = aiAuditDraftRows.get(queueRow.rowKey) ?? queueRow.rowData;
+        const isEven = rowIdx % 2 === 0;
+        const excelRowNum = HEADER_ROW + 1 + rowIdx;
+        const excelRow = ws.getRow(excelRowNum);
+
+        // '#' column
+        excelRow.getCell(1).value = rowIdx + 1;
+        // Original data columns
+        originalCols.forEach((col, ci) => {
+          excelRow.getCell(ci + 2).value = rowData[col] ?? '';
+        });
+        // Metadata columns
+        const rowMeta = metadataValues.get(queueRow.rowKey) ?? {};
+        addedMetadataFields.forEach((field, mi) => {
+          excelRow.getCell(metaColStartIdx + mi).value = rowMeta[field.key] ?? '';
+        });
+
+        excelRow.height = 24;
+        const rowBg = isEven ? WHITE : GRAY_50;
+
+        excelRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          cell.font = { name: 'Aptos', size: 10, color: { argb: GRAY_800 } };
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: colNumber === 1 ? 'center' : 'left',
+            indent: colNumber === 1 ? 0 : 1,
+            wrapText: true,
+          };
+          cell.border = {
+            bottom: lightBorder(BORDER_LIGHT),
+          };
+        });
+
+        // '#' column — muted
+        excelRow.getCell(1).font = { name: 'Aptos', size: 9, color: { argb: GRAY_500 } };
+
+        // Metadata columns — brand blue text on light wash
+        for (let ci = metaColStartIdx; ci <= metaColEndIdx; ci++) {
+          const metaCell = excelRow.getCell(ci);
+          metaCell.font = { name: 'Aptos', size: 10, color: { argb: META_TEXT } };
+          metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? PRIMARY_WASH : PRIMARY_LIGHT } };
+        }
+      });
+
+      // ── Freeze header rows (banner + info + column headers) ───────────
+      ws.views = [{ state: 'frozen', ySplit: HEADER_ROW, showGridLines: false }];
+
+      // ── Write & download ─────────────────────────────────────────────
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanName = fileData.fileName.replace(/\.[^/.]+$/, '');
+      a.download = `AssessmentCore_Corrected_${cleanName}_${dateStr.replace(/\s/g, '-')}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success('Corrected sheet downloaded.');
+    } catch (err) {
+      console.error('Failed to generate corrected sheet:', err);
+      toast.error('Failed to generate corrected sheet.');
+    }
+  };
+
   const handleAuditSingleQuestion = async (row: Record<string, any>, rowKey: string) => {
     setIsAuditing(true);
     try {
@@ -2934,6 +3482,9 @@ export function BatchCreator() {
     });
 
     setEditedRows(nextRows);
+    // setAiAuditQueueRows removed: aiAuditQueueRows is derived from editedRows, so updating editedRows is sufficient.
+    // Type annotations for prev and row (if needed elsewhere):
+    // (prev: typeof aiAuditQueueRows) => prev.map((row: typeof aiAuditQueueRows[0]) => { ... })
     setAuditResults((prev) => {
       const next = { ...prev };
       delete next[rowKey];
@@ -2960,6 +3511,52 @@ export function BatchCreator() {
     setAuditResults({});
     setAuditProgress({ current: 0, total: 0 });
     setAuditOverrides(new Set());
+  };
+
+  // ── Metadata management handlers ──────────────────────────────────────────
+  const handleAddMetadataField = (fieldKey: string) => {
+    if (addedMetadataKeys.includes(fieldKey)) return;
+    setAddedMetadataKeys((prev) => [...prev, fieldKey]);
+    setIsMetadataDropdownOpen(false);
+  };
+
+  const handleRemoveMetadataField = (fieldKey: string) => {
+    setAddedMetadataKeys((prev) => prev.filter((k) => k !== fieldKey));
+    // Clean up values for this field across all rows
+    setMetadataValues((prev) => {
+      const next = new Map(prev);
+      next.forEach((rowMeta, rowKey) => {
+        const updated = { ...rowMeta };
+        delete updated[fieldKey];
+        next.set(rowKey, updated);
+      });
+      return next;
+    });
+  };
+
+  const handleMetadataValueChange = (rowKey: string, fieldKey: string, value: string) => {
+    setMetadataValues((prev) => {
+      const next = new Map(prev);
+      const rowMeta = next.get(rowKey) ?? {};
+      next.set(rowKey, { ...rowMeta, [fieldKey]: value });
+      return next;
+    });
+  };
+
+  const handleApplyMetadataToAll = (fieldKey: string, value: string) => {
+    if (!value.trim()) return;
+    setMetadataValues((prev) => {
+      const next = new Map(prev);
+      for (const queueRow of aiAuditQueueRows) {
+        const existing = next.get(queueRow.rowKey) ?? {};
+        // Only fill rows that don't already have a value for this field
+        if (!existing[fieldKey]?.trim()) {
+          next.set(queueRow.rowKey, { ...existing, [fieldKey]: value });
+        }
+      }
+      return next;
+    });
+    toast.success(`Applied "${value}" to all rows without a value for this field.`);
   };
 
   const handleStartAIValidation = async () => {
@@ -3014,6 +3611,7 @@ export function BatchCreator() {
               type: isMsq ? 'MSQ' : 'MCQ',
               options: optionValues.map((v: any) => String(v)),
               correct_answer: resolvedAnswer,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: 'Valid',
             };
 
@@ -3045,6 +3643,7 @@ export function BatchCreator() {
               type: 'ShortAnswer',
               options: [],
               correct_answer: resolvedAnswer,
+              explanation: columnMapping.solutionCol ? String(row[columnMapping.solutionCol] ?? '').trim() : '',
               validation_status: 'Valid',
             };
 
@@ -3465,54 +4064,9 @@ export function BatchCreator() {
       setValidationProgress(100);
     }
 
-    // Re-validation is pure: it reflects the current state of editedRows
-    // (which already include any committed Auto Fix or manual edits). The
-    // dual-validation pipeline is NOT re-run here — it only runs when the
-    // user explicitly enters clean-fix or clicks Apply Auto Fix.
-    setManualFixedRows(new Map());
-    manualFixedRowsRef.current = new Map();
-    setManualFixResults(new Map());
-    setManualFixHistory(new Map());
-    setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
-    setManualFixInputs(new Map());
-
-    setValidationResults(resultsMap);
-    setIsValidating(false);
-    return resultsMap;
-  };
-
-  const handleProceedToCleanFix = () => {
-    setCurrentStep('clean-fix');
-  };
-
-  /**
-   * Runs the full cleaning pipeline on click and commits the result in one
-   * step: PASS 1 + PASS 2 + HIGH-confidence PASS 3 suggestions are applied
-   * to editedRows, and the cleaning/pass3 state is populated so the UI can
-   * show the before/after comparison. Nothing runs until this button is
-   * clicked — the validation stage stays strictly raw.
-   */
-  const handleApplyAutomatedFixes = async () => {
-    if (editedRows.length === 0) {
-      toast.info('No rows available to clean.');
-      return;
-    }
-
-    const beforeSummary = buildStatsFromResultsMap(validationResults);
-    setIsApplyingAutoFixes(true);
-
+    // Refresh dual-validation pipeline results after re-validation
     try {
-      let dualResult;
-      try {
-        dualResult = runDualValidation(editedRows as any, columnMapping, validationProfile);
-      } catch (dualErr) {
-        console.warn('[DualValidation] Pipeline failed during Auto Fix:', dualErr);
-        toast.error('Automatic cleaning failed. See console for details.');
-        return;
-      }
-
-      const suggestionsApplied = dualResult.pass3ExecutionResult.executionMetrics.suggestionsApplied ?? 0;
-
+      const dualResult = runDualValidation(mergedRows as any, columnMapping, validationProfile);
       setCleanValidationResults(dualResult.cleanResults);
       setCleaningMetrics(dualResult.metrics);
       setCleaningLogs(dualResult.cleanLogs);
@@ -3521,19 +4075,42 @@ export function BatchCreator() {
       setPass3Metrics(dualResult.pass3Result.pass3Metrics);
       setPass3ExecutionMetrics(dualResult.pass3ExecutionResult.executionMetrics);
       setPass3ExecutedRows(dualResult.pass3ExecutionResult.executedRows);
+      setPass3ExecutionLogs(dualResult.pass3ExecutionResult.executionLogs);
+      setManualFixedRows(new Map());
+      manualFixedRowsRef.current = new Map(); // Add this line
+      setManualFixResults(new Map());
+      setManualFixHistory(new Map());
+      setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
+      setManualFixInputs(new Map());
+    } catch (dualErr) {
+      console.warn('[DualValidation] Pipeline failed during re-validate:', dualErr);
+    }
 
-      const nextRows = ensureInternalRowKeys(
-        dualResult.pass3ExecutionResult.executedRows as Record<string, any>[],
-      );
+    setValidationResults(resultsMap);
+    setIsValidating(false);
+    return resultsMap;
+  };
+
+  const handleApplyAutomatedFixes = async () => {
+    const availableAutoFixCount = pass3ExecutionMetrics?.suggestionsApplied ?? 0;
+    if (pass3ExecutedRows.length === 0 || availableAutoFixCount <= 0) {
+      toast.info('No high-confidence automated fixes are available right now.');
+      return;
+    }
+
+    const beforeSummary = buildStatsFromResultsMap(validationResults);
+    const appliedAutoFixKeys = new Set(
+      pass3Suggestions
+        .filter((s) => s.confidence === 'HIGH')
+        .map((s) => s.rowKey)
+    );
+    setIsApplyingAutoFixes(true);
+    try {
+      const nextRows = ensureInternalRowKeys(pass3ExecutedRows as Record<string, any>[]);
       setEditedRows(nextRows);
-
-      const appliedAutoFixKeys = new Set(
-        dualResult.pass3Result.suggestions
-          .filter((s) => s.confidence === 'HIGH')
-          .map((s) => s.rowKey),
-      );
+      setAppliedCleaningLogs(cleaningLogs);
+      setAppliedPass3Logs(pass3ExecutionLogs);
       setAutoFixedRowKeys(appliedAutoFixKeys);
-
       setManualFixedRows(new Map());
       manualFixedRowsRef.current = new Map();
       setManualFixResults(new Map());
@@ -3544,15 +4121,11 @@ export function BatchCreator() {
       setAutoFixComparison({
         before: beforeSummary,
         after: null,
-        autoFixedCount: suggestionsApplied,
+        autoFixedCount: availableAutoFixCount,
         applied: true,
       });
 
-      if (suggestionsApplied > 0) {
-        toast.success(`Applied ${suggestionsApplied} high-confidence automated fixes. Re-run validation to see the cleaned report.`);
-      } else {
-        toast.info('Cleaning pipeline ran but no high-confidence fixes were applicable to your sheet.');
-      }
+      toast.success(`Applied ${availableAutoFixCount} high-confidence automated fixes.`);
     } finally {
       setIsApplyingAutoFixes(false);
     }
@@ -3562,6 +4135,7 @@ export function BatchCreator() {
     if (!autoFixComparison?.applied) return;
 
     const latestResults = await revalidateAll();
+    setValidationResults(latestResults);
     const afterSummary = buildStatsFromResultsMap(latestResults);
     setAutoFixComparison((prev) => {
       if (!prev) return prev;
@@ -3570,7 +4144,7 @@ export function BatchCreator() {
         after: afterSummary,
       };
     });
-    setCurrentStep('validating');
+    // Removed: setCurrentStep('validating'); so it stays on the Auto-Fix Preview table.
   };
 
   // ── PASS 3 user-assisted execution ────────────────────────────────────────
@@ -3703,25 +4277,32 @@ export function BatchCreator() {
   };
 
   const getValidationStats = () => {
+    // When viewMode is 'clean', compute stats from the cleaned validation results.
+    const useClean = viewMode === 'clean' && cleanValidationResults !== null;
     const stats = {
       valid: 0,
       caution: 0,
       rejected: 0,
-      total: validationResults.size,
+      total: useClean ? Object.keys(cleanValidationResults!).length : validationResults.size,
       duplicates: 0,
       missingAnswers: 0,
       formattingIssues: 0,
     };
 
-    validationResults.forEach((result) => {
+    const iterate = (result: ValidationResult) => {
       stats[result.status]++;
       const issues = result.issues || [];
       const categories = new Set(result.categories || []);
       if (issues.some((i) => i.category === 'duplicate' || i.field === 'Duplicate')) stats.duplicates++;
       if (issues.some((i) => i.field === 'Correct Answer' || i.field === 'Correct Answers')) stats.missingAnswers++;
       if (categories.has('content_quality')) stats.formattingIssues++;
-    });
+    };
 
+    if (useClean) {
+      Object.values(cleanValidationResults!).forEach(iterate);
+    } else {
+      validationResults.forEach(iterate);
+    }
     return stats;
   };
 
@@ -3736,7 +4317,10 @@ export function BatchCreator() {
 
   /** Build report-ready rows and results that include manual fixes. */
   const getReportData = () => {
-    const baseResults: Map<string, ValidationResult> = new Map(validationResults);
+    const baseResults: Map<string, ValidationResult> =
+      viewMode === 'clean' && cleanValidationResults
+        ? new Map(Object.entries(cleanValidationResults))
+        : new Map(validationResults);
 
     // Overlay manual fix results
     manualFixResults.forEach((vr, key) => baseResults.set(key, vr));
@@ -3934,14 +4518,15 @@ export function BatchCreator() {
 
     const datasetName = reportDatasetName.trim() || fileData?.fileName || 'Untitled Dataset';
     const currentDate = new Date().toLocaleDateString();
+    const logoUrl = `${window.location.origin}${isDark ? '/logo-dark-1.png' : '/AC_logo.png'}`;
 
     // ── AssessmentCore brand tokens ───────────────────────────────────────────
-    const AC_BLUE = '#003a9f';
+    const AC_BLUE = '#111827';
     const AC_RED  = '#ba1a1a';
 
     // ── Health badge (POOR → DATA NEEDS CLEANING) ─────────────────────────────
-    const healthColor = usablePercent >= 80 ? '#004fd2' : usablePercent >= 60 ? '#8f4600' : '#ba1a1a';
-    const healthBg    = usablePercent >= 80 ? '#e7eeff' : usablePercent >= 60 ? '#ffdcc6' : '#ffdad6';
+    const healthColor = usablePercent >= 80 ? '#1f2937' : usablePercent >= 60 ? '#8f4600' : '#ba1a1a';
+    const healthBg    = usablePercent >= 80 ? '#f1f5f9' : usablePercent >= 60 ? '#ffdcc6' : '#ffdad6';
     const healthText  = usablePercent >= 80 ? 'GOOD'    : usablePercent >= 60 ? 'NEEDS WORK' : 'DATA NEEDS CLEANING';
 
     // ── KPI row ────────────────────────────────────────────────────────────────
@@ -4054,18 +4639,19 @@ export function BatchCreator() {
   <style>
     @page { size: A4; margin: 10mm 12mm; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Archivo', 'Segoe UI', Arial, sans-serif; color: #111c2d; background: #fff; font-size: 11.5px; line-height: 1.4; display: flex; flex-direction: column; gap: 9px; }
+    body { font-family: 'Archivo', 'Segoe UI', Arial, sans-serif; color: #0f172a; background: #fff; font-size: 11.5px; line-height: 1.4; display: flex; flex-direction: column; gap: 9px; }
 
     /* HEADER */
-    .hdr { display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #003a9f; padding-bottom: 8px; }
-    .brand-name { font-size: 14px; font-weight: 800; color: #003a9f; letter-spacing: -0.03em; }
-    .brand-sep  { width: 1.5px; height: 15px; background: #c5c5d4; margin: 0 8px; display: inline-block; vertical-align: middle; }
-    .hdr-rpt    { font-size: 12px; font-weight: 700; color: #111c2d; }
-    .hdr-sub    { font-size: 9.5px; color: #454652; margin-top: 1px; }
+    .hdr { display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #111827; padding-bottom: 8px; }
+    .brand-logo { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; margin-right: 8px; }
+    .brand-name { font-size: 14px; font-weight: 800; color: #111827; letter-spacing: -0.03em; }
+    .brand-sep  { width: 1.5px; height: 15px; background: #e2e8f0; margin: 0 8px; display: inline-block; vertical-align: middle; }
+    .hdr-rpt    { font-size: 12px; font-weight: 700; color: #0f172a; }
+    .hdr-sub    { font-size: 9.5px; color: #475569; margin-top: 1px; }
     .badge { padding: 4px 10px; border-radius: 999px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em; border: 1.5px solid; }
 
     /* RECOVERY POTENTIAL BANNER */
-    .rec-banner { background: #003a9f; border-radius: 9px; padding: 10px 14px; color: #fff; display: flex; align-items: center; gap: 14px; }
+    .rec-banner { background: #111827; border-radius: 9px; padding: 10px 14px; color: #fff; display: flex; align-items: center; gap: 14px; }
     .rec-hero   { flex-shrink: 0; }
     .rec-big    { font-size: 36px; font-weight: 800; line-height: 1; }
     .rec-sup    { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; opacity: 0.75; margin-bottom: 1px; }
@@ -4082,25 +4668,25 @@ export function BatchCreator() {
 
     /* KPI ROW — ready now + recoverable (hero) + broken */
     .kpi-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 7px; }
-    .kpi { border-radius: 8px; padding: 9px 12px; border: 1px solid #c5c5d4; }
-    .kpi-lbl { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #454652; }
+    .kpi { border-radius: 8px; padding: 9px 12px; border: 1px solid #e2e8f0; }
+    .kpi-lbl { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; }
     .kpi-val { font-size: 26px; font-weight: 800; line-height: 1.1; margin-top: 1px; }
     .kpi-val-hero { font-size: 32px; font-weight: 800; line-height: 1.1; margin-top: 1px; }
-    .kpi-sub { font-size: 9.5px; color: #454652; margin-top: 1px; }
-    .c-green { color: #004fd2; } .bg-green { background: #e7eeff; }
+    .kpi-sub { font-size: 9.5px; color: #475569; margin-top: 1px; }
+    .c-green { color: #1f2937; } .bg-green { background: #f1f5f9; }
     .c-amber { color: #8f4600; } .bg-amber { background: #ffdcc6; }
     .c-red   { color: #ba1a1a; } .bg-red   { background: #ffdad6; }
-    .c-blue  { color: #003a9f; } .bg-blue  { background: #e7eeff; }
+    .c-blue  { color: #111827; } .bg-blue  { background: #f1f5f9; }
 
     /* DATASET BREAKDOWN (PART 5) */
-    .dataset-breakdown { background: #f9f9ff; border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; }
-    .bd-title { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #454652; margin-bottom: 8px; }
+    .dataset-breakdown { background: #f8fafc; border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; }
+    .bd-title { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; margin-bottom: 8px; }
     .bd-layers { display: flex; flex-direction: column; gap: 4px; }
-    .bd-layer { border-radius: 6px; padding: 7px 9px; font-size: 10px; background: #fff; border: 1px solid #c5c5d4; }
-    .bd-label { font-size: 9px; font-weight: 600; color: #454652; }
-    .bd-count { font-size: 14px; font-weight: 800; color: #111c2d; margin-top: 2px; }
-    .bd-saved { font-size: 8.5px; color: #454652; margin-top: 2px; }
-    .bd-arrow { text-align: center; font-size: 12px; color: #757684; margin: 0; line-height: 1; }
+    .bd-layer { border-radius: 6px; padding: 7px 9px; font-size: 10px; background: #fff; border: 1px solid #e2e8f0; }
+    .bd-label { font-size: 9px; font-weight: 600; color: #475569; }
+    .bd-count { font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px; }
+    .bd-saved { font-size: 8.5px; color: #475569; margin-top: 2px; }
+    .bd-arrow { text-align: center; font-size: 12px; color: #64748b; margin: 0; line-height: 1; }
 
     /* OVERVIEW (donut + gain panel) */
     .overview { display: flex; gap: 12px; align-items: flex-start; }
@@ -4108,62 +4694,62 @@ export function BatchCreator() {
     .donut-wrap { position: relative; width: 112px; height: 112px; }
     .donut { width: 112px; height: 112px; border-radius: 50%; }
     .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .dn { font-size: 22px; font-weight: 800; line-height: 1; color: #111c2d; }
-    .ds { font-size: 9px; color: #454652; }
+    .dn { font-size: 22px; font-weight: 800; line-height: 1; color: #0f172a; }
+    .ds { font-size: 9px; color: #475569; }
     .legend { width: 100%; display: flex; flex-direction: column; gap: 3px; }
     .leg-r { display: flex; align-items: center; gap: 5px; font-size: 10px; }
     .leg-d { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .leg-n { margin-left: auto; font-weight: 700; }
 
     /* WHAT YOU GAIN AFTER CLEANUP */
-    .gain-col   { flex: 1; border: 1.5px solid #003a9f; border-radius: 9px; padding: 10px 12px; }
-    .gain-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #003a9f; margin-bottom: 7px; }
+    .gain-col   { flex: 1; border: 1.5px solid #111827; border-radius: 9px; padding: 10px 12px; }
+    .gain-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #111827; margin-bottom: 7px; }
     .gt-wrap { display: flex; flex-direction: column; gap: 3px; }
     .gt-row  { display: grid; grid-template-columns: 1.3fr 44px 60px 1fr; gap: 6px; padding: 4px 7px; border-radius: 5px; align-items: center; font-size: 10px; }
-    .gt-head { font-size: 7.5px; text-transform: uppercase; letter-spacing: .07em; color: #757684; background: #f9f9ff; }
-    .gt-hi-green { background: #e7eeff; }
-    .gt-hi-blue  { background: #e7eeff; }
-    .gt-total    { background: #111c2d; color: #fff; margin-top: 1px; }
-    .gt-note  { font-size: 9px; color: #454652; }
-    .gt-note-gr  { font-size: 9px; color: #004fd2; }
-    .gt-note-bl  { font-size: 9px; color: #003a9f; }
+    .gt-head { font-size: 7.5px; text-transform: uppercase; letter-spacing: .07em; color: #64748b; background: #f8fafc; }
+    .gt-hi-green { background: #f1f5f9; }
+    .gt-hi-blue  { background: #f1f5f9; }
+    .gt-total    { background: #0f172a; color: #fff; margin-top: 1px; }
+    .gt-note  { font-size: 9px; color: #475569; }
+    .gt-note-gr  { font-size: 9px; color: #1f2937; }
+    .gt-note-bl  { font-size: 9px; color: #111827; }
     .gt-note-wh  { font-size: 9px; color: rgba(255,255,255,0.7); }
 
     /* SECTION HEADING */
-    .sec-hd { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #454652; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid #c5c5d4; }
+    .sec-hd { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #475569; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid #e2e8f0; }
 
     /* ISSUE CARDS */
     .issue-grid   { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
-    .issue-card   { border: 1px solid #c5c5d4; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 3px; }
+    .issue-card   { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 3px; }
     .rank-tag     { display: inline-block; font-size: 7.5px; font-weight: 800; letter-spacing: 0.08em; color: #fff; padding: 2px 7px; border-radius: 999px; margin-bottom: 2px; }
     .issue-pct    { font-size: 22px; font-weight: 800; line-height: 1; }
-    .issue-title  { font-size: 11px; font-weight: 700; color: #111c2d; }
-    .issue-impact { font-size: 10px; color: #454652; line-height: 1.45; margin-top: 2px; }
-    .issue-fix    { font-size: 10px; color: #111c2d; margin-top: 2px; }
+    .issue-title  { font-size: 11px; font-weight: 700; color: #0f172a; }
+    .issue-impact { font-size: 10px; color: #475569; line-height: 1.45; margin-top: 2px; }
+    .issue-fix    { font-size: 10px; color: #0f172a; margin-top: 2px; }
 
     /* BEFORE → AFTER TABLE */
     .stbl { width: 100%; border-collapse: collapse; font-size: 10px; }
-    .stbl th { background: #f9f9ff; font-weight: 700; text-align: left; padding: 4px 7px; border: 1px solid #c5c5d4; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #454652; }
-    .stbl td  { padding: 4px 7px; border: 1px solid #c5c5d4; vertical-align: top; }
-    .stbl tr:nth-child(even) td { background: #f9f9ff; }
-    .rn       { width: 26px; color: #757684; text-align: center; }
+    .stbl th { background: #f8fafc; font-weight: 700; text-align: left; padding: 4px 7px; border: 1px solid #e2e8f0; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #475569; }
+    .stbl td  { padding: 4px 7px; border: 1px solid #e2e8f0; vertical-align: top; }
+    .stbl tr:nth-child(even) td { background: #f8fafc; }
+    .rn       { width: 26px; color: #64748b; text-align: center; }
     .before-c { color: #ba1a1a; width: 148px; }
-    .after-c  { color: #004fd2; font-weight: 600; width: 168px; }
+    .after-c  { color: #1f2937; font-weight: 600; width: 168px; }
 
     /* BOTTOM ROW */
     .bottom  { display: flex; gap: 9px; }
-    .act-col { flex: 1; border: 1px solid #c5c5d4; border-radius: 8px; padding: 10px 12px; }
-    .out-col { flex: 1; background: #003a9f; color: #fff; border-radius: 8px; padding: 10px 12px; }
+    .act-col { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; }
+    .out-col { flex: 1; background: #111827; color: #fff; border-radius: 8px; padding: 10px 12px; }
     .col-title { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 7px; }
     .act-item  { display: flex; gap: 6px; font-size: 10.5px; margin-bottom: 5px; align-items: flex-start; line-height: 1.4; }
-    .chk       { color: #003a9f; font-weight: 800; font-size: 12px; flex-shrink: 0; }
+    .chk       { color: #111827; font-weight: 800; font-size: 12px; flex-shrink: 0; }
     .commit-text { font-size: 10.5px; line-height: 1.6; opacity: 0.93; }
     .commit-hi   { font-weight: 700; }
     .commit-sig  { margin-top: 8px; font-size: 9px; opacity: 0.65; font-style: italic; }
 
     /* FOOTER */
-    .foot { font-size: 8.5px; color: #757684; text-align: center; border-top: 1px solid #f0f3ff; padding-top: 5px; }
-    .print-note { font-size: 10px; color: #454652; text-align: center; margin-top: 6px; }
+    .foot { font-size: 8.5px; color: #64748b; text-align: center; border-top: 1px solid #f0f3ff; padding-top: 5px; }
+    .print-note { font-size: 10px; color: #475569; text-align: center; margin-top: 6px; }
     @media print { .print-note { display: none; } }
   </style>
 </head>
@@ -4172,6 +4758,7 @@ export function BatchCreator() {
   <!-- HEADER -->
   <div class="hdr">
     <div style="display:flex;align-items:center">
+      <img class="brand-logo" src="${logoUrl}" alt="AssessmentCore logo" />
       <div class="brand-name">AssessmentCore</div>
       <div class="brand-sep"></div>
       <div>
@@ -4196,13 +4783,13 @@ export function BatchCreator() {
     <div class="rec-body">
       <div class="rec-title">Your dataset is heavily duplicated, but we identified ${uniqueQs} real questions — ${realisticEst} can be recovered into a usable question bank.</div>
       <div class="rec-bar">
-        <div class="rec-seg" style="width:${readySeg}%;background:#004fd2"></div>
-        <div class="rec-seg" style="width:${recoverSeg}%;background:#004fd2"></div>
+        <div class="rec-seg" style="width:${readySeg}%;background:#1f2937"></div>
+        <div class="rec-seg" style="width:${recoverSeg}%;background:#1f2937"></div>
         <div class="rec-seg" style="width:${lostSeg}%;background:rgba(255,255,255,0.2)"></div>
       </div>
       <div class="rec-legend">
-        <div class="rec-leg-item"><div class="rec-dot" style="background:#004fd2"></div>Immediately usable (${readySeg}%)</div>
-        <div class="rec-leg-item"><div class="rec-dot" style="background:#004fd2"></div>Recoverable via fixes (${recoverSeg}%)</div>
+        <div class="rec-leg-item"><div class="rec-dot" style="background:#1f2937"></div>Immediately usable (${readySeg}%)</div>
+        <div class="rec-leg-item"><div class="rec-dot" style="background:#1f2937"></div>Recoverable via fixes (${recoverSeg}%)</div>
         <div class="rec-leg-item"><div class="rec-dot" style="background:rgba(255,255,255,0.35)"></div>Requires deeper review (${lostSeg}%)</div>
       </div>
     </div>
@@ -4219,10 +4806,10 @@ export function BatchCreator() {
       <div class="kpi-val c-green">${conservativePct}%</div>
       <div class="kpi-sub">${validInUnique} questions usable today</div>
     </div>
-    <div class="kpi bg-blue" style="border-color:#003a9f">
-      <div class="kpi-lbl" style="color:#003a9f">Questions Recoverable After Cleanup</div>
+    <div class="kpi bg-blue" style="border-color:#111827">
+      <div class="kpi-lbl" style="color:#111827">Questions Recoverable After Cleanup</div>
       <div class="kpi-val-hero c-blue">${realisticEst} Questions</div>
-      <div class="kpi-sub" style="color:#003a9f">${realisticEst} questions recoverable after cleanup (out of ${uniqueQs} unique questions)</div>
+      <div class="kpi-sub" style="color:#111827">${realisticEst} questions recoverable after cleanup (out of ${uniqueQs} unique questions)</div>
     </div>
     <div class="kpi bg-red">
       <div class="kpi-lbl">Requires Cleanup / Review</div>
@@ -4232,7 +4819,7 @@ export function BatchCreator() {
   </div>
 
   <!-- PAIN + CONSEQUENCE SECTION -->
-  <div style="background:#ffdad6;border-left:4px solid #ba1a1a;padding:10px 12px;margin-bottom:8px;border-radius:5px;font-size:10.5px;color:#454652;line-height:1.5">
+  <div style="background:#ffdad6;border-left:4px solid #ba1a1a;padding:10px 12px;margin-bottom:8px;border-radius:5px;font-size:10.5px;color:#475569;line-height:1.5">
     <strong style="color:#ba1a1a">Impact:</strong> Most of your content is currently unusable in an LMS and may lead to failed uploads or poor student experience.
   </div>
 
@@ -4255,7 +4842,7 @@ export function BatchCreator() {
       <div class="bd-arrow">↓</div>
       <div class="bd-layer" style="background:#FDE2E4">
         <div class="bd-label">After Deduplication</div>
-        <div class="bd-count" style="font-size:18px;font-weight:800;color:#004fd2;letter-spacing:0.5px">${uniqueQs} UNIQUE QUESTIONS IDENTIFIED</div>
+        <div class="bd-count" style="font-size:18px;font-weight:800;color:#1f2937;letter-spacing:0.5px">${uniqueQs} UNIQUE QUESTIONS IDENTIFIED</div>
         <div class="bd-saved"><strong>${dupPercent}% of your dataset was redundant — we removed duplicates to uncover ${uniqueQs} actual questions</strong></div>
       </div>
       <div class="bd-arrow">↓</div>
@@ -4265,7 +4852,7 @@ export function BatchCreator() {
         <div class="bd-saved">${conservativePct}% ready to upload</div>
       </div>
       <div class="bd-arrow">↓</div>
-      <div class="bd-layer" style="background:#e7eeff">
+      <div class="bd-layer" style="background:#f1f5f9">
         <div class="bd-label">After Cleanup & Fixes</div>
         <div class="bd-count c-green">+${fixableInUnique} recoverable</div>
         <div class="bd-saved">${realisticEst} total usable (${recoverablePct}%)</div>
@@ -4277,11 +4864,11 @@ export function BatchCreator() {
   <div class="overview">
     <div class="donut-col">
       <div class="donut-wrap">
-        <div class="donut" style="background:conic-gradient(#004fd2 0% ${validEnd}%,#8f4600 ${validEnd}% ${cautionEnd}%,#ba1a1a ${cautionEnd}% 100%);-webkit-mask:radial-gradient(closest-side,transparent 57%,black 58%);mask:radial-gradient(closest-side,transparent 57%,black 58%)"></div>
+        <div class="donut" style="background:conic-gradient(#1f2937 0% ${validEnd}%,#8f4600 ${validEnd}% ${cautionEnd}%,#ba1a1a ${cautionEnd}% 100%);-webkit-mask:radial-gradient(closest-side,transparent 57%,black 58%);mask:radial-gradient(closest-side,transparent 57%,black 58%)"></div>
         <div class="donut-center"><div class="dn">${total}</div><div class="ds">questions</div></div>
       </div>
       <div class="legend">
-        <div class="leg-r"><div class="leg-d" style="background:#004fd2"></div><span>Valid</span><span class="leg-n c-green">${summary.valid}</span></div>
+        <div class="leg-r"><div class="leg-d" style="background:#1f2937"></div><span>Valid</span><span class="leg-n c-green">${summary.valid}</span></div>
         <div class="leg-r"><div class="leg-d" style="background:#8f4600"></div><span>Caution</span><span class="leg-n c-amber">${summary.review}</span></div>
         <div class="leg-r"><div class="leg-d" style="background:#ba1a1a"></div><span>Rejected</span><span class="leg-n c-red">${summary.invalid}</span></div>
       </div>
@@ -4289,22 +4876,22 @@ export function BatchCreator() {
     <div class="gain-col">
       <div class="gain-title">Recovery Summary</div>
       <div class="gain-transform">
-        <div class="gain-box" style="background:#e7eeff">
+        <div class="gain-box" style="background:#f1f5f9">
           <div class="g-lbl">Before Dedup</div>
           <div class="g-val c-green">${totalQs}</div>
           <div class="g-sub">total questions</div>
         </div>
         <div class="gain-arrow">↓</div>
-        <div class="gain-box" style="background:#e7eeff">
+        <div class="gain-box" style="background:#f1f5f9">
           <div class="g-lbl">After Dedup</div>
           <div class="g-val c-blue">${uniqueQs}</div>
           <div class="g-sub">${uniqueQs} unique questions (${recovery.deduplicationGain} duplicates removed)</div>
         </div>
         <div class="gain-arrow">↓</div>
-        <div class="gain-box" style="background:#e7eeff;text-align:center;border:2px solid #004fd2">
-          <div class="g-lbl" style="color:#004fd2;font-size:11px;font-weight:700">Final Outcome</div>
+        <div class="gain-box" style="background:#f1f5f9;text-align:center;border:2px solid #1f2937">
+          <div class="g-lbl" style="color:#1f2937;font-size:11px;font-weight:700">Final Outcome</div>
           <div class="g-val c-green" style="font-size:24px;margin:6px 0">${realisticEst}</div>
-          <div class="g-sub" style="color:#004fd2;font-weight:600">high-quality, LMS-ready questions after cleanup</div>
+          <div class="g-sub" style="color:#1f2937;font-weight:600">high-quality, LMS-ready questions after cleanup</div>
         </div>
       </div>
       <div class="gain-wins">
@@ -4319,7 +4906,7 @@ export function BatchCreator() {
   <div>
     <div class="sec-hd">Top Issues &mdash; Ranked by Business Impact</div>
     <div class="issue-grid">
-      ${top3CardsHtml || '<div style="color:#454652;font-size:11px">No major issues detected.</div>'}
+      ${top3CardsHtml || '<div style="color:#475569;font-size:11px">No major issues detected.</div>'}
     </div>
   </div>
 
@@ -4328,13 +4915,13 @@ export function BatchCreator() {
     <div class="sec-hd">Sample Rows &mdash; Before &amp; After Remediation</div>
     ${sampleTableRowsHtml
       ? `<table class="stbl"><thead><tr><th style="width:28px">#</th><th>Question</th><th>Before (Issue)</th><th>After (Fix)</th></tr></thead><tbody>${sampleTableRowsHtml}</tbody></table>`
-      : '<div style="color:#454652;font-size:11px">No sample rows available.</div>'}
+      : '<div style="color:#475569;font-size:11px">No sample rows available.</div>'}
   </div>
 
   <!-- WHAT WE FIX + OUR COMMITMENT -->
   <div class="bottom">
     <div class="act-col">
-      <div class="col-title" style="color:#003a9f">What We Will Fix</div>
+      <div class="col-title" style="color:#111827">What We Will Fix</div>
       <div class="act-item"><span class="chk">&#10003;</span><span>Remove exact and conflicting duplicate questions</span></div>
       <div class="act-item"><span class="chk">&#10003;</span><span>Correct all answer-to-option mapping errors</span></div>
       <div class="act-item"><span class="chk">&#10003;</span><span>Standardise question formats and answer fields</span></div>
@@ -4353,7 +4940,7 @@ export function BatchCreator() {
   <div class="foot">AssessmentCore &nbsp;&middot;&nbsp; Confidential &nbsp;&middot;&nbsp; ${escapeHtml(currentDate)} &nbsp;&middot;&nbsp; Question Bank Validation Report</div>
 
   <!-- FINAL CONVERSION LINE -->
-  <div style="background:#e7eeff;border-radius:6px;padding:10px 12px;margin-top:8px;font-size:10px;color:#003a9f;text-align:center;font-weight:600;line-height:1.5">
+  <div style="background:#f1f5f9;border-radius:6px;padding:10px 12px;margin-top:8px;font-size:10px;color:#111827;text-align:center;font-weight:600;line-height:1.5">
     This report shows the current state — we can deliver the cleaned, validated dataset ready for direct LMS upload.
   </div>
 
@@ -4495,7 +5082,7 @@ export function BatchCreator() {
         caution: { cls: 'st-caution', label: 'Caution' },
         rejected: { cls: 'st-rejected', label: 'Rejected' },
       };
-      const s = map[status] || { cls: '', label: status };
+      const s = map[status] || { cls: '', label: escapeHtml(status) };
       return `<span class="status-badge ${s.cls}">${s.label}</span>`;
     };
 
@@ -4558,6 +5145,7 @@ export function BatchCreator() {
     }).join('');
 
     // --- assemble HTML ---
+    const logoUrl = `${window.location.origin}${isDark ? '/logo-dark-1.png' : '/AC_logo.png'}`;
     const rowReportHtml = `<!doctype html>
 <html>
 <head>
@@ -4568,28 +5156,29 @@ export function BatchCreator() {
   <style>
     @page { size: A4; margin: 10mm 12mm; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Archivo', 'Segoe UI', Arial, sans-serif; color: #111c2d; background: #fff; font-size: 9px; line-height: 1.35; padding: 0 2px; }
+    body { font-family: 'Archivo', 'Segoe UI', Arial, sans-serif; color: #0f172a; background: #fff; font-size: 9px; line-height: 1.35; padding: 0 2px; }
 
     /* HEADER */
-    .hdr { display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #003a9f; padding-bottom: 6px; margin-bottom: 8px; }
-    .brand-name { font-size: 13px; font-weight: 800; color: #003a9f; letter-spacing: -0.03em; }
-    .brand-sep { width: 1.5px; height: 14px; background: #c5c5d4; margin: 0 7px; display: inline-block; vertical-align: middle; }
-    .hdr-rpt { font-size: 11px; font-weight: 700; color: #111c2d; }
-    .hdr-sub { font-size: 8.5px; color: #454652; margin-top: 1px; }
+    .hdr { display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #111827; padding-bottom: 6px; margin-bottom: 8px; }
+    .brand-logo { width: 24px; height: 24px; object-fit: contain; border-radius: 6px; margin-right: 7px; }
+    .brand-name { font-size: 13px; font-weight: 800; color: #111827; letter-spacing: -0.03em; }
+    .brand-sep { width: 1.5px; height: 14px; background: #e2e8f0; margin: 0 7px; display: inline-block; vertical-align: middle; }
+    .hdr-rpt { font-size: 11px; font-weight: 700; color: #0f172a; }
+    .hdr-sub { font-size: 8.5px; color: #475569; margin-top: 1px; }
 
     /* SUMMARY BAR */
-    .summary-bar { display: flex; gap: 12px; align-items: center; background: #f9f9ff; border: 1px solid #c5c5d4; border-radius: 6px; padding: 7px 12px; margin-bottom: 8px; font-size: 9.5px; flex-wrap: wrap; }
+    .summary-bar { display: flex; gap: 12px; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 12px; margin-bottom: 8px; font-size: 9.5px; flex-wrap: wrap; }
     .stat-pill { padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 9px; }
-    .pill-valid { background: #e7eeff; color: #004fd2; }
+    .pill-valid { background: #f1f5f9; color: #1f2937; }
     .pill-caution { background: #ffdcc6; color: #8f4600; }
     .pill-rejected { background: #ffdad6; color: #ba1a1a; }
 
     /* DATA TABLE */
     table.row-table { width: 100%; border-collapse: collapse; font-size: 8.5px; table-layout: auto; }
     table.row-table thead { display: table-header-group; }
-    table.row-table th { background: #003a9f; color: #fff; font-weight: 700; text-align: left; padding: 4px 5px; font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-    table.row-table td { padding: 3px 5px; border: 1px solid #c5c5d4; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
-    table.row-table tr:nth-child(even) td { background: #f9f9ff; }
+    table.row-table th { background: #111827; color: #fff; font-weight: 700; text-align: left; padding: 4px 5px; font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    table.row-table td { padding: 3px 5px; border: 1px solid #e2e8f0; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
+    table.row-table tr:nth-child(even) td { background: #f8fafc; }
     table.row-table tr { page-break-inside: avoid; }
 
     /* Row status left-border accent */
@@ -4599,7 +5188,7 @@ export function BatchCreator() {
     /* STATUS BADGE */
     .td-status { text-align: center; }
     .status-badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 7.5px; font-weight: 700; letter-spacing: 0.04em; }
-    .st-valid { background: #e7eeff; color: #004fd2; }
+    .st-valid { background: #f1f5f9; color: #1f2937; }
     .st-caution { background: #ffdcc6; color: #8f4600; }
     .st-rejected { background: #ffdad6; color: #ba1a1a; }
 
@@ -4610,27 +5199,27 @@ export function BatchCreator() {
     .sev-pill { display: inline-block; padding: 0.5px 4px; border-radius: 3px; font-size: 6.5px; font-weight: 800; letter-spacing: 0.05em; margin-right: 3px; vertical-align: middle; }
     .sev-block { background: #ffdad6; color: #ba1a1a; }
     .sev-review { background: #ffdcc6; color: #8f4600; }
-    .no-issues { color: #004fd2; font-weight: 600; }
+    .no-issues { color: #1f2937; font-weight: 600; }
 
     /* QUALITY SUMMARY SECTION */
-    .qs-section { margin-bottom: 10px; border: 1px solid #c5c5d4; border-radius: 7px; overflow: hidden; }
-    .qs-header { background: #003a9f; color: #fff; font-size: 9.5px; font-weight: 800; padding: 5px 12px; letter-spacing: 0.04em; }
+    .qs-section { margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden; }
+    .qs-header { background: #111827; color: #fff; font-size: 9.5px; font-weight: 800; padding: 5px 12px; letter-spacing: 0.04em; }
     .qs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
-    .qs-cell { padding: 7px 12px; border-right: 1px solid #c5c5d4; border-bottom: 1px solid #c5c5d4; }
+    .qs-cell { padding: 7px 12px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
     .qs-cell:nth-child(3n) { border-right: none; }
     .qs-cell:nth-last-child(-n+3) { border-bottom: none; }
-    .qs-label { font-size: 7.5px; color: #454652; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
+    .qs-label { font-size: 7.5px; color: #475569; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
     .qs-value { font-size: 15px; font-weight: 800; line-height: 1; }
-    .qs-sub { font-size: 7.5px; color: #454652; margin-top: 1px; }
-    .qs-green { color: #004fd2; }
+    .qs-sub { font-size: 7.5px; color: #475569; margin-top: 1px; }
+    .qs-green { color: #1f2937; }
     .qs-amber { color: #8f4600; }
     .qs-red   { color: #ba1a1a; }
     .qs-blue  { color: #1d4ed8; }
-    .qs-gray  { color: #454652; }
+    .qs-gray  { color: #475569; }
 
     /* FOOTER */
-    .foot { font-size: 7.5px; color: #757684; text-align: center; border-top: 1px solid #f0f3ff; padding-top: 4px; margin-top: 8px; }
-    .print-note { font-size: 9px; color: #454652; text-align: center; margin-top: 6px; }
+    .foot { font-size: 7.5px; color: #64748b; text-align: center; border-top: 1px solid #f0f3ff; padding-top: 4px; margin-top: 8px; }
+    .print-note { font-size: 9px; color: #475569; text-align: center; margin-top: 6px; }
     @media print { .print-note { display: none; } }
   </style>
 </head>
@@ -4639,6 +5228,7 @@ export function BatchCreator() {
   <!-- HEADER -->
   <div class="hdr">
     <div style="display:flex;align-items:center">
+      <img class="brand-logo" src="${logoUrl}" alt="AssessmentCore logo" />
       <div class="brand-name">AssessmentCore</div>
       <div class="brand-sep"></div>
       <div>
@@ -4654,7 +5244,7 @@ export function BatchCreator() {
     <span class="stat-pill pill-valid">${validCount} valid</span>
     <span class="stat-pill pill-caution">${cautionCount} caution</span>
     <span class="stat-pill pill-rejected">${rejectedCount} rejected</span>
-    <span style="margin-left:auto;color:#454652;font-size:8.5px">
+    <span style="margin-left:auto;color:#475569;font-size:8.5px">
       This report contains row-level analysis for every question in the dataset.
     </span>
   </div>
@@ -4833,9 +5423,136 @@ export function BatchCreator() {
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
     a.href    = url;
-    a.download = `annotated_${Date.now()}.xlsx`;
+    a.download = `annotated_${viewMode === 'clean' ? 'cleaned' : 'original'}_${Date.now()}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadAutoFixReport = async () => {
+    try {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'AssessmentCore';
+      wb.created = new Date();
+      const ws = wb.addWorksheet('Auto-Fixes');
+
+      // Emerald Palette
+      const PRIMARY       = 'FF059669'; 
+      const PRIMARY_DARK  = 'FF047857';
+      const PRIMARY_LIGHT = 'FFD1FAE5';
+      const BORDER_MID    = 'FFA7F3D0';
+      const WHITE         = 'FFFFFFFF';
+      
+      const lightBorder = (color: string): Partial<ExcelJS.Border> => ({
+        style: 'thin' as const,
+        color: { argb: color },
+      });
+
+      const allHeaders = ['Row #', 'Row ID', 'Fix Type', 'Sub-Rule Details', 'Field Modified', 'Original Value (Before)', 'New Value (After)'];
+      const totalCols = allHeaders.length;
+
+      const dateStr = new Date().toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+      });
+
+      ws.properties.tabColor = { argb: PRIMARY };
+
+      // Column widths
+      ws.getColumn(1).width = 8;
+      ws.getColumn(2).width = 15;
+      ws.getColumn(3).width = 25;
+      ws.getColumn(4).width = 30;
+      ws.getColumn(5).width = 20;
+      ws.getColumn(6).width = 45;
+      ws.getColumn(7).width = 45;
+
+      const sourceCleaningLogs = appliedCleaningLogs ?? cleaningLogs;
+      const sourcePass3Logs = appliedPass3Logs ?? pass3ExecutionLogs;
+
+      const unifiedLogs = [
+        ...sourceCleaningLogs.map(l => ({ rowKey: l.rowKey, field: l.field, before: l.before, after: l.after, pass: l.pass, type: l.cleanType, rowIndex: l.rowIndex || 0 })),
+        ...sourcePass3Logs.filter(l => l.applied).map(l => ({ rowKey: l.rowKey, field: l.field, before: l.before, after: l.after, pass: 'PASS_3', type: l.suggestionType, rowIndex: l.rowIndex || 0 }))
+      ];
+
+      // Row 1: Brand banner
+      ws.mergeCells(1, 1, 1, totalCols);
+      const brandCell = ws.getCell(1, 1);
+      brandCell.value = 'AssessmentCore - Auto-Fix Report';
+      brandCell.font = { name: 'Aptos', size: 16, bold: true, color: { argb: WHITE } };
+      brandCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY } };
+      brandCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      ws.getRow(1).height = 38;
+
+      // Row 2: File info
+      ws.mergeCells(2, 1, 2, totalCols);
+      const infoCell = ws.getCell(2, 1);
+      const numChanges = unifiedLogs.length;
+
+      infoCell.value = `${fileData?.fileName || 'Untitled'}   •   ${dateStr}   •   ${numChanges} fixes applied`;
+      infoCell.font = { name: 'Aptos', size: 9, color: { argb: 'FFA7F3D0' } };
+      infoCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY } };
+      infoCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      ws.getRow(2).height = 20;
+
+      // Row 3: Column headers
+      const HEADER_ROW = 3;
+      const headerRow = ws.getRow(HEADER_ROW);
+      allHeaders.forEach((h, i) => {
+        headerRow.getCell(i + 1).value = h;
+      });
+      headerRow.height = 30;
+      headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY_DARK } };
+        cell.font = { name: 'Aptos', size: 10, bold: true, color: { argb: WHITE } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        cell.border = { bottom: lightBorder(BORDER_MID) };
+      });
+
+      // Freeze panes
+      ws.views = [{ state: 'frozen', ySplit: HEADER_ROW }];
+
+      const rowIdMap = new Map<string, string>();
+      editedRows.forEach((row, idx) => {
+        const rowKey = getRowValidationKey(row, idx);
+        const rowId = String((row as any).id ?? (row as any).question_id ?? (row as any).questionId ?? `row-${idx + 2}`);
+        rowIdMap.set(rowKey, rowId);
+      });
+
+      unifiedLogs.sort((a, b) => a.rowIndex - b.rowIndex).forEach((c: any, index) => {
+        const passLabel = c.pass === 'PASS_1' ? 'Character Cleaning' : c.pass === 'PASS_2' ? 'Structural Alignment' : 'Suggestion Rule';
+        const isEven = index % 2 === 0;
+        const excelRowNum = HEADER_ROW + 1 + index;
+        const excelRow = ws.getRow(excelRowNum);
+
+        excelRow.getCell(1).value = c.rowIndex || '—';
+        excelRow.getCell(2).value = rowIdMap.get(c.rowKey) || '—';
+        excelRow.getCell(3).value = passLabel;
+        excelRow.getCell(4).value = c.type || 'Unknown';
+        excelRow.getCell(5).value = c.field;
+        excelRow.getCell(6).value = c.before === null ? 'null' : String(c.before ?? '—');
+        excelRow.getCell(7).value = c.after === null ? 'null' : String(c.after ?? '—');
+
+        excelRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          cell.alignment = { vertical: 'top', wrapText: true, horizontal: colNum === 1 ? 'center' : 'left', indent: colNum === 1 ? 0 : 1 };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? WHITE : 'FFF9FAFB' } };
+          cell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } } };
+          if (colNum >= 6) {
+             cell.font = { name: 'Aptos', size: 10, color: { argb: 'FF334155' } };
+          }
+        });
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href    = url;
+      a.download = `autofix_report_${Date.now()}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Error downloading autofix report:', err);
+      toast.error('Failed to generate Excel report: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const stats = getValidationStats();
@@ -4910,12 +5627,12 @@ export function BatchCreator() {
   // Loading state
   if (loading) {
     return (
-      <div className="h-full bg-[#f9f9ff] flex items-center justify-center">
+      <div className="h-full bg-[#f8fafc] flex items-center justify-center">
         <Card className="w-full max-w-md shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-[#454652]">Loading...</span>
+              <span className="text-[#475569]">Loading...</span>
             </div>
           </CardContent>
         </Card>
@@ -4926,11 +5643,11 @@ export function BatchCreator() {
   // Not authenticated - show registration prompt
   if (!isAuthenticated) {
     return (
-      <div className="h-full bg-[#f9f9ff] flex items-center justify-center p-4">
+      <div className="h-full bg-[#f8fafc] flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Lock className="w-5 h-5 text-[#003a9f]" />
+              <Lock className="w-5 h-5 text-[#111827]" />
               Authentication Required
             </CardTitle>
             <CardDescription>
@@ -4938,10 +5655,10 @@ export function BatchCreator() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert className="bg-[#e7eeff] border-[#003a9f]">
-              <AlertCircle className="h-4 w-4 text-[#003a9f]" />
-              <AlertTitle className="text-[#111c2d]">Free Trial Available</AlertTitle>
-              <AlertDescription className="text-[#454652] text-sm">
+            <Alert className="bg-[#f1f5f9] border-[#111827]">
+              <AlertCircle className="h-4 w-4 text-[#111827]" />
+              <AlertTitle className="text-[#0f172a]">Free Trial Available</AlertTitle>
+              <AlertDescription className="text-[#475569] text-sm">
                 Get 1 free QTI export when you sign up! Perfect for testing our batch conversion features.
               </AlertDescription>
             </Alert>
@@ -4949,7 +5666,7 @@ export function BatchCreator() {
             <div className="space-y-3">
               <Button
                 onClick={() => navigate('/auth/register')}
-                className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-medium"
+                className="w-full bg-[#111827] hover:bg-[#0d4a94] text-primary-foreground font-medium"
                 size="lg"
               >
                 <LogIn className="mr-2 h-4 w-4" />
@@ -4959,16 +5676,16 @@ export function BatchCreator() {
               <Button
                 onClick={() => navigate('/auth/login')}
                 variant="outline"
-                className="w-full border-[#c5c5d4] text-[#003a9f] hover:bg-[#f0f3ff]"
+                className="w-full border-[#e2e8f0] text-[#111827] hover:bg-[#f0f3ff]"
                 size="lg"
               >
                 Sign In
               </Button>
             </div>
 
-            <div className="pt-4 border-t border-[#c5c5d4]">
-              <h3 className="font-semibold text-[#111c2d] mb-3">What you get:</h3>
-              <ul className="space-y-2 text-sm text-[#454652]">
+            <div className="pt-4 border-t border-[#e2e8f0]">
+              <h3 className="font-semibold text-[#0f172a] mb-3">What you get:</h3>
+              <ul className="space-y-2 text-sm text-[#475569]">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                   <span>1 free QTI export per month on free plan</span>
@@ -4992,128 +5709,15 @@ export function BatchCreator() {
   // Show loading spinner while AuthContext is initializing
   if (loading) {
     return (
-      <div className="h-full bg-[#f9f9ff] flex items-center justify-center p-4">
-        <Loader2 className="w-8 h-8 animate-spin text-[#003a9f]" />
+      <div className="h-full bg-[#f8fafc] flex items-center justify-center p-4">
+        <Loader2 className="w-8 h-8 animate-spin text-[#111827]" />
       </div>
     );
   }
 
-  // Access gate: user does not have a provisioned Batch Creator token
-  if (!hasBatchAccess) {
-    const draftMessage = `Hi,
 
-I am a registered user of AssessmentCore (email: ${user?.email ?? ''}).
 
-I would like to request access to the Batch Creator feature. Could you please provide me with an access token?
-
-Thank you.`;
-
-    const handleCopy = () => {
-      navigator.clipboard.writeText(draftMessage);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-      <div className="h-full bg-[#f9f9ff] flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg shadow-xl border border-[#c5c5d4]">
-          <CardHeader className="pb-4 border-b border-[#c5c5d4]">
-            <CardTitle className="flex items-center gap-3 text-[#111c2d]">
-              <div className="w-10 h-10 rounded-full bg-[#e7eeff] border border-[#c5c5d4] flex items-center justify-center flex-shrink-0">
-                <Lock className="w-5 h-5 text-[#003a9f]" />
-              </div>
-              Batch QTI Creator — Licensed Access Only
-            </CardTitle>
-            <CardDescription className="text-[#454652] mt-1">
-              This tool is available to licensed users only.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="pt-6 space-y-6">
-            {/* What it is */}
-            <div className="bg-[#f9f9ff] rounded-lg border border-[#c5c5d4] p-4 space-y-2">
-              <h3 className="text-sm font-semibold text-[#111c2d]">What you get with a license:</h3>
-              <ul className="space-y-1.5 text-sm text-[#454652]">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  Batch convert Excel / CSV files to QTI 1.2 / 2.1 / 3.0
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  Support for 100,000+ questions per file
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  Full validation report with inline editing
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  Export to Canvas, Moodle, Blackboard, and more
-                </li>
-              </ul>
-            </div>
-
-            {/* Contact administrator */}
-            <div className="space-y-3">
-              <div>
-                <h3 className="text-sm font-semibold text-[#111c2d]">Contact Administrator to Get Access</h3>
-                <p className="text-xs text-[#454652] mt-0.5">Send a message to the admin to request your access token.</p>
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href="https://wa.me/911111111111"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1"
-                >
-                  <Button variant="outline" className="w-full border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] hover:text-[#2457b8] gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    WhatsApp
-                  </Button>
-                </a>
-                <a
-                  href="mailto:hello@assessmentcore.in"
-                  className="flex-1"
-                >
-                  <Button variant="outline" className="w-full border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email
-                  </Button>
-                </a>
-              </div>
-
-              {/* Draft message */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-[#111c2d]">Draft Message</label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopy}
-                    className="h-6 px-2 text-xs text-[#454652] hover:text-[#003a9f] gap-1"
-                  >
-                    {copied ? (
-                      <><Check className="w-3 h-3 text-emerald-500" /> Copied</>
-                    ) : (
-                      <><Copy className="w-3 h-3" /> Copy</>
-                    )}
-                  </Button>
-                </div>
-                <textarea
-                  readOnly
-                  value={draftMessage}
-                  rows={6}
-                  className="w-full text-xs text-[#111c2d] bg-[#f9f9ff] border border-[#c5c5d4] rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#003a9f]"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const stageTabLabels = ['Upload', 'Validation', 'Clean & Fix', 'AI Audit', 'Configure', 'Export'];
+  const stageTabLabels = stepOrder.map((step) => stepLabels[step]);
   const uploadStepperLabels: Record<WizardStep, string> = {
     upload: 'Upload',
     validating: 'Validation',
@@ -5142,12 +5746,2340 @@ Thank you.`;
     }
   };
 
+  const getSidebarStepIcon = (step: WizardStep) => {
+    switch (step) {
+      case 'upload':
+        return <Upload className="w-3 h-3" />;
+      case 'validating':
+        return <Shield className="w-3 h-3" />;
+      case 'clean-fix':
+        return <RefreshCw className="w-3 h-3" />;
+      case 'ai-audit':
+        return <Sparkles className="w-3 h-3" />;
+      case 'configure':
+        return <Settings className="w-3 h-3" />;
+      case 'transform':
+        return <Download className="w-3 h-3" />;
+      default:
+        return <CheckCircle2 className="w-3 h-3" />;
+    }
+  };
+
   if (currentStep === 'upload') {
     return (
-      <div className="fixed inset-0 z-50 bg-[#F9FAFB] text-slate-900 antialiased flex">
+      <div className="h-screen overflow-hidden grid bg-[#f8fafc] text-[#0f172a]" style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}>
+        <aside
+          className="border-r border-[#e2e8f0] bg-card flex flex-col sticky top-0 h-screen transition-[width] duration-300 overflow-hidden"
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+          style={{ width: sidebarWidth }}
+        >
+          <div className={`h-14 px-3 border-b border-[#e2e8f0] flex items-center gap-2 ${!isSidebarHovered ? 'justify-center' : ''}`}>
+            {isSidebarHovered && (
+              <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 text-[#0f172a] hover:text-[#334155]">
+                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+                <span className="text-sm font-semibold">AssessmentCore</span>
+              </button>
+            )}
+            {!isSidebarHovered && <button type="button" onClick={() => navigate('/workspace/dashboard')} className="flex items-center justify-center text-[#475569] hover:text-[#111827]">
+              <Home className="w-4 h-4" />
+            </button>}
+          </div>
+
+          <nav className="flex-1 px-3 py-3">
+            {stepOrder.map((step, idx) => {
+              const isActive = idx === currentStepIndex;
+              const isDone = idx < currentStepIndex;
+              const enabled = canNavigateToStep(step);
+              return (
+                <button
+                  key={`shell-step-${step}`}
+                  type="button"
+                  onClick={() => enabled && handleStepperJump(step)}
+                  disabled={!enabled}
+                  className={`w-full flex items-center rounded-md py-2 mb-1 text-xs transition-colors ${!isSidebarHovered ? 'gap-0 px-0 justify-center' : 'gap-2 px-2'} ${
+                    isActive ? 'bg-[#e2e8f0] text-[#111827] font-semibold' : 'text-[#475569] hover:bg-[#f1f5f9]'
+                  } ${!enabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span className={`h-5 w-5 rounded flex items-center justify-center text-xs border ${
+                    isActive ? 'bg-[#111827] text-primary-foreground border-[#111827]' : isDone ? 'bg-[#f1f5f9] text-[#1f2937] border-[#cbd5e1]' : 'bg-card text-[#64748b] border-[#dbe1e8]'
+                  }`}>
+                    {isDone ? <Check className="w-3 h-3" /> : (
+                      (!isPremium && ['ai-audit', 'configure', 'transform'].includes(step))
+                        ? <Lock className="w-3 h-3 text-warning" />
+                        : (isSidebarHovered ? idx + 1 : getSidebarStepIcon(step))
+                    )}
+                  </span>
+                  {isSidebarHovered && <span>{stepLabels[step]}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="h-14 px-3 border-t border-[#e2e8f0] flex items-center">
+            <button type="button" className={`w-full flex items-center rounded-md py-2 text-xs text-[#475569] hover:bg-[#f1f5f9] ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'}`}>
+              <Settings className="w-4 h-4" /> {isSidebarHovered && 'Settings'}
+            </button>
+          </div>
+        </aside>
+
+        <main className="min-w-0 min-h-0 flex flex-col">
+          <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Upload your question bank</h2>
+            </div>
+            <div>
+              <input
+                id="batch-upload-hidden"
+                type="file"
+                className="hidden"
+                onChange={handleFileUpload}
+                accept=".csv,.xlsx,.xls,.json,.tsv"
+              />
+              <button
+                type="button"
+                onClick={() => toast.info('Profile page will be available soon')}
+                className="h-9 w-9 rounded-full border border-[#cbd5e1] bg-card text-[#475569] hover:bg-[#f8fafc] hover:text-[#111827] flex items-center justify-center"
+                aria-label="Profile"
+                title="Profile"
+              >
+                <UserRound className="w-4 h-4" />
+              </button>
+            </div>
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-auto px-5 py-4">
+            <div className="max-w-5xl mx-auto space-y-5">
+              <label htmlFor="batch-upload-hidden" className="block cursor-pointer">
+                <div className="rounded-xl border border-dashed border-[#94a3b8] bg-card p-14 text-center hover:border-[#64748b] hover:bg-[#f8fafc] transition-colors">
+                  <div className="mx-auto mb-4 h-12 w-12 rounded-xl border border-[#dbe1e8] bg-[#f1f5f9] flex items-center justify-center text-[#64748b]">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-semibold">Drop a spreadsheet to begin</h3>
+                  <p className="text-sm text-[#64748b] mt-1">or browse from your device</p>
+                  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-[#64748b]">
+                    <span className="px-2 py-1 rounded border border-[#dbe1e8] bg-[#f8fafc]">.xlsx</span>
+                    <span className="px-2 py-1 rounded border border-[#dbe1e8] bg-[#f8fafc]">.xls</span>
+                    <span className="px-2 py-1 rounded border border-[#dbe1e8] bg-[#f8fafc]">.csv</span>
+                    <span className="px-2 py-1 rounded border border-[#dbe1e8] bg-[#f8fafc]">.tsv</span>
+                  </div>
+                </div>
+              </label>
+
+              {uploadedFiles.length > 0 && (
+                <div className="rounded-lg border border-[#cbd5e1] bg-card p-4">
+                  <p className="text-xs font-semibold text-[#0f172a]">File ready</p>
+                  {uploadedFiles.map((file, idx) => (
+                    <p key={`upload-file-${idx}`} className="text-xs text-[#64748b] mt-1">{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  ))}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-[#e2e8f0] bg-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#e2e8f0] text-xs font-semibold text-[#334155]">Data preview</div>
+                <div className="overflow-auto">
+                  <table className="w-full min-w-[720px] text-xs">
+                    <thead className="bg-[#f8fafc]">
+                      <tr>
+                        {previewTableColumns.map((col) => (
+                          <th key={`preview-col-${col}`} className="px-4 py-2 text-left font-semibold text-[#64748b] uppercase tracking-[0.08em]">{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(previewTableRows.length > 0 ? previewTableRows : [
+                        { ID: '101', 'Question Content': 'What is the capital of France?', Ans_A: 'London', Ans_B: 'Paris', Correct: 'B' },
+                        { ID: '102', 'Question Content': '2 + 2 = ?', Ans_A: '3', Ans_B: '4', Correct: 'B' },
+                      ]).slice(0, 5).map((row, idx) => (
+                        <tr key={`preview-row-${idx}`} className="border-t border-[#f1f5f9]">
+                          {previewTableColumns.map((col) => (
+                            <td key={`preview-cell-${idx}-${col}`} className="px-4 py-2 text-[#334155]">{String(row[col] ?? '—')}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <footer className="h-14 px-5 border-t border-[#e2e8f0] bg-card flex items-center justify-between">
+            <div>
+              {uploadedFiles.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUploadedFiles([]);
+                    setFileData(null);
+                    setUploadPreviewColumns([]);
+                    setUploadPreviewRows([]);
+                    setConfigurationValidationError("");
+                  }}
+                  className="text-destructive border-destructive hover:bg-destructive-light hover:text-destructive hover:border-red-300 text-xs font-semibold"
+                >
+                  Discard File
+                </Button>
+              )}
+            </div>
+            <Button
+              onClick={handleProceedToValidation}
+              disabled={uploadedFiles.length === 0}
+              className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold"
+            >
+              Continue to validation <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </footer>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentStep === 'validating') {
+    const optionColumnsForValidation = Array.isArray(columnMapping?.optionCols) ? (columnMapping.optionCols as string[]) : [];
+    const mapTypeLabel = (rawType?: string) => {
+      const t = String(rawType || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+      if (t === 'single_choice' || t === 'singlechoice' || t === 'mcq') return 'MCQ';
+      if (t === 'true_false' || t === 'truefalse' || t === 'tf' || t === 't/f') return 'TRUE/FALSE';
+      if (t === 'multi_select' || t === 'multiselect' || t === 'msq') return 'MSQ';
+      if (t === 'text_entry' || t === 'shortanswer' || t === 'short_answer' || t === 'text') return 'TEXT ENTRY';
+      if (t === 'numeric' || t === 'number' || t === 'numerical') return 'NUMERIC';
+      if (t === 'order' || t === 'ordering' || t === 'sequence') return 'ORDERING';
+      return t ? t.toUpperCase() : 'UNKNOWN';
+    };
+
+    return (
+      <div className="h-screen overflow-hidden grid bg-[#f8fafc] text-[#0f172a]" style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}>
+        <aside
+          className="border-r border-[#e2e8f0] bg-card flex flex-col sticky top-0 h-screen transition-[width] duration-300 overflow-hidden"
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+          style={{ width: sidebarWidth }}
+        >
+          <div className={`h-14 px-3 border-b border-[#e2e8f0] flex items-center gap-2 ${!isSidebarHovered ? 'justify-center' : ''}`}>
+            {isSidebarHovered && (
+              <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 text-[#0f172a] hover:text-[#334155]">
+                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+                <span className="text-sm font-semibold">AssessmentCore</span>
+              </button>
+            )}
+            {!isSidebarHovered && <button type="button" onClick={() => navigate('/workspace/dashboard')} className="flex items-center justify-center text-[#475569] hover:text-[#111827]"><Home className="w-4 h-4" /></button>}
+          </div>
+          {isSidebarHovered && (
+            <div className="px-4 py-3 border-b border-[#e2e8f0]">
+              <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mb-2">Current batch</p>
+              {fileData ? (
+                <>
+                  <p className="text-xs font-medium truncate">{fileData.fileName}</p>
+                  <p className="text-xs text-[#64748b] mt-1">{fileData.rows.length} rows · {fileData.columns.length} cols</p>
+                </>
+              ) : (
+                <p className="text-xs text-[#64748b]">No file loaded</p>
+              )}
+            </div>
+          )}
+          <nav className="flex-1 px-2 py-3 overflow-auto">
+            {isSidebarHovered && <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] px-2 mb-2">Batch creator</p>}
+            {stepOrder.map((step, idx) => {
+              const isActive = idx === currentStepIndex;
+              const isDone = idx < currentStepIndex;
+              const enabled = canNavigateToStep(step);
+              return (
+                <button
+                  key={`validate-shell-step-${step}`}
+                  type="button"
+                  onClick={() => enabled && handleStepperJump(step)}
+                  disabled={!enabled}
+                  className={`w-full flex items-center rounded-md py-2 mb-1 text-xs text-left transition-colors ${!isSidebarHovered ? 'gap-0 px-0 justify-center' : 'gap-2 px-2'} ${isActive ? 'bg-[#e2e8f0] text-[#111827] font-semibold' : 'text-[#475569] hover:bg-[#f1f5f9]'} ${!enabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span className={`h-5 w-5 rounded flex items-center justify-center text-xs border ${isActive ? 'bg-[#111827] text-primary-foreground border-[#111827]' : isDone ? 'bg-[#f1f5f9] text-[#1f2937] border-[#cbd5e1]' : 'bg-card text-[#64748b] border-[#dbe1e8]'}`}>
+                    {isDone ? <Check className="w-3 h-3" /> : (
+                      (!isPremium && ['ai-audit', 'configure', 'transform'].includes(step))
+                        ? <Lock className="w-3 h-3 text-warning" />
+                        : (isSidebarHovered ? idx + 1 : getSidebarStepIcon(step))
+                    )}
+                  </span>
+                  {isSidebarHovered && <span>{stepLabels[step]}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="h-14 px-3 border-t border-[#e2e8f0] flex items-center">
+            <button type="button" className={`w-full flex items-center rounded-md py-2 text-xs text-[#475569] hover:bg-[#f1f5f9] ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'}`}>
+              <Settings className="w-4 h-4" /> {isSidebarHovered && 'Settings'}
+            </button>
+          </div>
+        </aside>
+
+        <main className="min-w-0 min-h-0 flex flex-col">
+          <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Validation results</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={revalidateAll} disabled={isValidating}>
+                {isValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Re-validate
+              </Button>
+              <div className="relative" ref={validationExportMenuRef}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsValidationExportMenuOpen((prev) => !prev)}
+                >
+                  <Download className="w-4 h-4 mr-1" />Export report <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                </Button>
+
+                {isValidationExportMenuOpen && (
+                  <div className="absolute right-0 mt-1.5 w-56 rounded-md border border-[#e2e8f0] bg-card p-1 shadow-lg z-30">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsValidationExportMenuOpen(false);
+                        handleDownloadValidationReport();
+                      }}
+                      className="w-full rounded px-2 py-1.5 text-left text-xs text-[#334155] hover:bg-[#f8fafc]"
+                    >
+                      Validation Summary Report (PDF)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsValidationExportMenuOpen(false);
+                        handleDownloadRowLevelReport();
+                      }}
+                      className="w-full rounded px-2 py-1.5 text-left text-xs text-[#334155] hover:bg-[#f8fafc]"
+                    >
+                      Row-Level Analysis Report (PDF)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsValidationExportMenuOpen(false);
+                        handleDownloadAnnotatedSheet();
+                      }}
+                      className="w-full rounded px-2 py-1.5 text-left text-xs text-[#334155] hover:bg-[#f8fafc]"
+                    >
+                      Annotated Sheet (XLSX)
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <div className="px-4 py-4 border-b border-[#e2e8f0] bg-card">
+            <div className="flex flex-wrap gap-3 items-stretch">
+              <div className="rounded-lg border border-[#e2e8f0] bg-card px-4 py-3 min-w-[130px]">
+                <p className="text-xs text-[#64748b] mb-1">Total rows</p>
+                <p className="text-xl font-semibold text-[#0f172a]">{stats.total}</p>
+              </div>
+              <div className="rounded-lg border border-[#b7e2c6] bg-[#eefaf2] px-4 py-3 min-w-[130px]">
+                <p className="text-xs text-[#1f2937] mb-1">Valid</p>
+                <p className="text-xl font-semibold text-[#1f2937]">{stats.valid}</p>
+              </div>
+              <div className="rounded-lg border border-[#ffd8a8] bg-[#fff4e9] px-4 py-3 min-w-[130px]">
+                <p className="text-xs text-[#8f4600] mb-1">Caution</p>
+                <p className="text-xl font-semibold text-[#8f4600]">{stats.caution}</p>
+              </div>
+              <div className="rounded-lg border border-[#ffc9c6] bg-[#ffeceb] px-4 py-3 min-w-[130px]">
+                <p className="text-xs text-[#ba1a1a] mb-1">Rejected</p>
+                <p className="text-xl font-semibold text-[#ba1a1a]">{stats.rejected}</p>
+              </div>
+
+              <div className="rounded-lg border border-[#e2e8f0] bg-card px-4 py-3 min-w-[230px] flex-1">
+                <p className="text-xs text-[#64748b] mb-2">Distribution</p>
+                <div className="h-2 rounded bg-[#f1f5f9] overflow-hidden flex">
+                  {stats.total > 0 && (
+                    <>
+                      <div className="bg-[#1f2937]" style={{ width: `${(stats.valid / stats.total) * 100}%` }} />
+                      <div className="bg-[#d97706]" style={{ width: `${(stats.caution / stats.total) * 100}%` }} />
+                      <div className="bg-[#ba1a1a]" style={{ width: `${(stats.rejected / stats.total) * 100}%` }} />
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-2 text-xs text-[#64748b]">
+                  <span>{stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}% valid</span>
+                  <span>{stats.total > 0 ? Math.round((stats.caution / stats.total) * 100) : 0}% caution</span>
+                  <span>{stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0}% rejected</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[#e2e8f0] bg-card px-4 py-3 min-w-[190px]">
+                <p className="text-xs text-[#64748b] mb-2">By type</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {([
+                    ['mcq', 'MCQ'],
+                    ['true_false', 'T/F'],
+                    ['msq', 'MSQ'],
+                    ['text', 'Text'],
+                    ['numeric', 'Numeric'],
+                    ['order', 'Order'],
+                    ['other', 'Other'],
+                  ] as const)
+                    .filter(([typeKey]) => (validationByType[typeKey] ?? 0) > 0)
+                    .map(([typeKey, label]) => (
+                      <span key={`vt-${typeKey}`} className="inline-flex items-center gap-1 rounded border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1 text-[#334155]">
+                        <span className="font-semibold">{validationByType[typeKey] ?? 0}</span>
+                        <span className={label === 'Text' || label === 'Numeric' || label === 'Order' || label === 'Other' ? '' : 'uppercase'}>{label}</span>
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`min-h-0 flex-1 grid ${selectedValidationRow ? 'grid-cols-[1fr_420px]' : 'grid-cols-[220px_1fr]'}`}>
+            {!selectedValidationRow && (
+              <aside className="border-r border-[#e2e8f0] bg-card min-h-0 overflow-auto">
+                <div className="px-3 py-3 border-b border-[#e2e8f0]"><p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b]">Triggered rules</p></div>
+                <div className="p-2 space-y-1">
+                  {Object.entries(validationRuleCounts).sort((a, b) => b[1] - a[1]).map(([code, count]) => {
+                    const active = validationRuleFilter === code;
+                    return (
+                      <button
+                        key={`rule-${code}`}
+                        type="button"
+                        onClick={() => setValidationRuleFilter(active ? null : code)}
+                        className={`w-full text-left rounded-md px-2 py-2 text-xs flex items-center justify-between ${active ? 'bg-[#e2e8f0] text-[#111827]' : 'text-[#475569] hover:bg-[#f1f5f9]'}`}
+                      >
+                        <span className="truncate pr-2">{code}</span>
+                        <span className="text-xs">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+            )}
+
+            <section className={`min-h-0 flex flex-col bg-card ${selectedValidationRow ? 'border-r border-[#e2e8f0]' : ''}`}>
+              <div className="px-3 py-2 border-b border-[#e2e8f0] flex items-center gap-2">
+                <Input value={validationSearch} onChange={(e) => setValidationSearch(e.target.value)} placeholder="Search rows, IDs, stems..." className="h-7 text-xs max-w-sm" />
+                <div className="ml-2 inline-flex rounded-md border border-[#e2e8f0] overflow-hidden text-xs">
+                  {(['all', 'valid', 'caution', 'rejected'] as const).map((s) => (
+                    <button
+                      key={`vf-${s}`}
+                      type="button"
+                      onClick={() => setValidationFilter(s)}
+                      className={`h-7 px-3 ${validationFilter === s ? 'bg-[#111827] text-primary-foreground' : 'bg-card text-[#475569] hover:bg-[#f8fafc]'}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                {validationRuleFilter && (
+                  <button type="button" onClick={() => setValidationRuleFilter(null)} className="ml-2 h-7 text-xs rounded border border-[#e2e8f0] px-2 text-[#475569] hover:bg-[#f8fafc]">{validationRuleFilter} ×</button>
+                )}
+                <span className="ml-auto text-xs text-[#64748b]">{filteredValidationRows.length} / {validationRows.length}</span>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-[#f8fafc] border-b border-[#e2e8f0]">
+                    <tr>
+                      <th className="px-3 py-2 text-left">#</th>
+                      <th className="px-3 py-2 text-left w-8"> </th>
+                      <th className="px-3 py-2 text-left">ID</th>
+                      <th className="px-3 py-2 text-left">Type</th>
+                      <th className="px-3 py-2 text-left">Stem</th>
+                      <th className="px-3 py-2 text-left">Answer</th>
+                      <th className="px-3 py-2 text-left">Issues</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredValidationRows.map((item) => {
+                      const status = item.result?.status ?? 'valid';
+                      const issues = item.result?.issues ?? [];
+                      const rowTintClass = status === 'valid'
+                        ? 'bg-[#f1fbf4]'
+                        : status === 'caution'
+                        ? 'bg-[#fff8f0]'
+                        : 'bg-[#fff5f5]';
+                      const rowSelectedClass = status === 'valid'
+                        ? 'ring-1 ring-inset ring-[#8bd0a9]'
+                        : status === 'caution'
+                        ? 'ring-1 ring-inset ring-[#f5c98f]'
+                        : 'ring-1 ring-inset ring-[#ffc9c6]';
+                      return (
+                        <tr key={item.rowKey} className={`border-b border-[#f1f5f9] cursor-pointer ${selectedValidationRowKey === item.rowKey ? `${rowTintClass} ${rowSelectedClass}` : `${rowTintClass} hover:brightness-[0.99]`}`} onClick={() => setSelectedValidationRowKey(item.rowKey)}>
+                          <td className="px-3 py-2">{item.rowNumber}</td>
+                          <td className="px-3 py-2">
+                            <span className={`inline-block h-2 w-2 rounded-full ${status === 'valid' ? 'bg-[#16a34a]' : status === 'caution' ? 'bg-[#d97706]' : 'bg-[#ba1a1a]'}`} />
+                          </td>
+                          <td className="px-3 py-2 font-medium">{item.rowId}</td>
+                          <td className="px-3 py-2 uppercase">{item.type}</td>
+                          <td className="px-3 py-2 max-w-[360px] truncate" title={item.stem}>{item.stem || '—'}</td>
+                          <td className="px-3 py-2">{item.answer || '—'}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-wrap gap-1">
+                              {issues.slice(0, 2).map((issue, idx) => (
+                                <span
+                                  key={`issue-chip-${item.rowKey}-${idx}`}
+                                  className={`px-1.5 py-0.5 rounded border text-xs ${issue.severity === 'block' ? 'border-[#ffc9c6] bg-[#ffeceb] text-[#991b1b]' : issue.severity === 'review' ? 'border-[#f5c98f] bg-[#fff4e9] text-[#92400e]' : 'border-[#e2e8f0] bg-[#f8fafc] text-[#475569]'}`}
+                                >
+                                  {issue.code}
+                                </span>
+                              ))}
+                              {issues.length > 2 && (
+                                <span className={`px-1.5 py-0.5 rounded border text-xs ${status === 'rejected' ? 'border-[#ffc9c6] bg-[#ffeceb] text-[#991b1b]' : status === 'caution' ? 'border-[#f5c98f] bg-[#fff4e9] text-[#92400e]' : 'border-[#8bd0a9] bg-[#e8f7ee] text-[#166534]'}`}>+{issues.length - 2}</span>
+                              )}
+                              {issues.length === 0 && (
+                                <span className="px-1.5 py-0.5 rounded border border-[#8bd0a9] bg-[#e8f7ee] text-xs text-[#166534]">No issues</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {filteredValidationRows.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-3 py-12 text-center text-xs text-[#64748b]">No rows match the current filter.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {selectedValidationRow && (
+              (() => {
+                const selectedResult = selectedValidationRow.result;
+                const selectedStatus = selectedResult?.status ?? 'valid';
+                const selectedIssues = selectedResult?.issues ?? [];
+                const selectedRaw = (selectedValidationRow.row ?? {}) as Record<string, any>;
+                const detectedTypeLabel = mapTypeLabel(selectedResult?.detectedType || selectedValidationRow.type);
+                const confidenceLabel = String(selectedResult?.typeConfidence || 'none');
+                const answerTokens = String(selectedValidationRow.answer || '')
+                  .split(/[;,|/]/)
+                  .map((token) => token.trim().toLowerCase())
+                  .filter(Boolean);
+                const optionRows = optionColumnsForValidation
+                  .map((col, idx) => ({
+                    key: col,
+                    id: String.fromCharCode(65 + idx),
+                    text: String(selectedRaw?.[col] ?? '').trim(),
+                  }))
+                  .filter((opt) => opt.text.length > 0);
+
+                return (
+                  <aside className="min-h-0 overflow-auto bg-card">
+                    <div className="sticky top-0 z-10 px-4 py-2.5 border-b border-[#e2e8f0] bg-card">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-block h-2.5 w-2.5 rounded-full ${selectedStatus === 'valid' ? 'bg-[#16a34a]' : selectedStatus === 'caution' ? 'bg-[#d97706]' : 'bg-[#ba1a1a]'}`} />
+                          <span className="text-lg font-semibold text-[#0f172a]">Row {selectedValidationRow.rowNumber}</span>
+                          <span className="text-xs text-[#64748b] font-mono">{selectedValidationRow.rowId}</span>
+                        </div>
+                        <button type="button" onClick={() => setSelectedValidationRowKey(null)} className="text-[#64748b] hover:text-[#0f172a]">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className={`rounded-full border px-2 py-0.5 font-semibold ${selectedStatus === 'valid' ? 'border-[#8bd0a9] bg-[#e8f7ee] text-[#166534]' : selectedStatus === 'caution' ? 'border-[#f5c98f] bg-[#fff4e9] text-[#92400e]' : 'border-[#ffc9c6] bg-[#ffeceb] text-[#991b1b]'}`}>
+                          {selectedStatus.toUpperCase()}
+                        </span>
+                        <span className="rounded border border-[#e2e8f0] bg-[#f8fafc] px-2 py-0.5 font-semibold text-[#475569]">{detectedTypeLabel}</span>
+                        <span className="text-[#64748b]">explicit · {confidenceLabel} confidence</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5">
+                      <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mb-2">Question</p>
+                      <div className={`rounded-lg border p-3 text-xs leading-relaxed ${selectedStatus === 'valid' ? 'border-[#8bd0a9] bg-[#f1fbf4]' : selectedStatus === 'rejected' ? 'border-[#ffc9c6] bg-[#fff5f5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}>
+                        {selectedValidationRow.stem || <span className="text-[#94a3b8]">[Missing stem]</span>}
+                      </div>
+
+                      {optionRows.length > 0 && (
+                        <>
+                          <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mt-5 mb-2">Options ({optionRows.length})</p>
+                          <div className="space-y-1">
+                            {optionRows.map((opt) => {
+                              const isCorrect = answerTokens.some((token) => token === opt.id.toLowerCase() || token === opt.text.toLowerCase());
+                              return (
+                                <div
+                                  key={`${selectedValidationRow.rowKey}-opt-${opt.key}`}
+                                  className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs ${isCorrect ? 'border-[#8bd0a9] bg-[#e8f7ee]' : 'border-[#e2e8f0] bg-card'}`}
+                                >
+                                  <div className={`h-6 w-6 rounded flex items-center justify-center text-xs font-semibold ${isCorrect ? 'bg-[#059669] text-primary-foreground' : 'bg-[#f1f5f9] text-[#64748b]'}`}>
+                                    {isCorrect ? <Check className="w-3.5 h-3.5" /> : opt.id}
+                                  </div>
+                                  <span className="flex-1 text-[#0f172a]">{opt.text}</span>
+                                  {isCorrect && <span className="text-xs font-semibold text-[#166534] rounded border border-[#8bd0a9] bg-[#f1fbf4] px-1.5 py-0.5">correct</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+
+                      <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mt-5 mb-2">Raw values</p>
+                      <div className="rounded-lg border border-[#e2e8f0] overflow-hidden">
+                        {Object.entries(selectedRaw)
+                          .filter(([, val]) => val != null && String(val).trim() !== '')
+                          .map(([key, val], idx, arr) => (
+                            <div key={`${selectedValidationRow.rowKey}-raw-${key}`} className={`flex items-center gap-2 px-3 py-1.5 text-xs ${idx % 2 === 1 ? 'bg-[#f8fafc]' : 'bg-card'} ${idx < arr.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}>
+                              <span className="w-[120px] shrink-0 text-[#64748b] font-mono">{key}</span>
+                              <span className="flex-1 min-w-0 truncate text-[#0f172a] font-mono">{String(val)}</span>
+                            </div>
+                          ))}
+                      </div>
+
+                      <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mt-5 mb-2">Issues · {selectedIssues.length}</p>
+                      {selectedIssues.length === 0 ? (
+                        <div className="flex items-center gap-2 rounded-lg border border-[#8bd0a9] bg-[#e8f7ee] px-3 py-2 text-xs text-[#166534] font-semibold">
+                          <Check className="w-4 h-4" />
+                          No issues. Row is export-ready.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {selectedIssues.map((issue, idx) => (
+                            <div
+                              key={`issue-${selectedValidationRow.rowKey}-${idx}`}
+                              className={`rounded-lg border px-3 py-2 text-xs ${selectedStatus === 'rejected' ? 'border-[#ffc9c6] bg-[#ffeceb]' : 'border-[#f5c98f] bg-[#fff4e9]'}`}
+                            >
+                              <p className={`font-semibold ${selectedStatus === 'rejected' ? 'text-[#991b1b]' : 'text-[#92400e]'}`}>{issue.code}</p>
+                              <p className={`mt-1 ${selectedStatus === 'rejected' ? 'text-[#7f1d1d]' : 'text-[#7c5a1b]'}`}>{issue.message}</p>
+                              {issue.field && <p className="mt-1 text-[#64748b]">Field: {issue.field}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </aside>
+                );
+              })()
+            )}
+          </div>
+
+          <footer className="h-14 px-5 border-t border-[#e2e8f0] bg-card flex items-center justify-between">
+            <Button variant="outline" onClick={() => setCurrentStep('upload')} className="text-xs">Back</Button>
+            <div className="text-xs text-[#64748b]">
+              {stats.rejected > 0
+                ? <span><span className="font-semibold text-[#ba1a1a]">{stats.rejected} rows blocked</span> · resolve errors before proceeding</span>
+                : <span><span className="font-semibold text-[#1f2937]">All rows are usable</span> · ready for next step</span>}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setCurrentStep('clean-fix')} className="text-xs">
+                {stats.rejected > 0 ? 'Fix Data' : 'Review & Clean Data'}
+              </Button>
+              {stats.rejected === 0 && (
+                isPremium ? (
+                  <Button onClick={() => handleStepperJump(aiAuditStageEnabled ? 'ai-audit' : 'configure')} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold">
+                    Proceed to {aiAuditStageEnabled ? 'AI Audit' : 'Export'}
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => navigate('/workspace/dashboard')} 
+                    className="bg-amber-600 hover:bg-amber-700 text-primary-foreground text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Lock className="w-3 h-3" /> Upgrade to Proceed
+                  </Button>
+                )
+              )}
+            </div>
+          </footer>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentStep === 'clean-fix') {
+    const availableAutoFixCount = pass3ExecutionMetrics?.suggestionsApplied ?? 0;
+    const cleanStageMode: 'ready' | 'running' | 'autofix-preview' | 'manual-fix' = isApplyingAutoFixes
+      ? 'running'
+      : (autoFixComparison?.applied && !hasProceededToManualFix)
+        ? 'autofix-preview'
+        : (autoFixComparison?.applied && hasProceededToManualFix) || availableAutoFixCount === 0
+          ? 'manual-fix'
+          : 'ready';
+    const suggestionTotal = (pass3Suggestions?.length ?? 0);
+    const unifiedLogs = [
+      ...cleaningLogs.map(l => ({ rowKey: l.rowKey, field: l.field, before: l.before, after: l.after, pass: l.pass, type: l.cleanType })),
+      ...pass3ExecutionLogs.filter(l => l.applied).map(l => ({ rowKey: l.rowKey, field: l.field, before: l.before, after: l.after, pass: 'PASS_3', type: l.suggestionType }))
+    ];
+
+    const cleanChangesByRow = new Map<string, any[]>();
+    unifiedLogs.forEach((log) => {
+      const prev = cleanChangesByRow.get(log.rowKey) ?? [];
+      prev.push(log);
+      cleanChangesByRow.set(log.rowKey, prev);
+    });
+
+    const cleanRows = editedRows.map((row, idx) => {
+      const rowKey = getRowValidationKey(row, idx);
+      const rowId = String((row as any).id ?? (row as any).question_id ?? (row as any).questionId ?? `row-${idx + 2}`);
+      const stem = String((row as any).question_text ?? (row as any).stem ?? (row as any).question ?? '');
+      const answer = String((row as any).correct_answer ?? (row as any).answer ?? (row as any).correctOption ?? '');
+      const changes = (cleanChangesByRow.get(rowKey) ?? []).slice().sort((a, b) => (a.pass > b.pass ? 1 : -1));
+      const rowSuggestions = pass3Suggestions.filter((s) => s.rowKey === rowKey);
+      return {
+        row,
+        idx,
+        rowKey,
+        rowNumber: idx + 2,
+        rowId,
+        stem,
+        answer,
+        changes,
+        rowSuggestions,
+        changeCount: changes.length,
+        suggestionCount: rowSuggestions.length,
+      };
+    });
+
+    const cleanStageValidationMap = (() => {
+      const base = viewMode === 'clean' && cleanValidationResults
+        ? new Map<string, ValidationResult>(Object.entries(cleanValidationResults))
+        : new Map<string, ValidationResult>(validationResults);
+      if (manualFixResults.size > 0) {
+        manualFixResults.forEach((vr, key) => base.set(key, vr));
+      }
+      return base;
+    })();
+
+    const activeCleanRowKey = (
+      selectedCleanRowKey && cleanRows.some((r) => r.rowKey === selectedCleanRowKey)
+        ? selectedCleanRowKey
+        : (cleanRows.find((r) => r.changeCount > 0 || r.suggestionCount > 0)?.rowKey ?? cleanRows[0]?.rowKey ?? null)
+    );
+    const activeCleanRow = cleanRows.find((r) => r.rowKey === activeCleanRowKey) ?? null;
+    const activeCleanValidation = activeCleanRow ? cleanStageValidationMap.get(activeCleanRow.rowKey) : undefined;
+    const activeCleanIssueColumns = (() => {
+      const cols = new Set<string>();
+      const issues = activeCleanValidation?.issues ?? [];
+      issues.forEach((issue) => {
+        const f = String(issue.field || '').toLowerCase();
+        if (f.includes('correct answer')) {
+          if (columnMapping?.answerCol) cols.add(String(columnMapping.answerCol));
+          return;
+        }
+        if (f.includes('question stem')) {
+          if (columnMapping?.questionCol) cols.add(String(columnMapping.questionCol));
+          return;
+        }
+        if (f.includes('question type')) {
+          if (columnMapping?.typeCol) cols.add(String(columnMapping.typeCol));
+          return;
+        }
+        if (f.includes('identifier') || f.includes('id')) {
+          if (columnMapping?.idCol) cols.add(String(columnMapping.idCol));
+          return;
+        }
+        if (f.includes('order')) {
+          if (columnMapping?.orderCol) cols.add(String(columnMapping.orderCol));
+          return;
+        }
+        if (f.includes('tolerance')) {
+          if (columnMapping?.toleranceCol) cols.add(String(columnMapping.toleranceCol));
+          return;
+        }
+        if (f.includes('option')) {
+          const optionCols = Array.isArray(columnMapping?.optionCols) ? (columnMapping.optionCols as string[]) : [];
+          optionCols.forEach((col) => cols.add(String(col)));
+          return;
+        }
+        if (fileData?.columns?.includes(issue.field)) {
+          cols.add(issue.field);
+        }
+      });
+      return cols;
+    })();
+    const activeCleanSuggestions = activeCleanRow?.rowSuggestions ?? [];
+    const rowsChangedCount = cleanRows.filter((r) => r.changeCount > 0).length;
+    const acceptedSuggestionCount = acceptedCleanSuggestionKeys.size;
+
+    return (
+      <div className="h-screen overflow-hidden grid bg-[#f8fafc] text-[#0f172a]" style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}>
+        <aside
+          className="border-r border-[#e2e8f0] bg-card flex flex-col sticky top-0 h-screen transition-[width] duration-300 overflow-hidden"
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+          style={{ width: sidebarWidth }}
+        >
+          <div className={`h-14 px-3 border-b border-[#e2e8f0] flex items-center gap-2 ${!isSidebarHovered ? 'justify-center' : ''}`}>
+            {isSidebarHovered && (
+              <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 text-[#0f172a] hover:text-[#334155]">
+                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+                <span className="text-sm font-semibold">AssessmentCore</span>
+              </button>
+            )}
+            {!isSidebarHovered && <button type="button" onClick={() => navigate('/workspace/dashboard')} className="flex items-center justify-center text-[#475569] hover:text-[#111827]"><Home className="w-4 h-4" /></button>}
+          </div>
+          {isSidebarHovered && (
+            <div className="px-4 py-3 border-b border-[#e2e8f0]">
+              <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mb-2">Current batch</p>
+              {fileData ? (
+                <>
+                  <p className="text-xs font-medium truncate">{fileData.fileName}</p>
+                  <p className="text-xs text-[#64748b] mt-1">{fileData.rows.length} rows · {fileData.columns.length} cols</p>
+                </>
+              ) : (
+                <p className="text-xs text-[#64748b]">No file loaded</p>
+              )}
+            </div>
+          )}
+          <nav className="flex-1 px-2 py-3 overflow-auto">
+            {isSidebarHovered && <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] px-2 mb-2">Batch creator</p>}
+            {stepOrder.map((step, idx) => {
+              const isActive = idx === currentStepIndex;
+              const isDone = idx < currentStepIndex;
+              const enabled = canNavigateToStep(step);
+              return (
+                <button
+                  key={`clean-shell-step-${step}`}
+                  type="button"
+                  onClick={() => enabled && handleStepperJump(step)}
+                  disabled={!enabled}
+                  className={`w-full flex items-center rounded-md py-2 mb-1 text-xs text-left transition-colors ${!isSidebarHovered ? 'gap-0 px-0 justify-center' : 'gap-2 px-2'} ${isActive ? 'bg-[#e2e8f0] text-[#111827] font-semibold' : 'text-[#475569] hover:bg-[#f1f5f9]'} ${!enabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span className={`h-5 w-5 rounded flex items-center justify-center text-xs border ${isActive ? 'bg-[#111827] text-primary-foreground border-[#111827]' : isDone ? 'bg-[#f1f5f9] text-[#1f2937] border-[#cbd5e1]' : 'bg-card text-[#64748b] border-[#dbe1e8]'}`}>
+                    {isDone ? <Check className="w-3 h-3" /> : (
+                      (!isPremium && ['ai-audit', 'configure', 'transform'].includes(step))
+                        ? <Lock className="w-3 h-3 text-warning" />
+                        : (isSidebarHovered ? idx + 1 : getSidebarStepIcon(step))
+                    )}
+                  </span>
+                  {isSidebarHovered && <span>{stepLabels[step]}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="h-14 px-3 border-t border-[#e2e8f0] flex items-center">
+            <button type="button" className={`w-full flex items-center rounded-md py-2 text-xs text-[#475569] hover:bg-[#f1f5f9] ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'}`}>
+              <Settings className="w-4 h-4" /> {isSidebarHovered && 'Settings'}
+            </button>
+          </div>
+        </aside>
+
+        <main className="min-w-0 min-h-0 flex flex-col">
+          <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Cleaning pipeline</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {cleanStageMode === 'ready' && (
+                <Button
+                  size="sm"
+                  onClick={handleApplyAutomatedFixes}
+                  disabled={isApplyingAutoFixes || availableAutoFixCount === 0}
+                  className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground"
+                >
+                  <Sparkles className="w-4 h-4 mr-1" />Run 3-pass clean
+                </Button>
+              )}
+              {cleanStageMode === 'manual-fix' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAutoFixComparison(null);
+                    setHasProceededToManualFix(false);
+                    setManualFixResults(new Map());
+                    setManualFixedRows(new Map());
+                    manualFixedRowsRef.current = new Map();
+                    setManualMetrics({ manualFixesApplied: 0, rowsImprovedByUser: 0 });
+                    setAcceptedCleanSuggestionKeys(new Set());
+                    setSelectedCleanRowKey(null);
+                  }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" />Reset
+                </Button>
+              )}
+            </div>
+          </header>
+
+          {cleanStageMode === 'ready' && (
+            <div className="min-h-0 flex-1 overflow-auto px-4 py-7">
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Card className="border border-[#e2e8f0] bg-card">
+                    <CardHeader className="pb-2"><CardTitle className="text-sm">Pass 1 · Character cleaning</CardTitle></CardHeader>
+                    <CardContent className="text-xs text-[#475569] space-y-1">
+                      <p>Zero-width chars</p><p>Line breaks</p><p>Smart quotes</p><p>Whitespace</p><p>Null coercion</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-[#e2e8f0] bg-card">
+                    <CardHeader className="pb-2"><CardTitle className="text-sm">Pass 2 · Structural align</CardTitle></CardHeader>
+                    <CardContent className="text-xs text-[#475569] space-y-1">
+                      <p>Column fallback</p><p>Option dedupe</p><p>Answer letter align</p><p>Order normalize</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-[#e2e8f0] bg-card">
+                    <CardHeader className="pb-2"><CardTitle className="text-sm">Pass 3 · Suggestions</CardTitle></CardHeader>
+                    <CardContent className="text-xs text-[#475569] space-y-1">
+                      <p>Case match</p><p>Fuzzy match</p><p>Placeholder fill</p><p>Missing answer hints</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="rounded-xl border border-[#e2e8f0] bg-card p-4 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-md bg-[#f1f5f9] text-[#1f2937] border border-[#e2e8f0] flex items-center justify-center">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0f172a]">Rollback protection</p>
+                    <p className="text-xs text-[#475569] mt-1">
+                      Each row is re-validated after every pass. If status regresses, row changes are reverted.
+                      Already-valid rows remain immutable, and only HIGH-confidence suggestions are auto-applied.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <Button
+                    onClick={handleApplyAutomatedFixes}
+                    disabled={isApplyingAutoFixes || availableAutoFixCount === 0}
+                    className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground"
+                  >
+                    <Sparkles className="w-4 h-4 mr-1" />Run 3-pass clean on {editedRows.length} rows
+                  </Button>
+                  <Button variant="outline" onClick={handleProceedAfterCleanFix}>Skip cleaning</Button>
+                </div>
+
+                {availableAutoFixCount === 0 && (
+                  <div className="mx-auto max-w-3xl rounded-lg border border-[#ffd8a8] bg-[#fff4e9] px-3 py-2 text-xs text-[#8f4600] text-center">
+                    No data is currently eligible for auto-fix. Manual review is still available in later stages.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {cleanStageMode === 'running' && (
+            <div className="min-h-0 flex-1 flex items-center justify-center p-6">
+              <Card className="w-full max-w-xl border border-[#e2e8f0] bg-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base"><Loader2 className="w-5 h-5 animate-spin" />Cleaning in progress...</CardTitle>
+                  <CardDescription>{editedRows.length} rows · 3 passes</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2.5">
+                  {([1, 2, 3] as const).map((pass) => {
+                    const isActive = cleaningPass >= pass;
+                    const isRunning = cleaningPass === pass;
+                    return (
+                      <div
+                        key={`clean-running-pass-${pass}`}
+                        className={`rounded-md border px-3 py-2 text-xs flex items-center justify-between ${isRunning ? 'bg-[#eef2ff] border-[#c7d2fe]' : isActive ? 'bg-[#eefaf2] border-[#b7e2c6]' : 'bg-[#f8fafc] border-[#e2e8f0]'}`}
+                      >
+                        <span className="text-[#334155]">Pass {pass} — {pass === 1 ? 'Character cleaning' : pass === 2 ? 'Structural alignment' : 'Suggestion generation'}</span>
+                        <span className={`${isRunning ? 'text-[#1f2937]' : isActive ? 'text-[#1f2937]' : 'text-[#64748b]'}`}>{isRunning ? 'running...' : isActive ? 'done' : 'pending'}</span>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {cleanStageMode === 'autofix-preview' && (() => {
+            const previewRows = cleanRows.filter(r => r.changeCount > 0);
+            const isRevalidated = !!autoFixComparison?.after;
+
+            return (
+            <div className="min-h-0 flex-1 flex flex-col p-8 bg-[#f8fafc]">
+              <div className="max-w-6xl mx-auto w-full space-y-6 flex-1 flex flex-col min-h-0">
+                {isRevalidated && autoFixComparison?.after && (
+                  <div className="rounded-lg border border-[#b7e2c6] bg-[#eefaf2] p-4 flex items-center justify-between gap-3 shadow-sm shrink-0">
+                    <div className="flex gap-3 items-start flex-1 min-w-0">
+                      <CheckCircle2 className="w-5 h-5 text-[#059669] mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-semibold text-[#065f46]">Validation Re-run Complete</h4>
+                        <p className="text-xs text-[#065f46] mt-1 opacity-90 truncate">
+                          {autoFixComparison.after.valid} valid rows ({(autoFixComparison.after.valid - autoFixComparison.before.valid) > 0 ? '+' : ''}{autoFixComparison.after.valid - autoFixComparison.before.valid}), {autoFixComparison.after.rejected} blocked rows. View full details in the main report later.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        onClick={handleDownloadAutoFixReport}
+                        variant="outline"
+                        className="bg-transparent border-[#059669] text-[#059669] hover:bg-[#dcfce7] h-9"
+                      >
+                        <Download className="w-4 h-4 mr-2" /> Download Fixes (Excel)
+                      </Button>
+                      <Button
+                        onClick={handleDownloadCorrectedSheet}
+                        variant="outline"
+                        className="bg-transparent border-[#0284c7] text-[#0284c7] hover:bg-[#e0f2fe] h-9"
+                      >
+                        <Download className="w-4 h-4 mr-2" /> Export Corrected Sheet
+                      </Button>
+                      <Button
+                        onClick={() => setHasProceededToManualFix(true)}
+                        className="bg-[#059669] hover:bg-[#047857] text-primary-foreground shrink-0 h-9"
+                      >
+                        Continue to Manual Fix
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between shrink-0">
+                  <div>
+                    <h3 className="text-xl font-bold text-[#0f172a]">Auto-Fix Preview</h3>
+                    <p className="text-sm text-[#475569] mt-1">
+                      System successfully applied automated fixes. Showing {Math.min(15, previewRows.length)} of {previewRows.length} changed rows.
+                    </p>
+                  </div>
+                  {!isRevalidated && (
+                    <Button
+                      onClick={handleReRunValidationAfterAutoFix}
+                      className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground shadow-sm"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" /> Re-run Validation
+                    </Button>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-[#e2e8f0] bg-card overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
+                   <div className="overflow-auto flex-1 min-h-0">
+                     <table className="w-full text-sm">
+                        <thead className="bg-[#f1f5f9] border-b border-[#e2e8f0] sticky top-0 text-[#334155]">
+                           <tr>
+                              <th className="px-4 py-3 text-left font-semibold">Row</th>
+                              <th className="px-4 py-3 text-left font-semibold">Fix Type</th>
+                              <th className="px-4 py-3 text-left font-semibold">Field Modified</th>
+                              <th className="px-4 py-3 text-left font-semibold">Original Value (Before)</th>
+                              <th className="px-4 py-3 text-left font-semibold">New Value (After)</th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#e2e8f0]">
+                           {previewRows.slice(0, 15).map(r => (
+                              r.changes.map((c, i) => {
+                                const passLabel = c.pass === 'PASS_1' ? 'Char Clean' : c.pass === 'PASS_2' ? 'Structural Align' : c.type || 'Suggestion';
+                                return (
+                                 <tr key={`${r.rowKey}-${i}`} className="hover:bg-[#f8fafc] transition-colors">
+                                   <td className="px-4 py-3 text-[#475569] whitespace-nowrap">{r.rowId}</td>
+                                   <td className="px-4 py-3 whitespace-nowrap"><span className="px-2 py-1 bg-[#eef2ff] text-[#4f46e5] font-semibold text-[10px] uppercase tracking-wider rounded border border-[#c7d2fe]">{passLabel}</span></td>
+                                   <td className="px-4 py-3 font-medium text-[#0f172a] whitespace-nowrap">{c.field}</td>
+                                   <td className="px-4 py-3 text-[#ba1a1a] bg-[#fff4f2]/30 line-through decoration-[#ffb4ab] break-words">{String(c.before) || '∅'}</td>
+                                   <td className="px-4 py-3 text-[#118f4a] bg-[#f0fdf4]/50 break-words font-medium">{String(c.after) || '∅'}</td>
+                                 </tr>
+                                );
+                              })
+                           ))}
+                        </tbody>
+                     </table>
+                     {previewRows.length === 0 && (
+                        <div className="p-12 text-center border-t border-[#e2e8f0]">
+                          <CheckCircle2 className="w-8 h-8 text-[#94a3b8] mx-auto mb-3" />
+                          <p className="text-[#475569] font-medium">No visible changes were logged during cleaning.</p>
+                        </div>
+                     )}
+                   </div>
+                   {previewRows.length > 15 && (
+                     <div className="px-4 py-3 bg-[#f8fafc] border-t border-[#e2e8f0] text-center text-xs text-[#64748b] shrink-0">
+                        + {previewRows.length - 15} more rows have been fixed but are hidden to save space.
+                     </div>
+                   )}
+                </div>
+              </div>
+            </div>
+          ); })()}
+
+          {cleanStageMode === 'manual-fix' && (
+            <>
+              <div className="min-h-0 flex-1 grid grid-cols-[320px_1fr]">
+                <aside className="border-r border-[#e2e8f0] bg-card min-h-0 overflow-auto">
+                  <div className="sticky top-0 z-10 px-3 py-3 border-b border-[#e2e8f0] bg-card">
+                    <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b]">Rows · {rowsChangedCount} changed</p>
+                  </div>
+                  <div>
+                    {cleanRows.map((item) => {
+                      const hasChange = item.changeCount > 0;
+                      const hasSuggestion = item.suggestionCount > 0;
+                      const active = activeCleanRowKey === item.rowKey;
+                      return (
+                        <button
+                          key={`clean-row-${item.rowKey}`}
+                          type="button"
+                          onClick={() => setSelectedCleanRowKey(item.rowKey)}
+                          className={`w-full text-left px-3 py-2 border-b border-[#f1f5f9] ${active ? 'bg-[#eef2ff]' : 'hover:bg-[#f8fafc]'} ${(hasChange || hasSuggestion) ? '' : 'opacity-60'}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-xs text-[#64748b] w-7">{item.rowNumber}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1 mb-0.5">
+                                <span className="text-xs font-semibold text-[#0f172a] truncate">{item.rowId}</span>
+                                {hasChange && <span className="px-1.5 py-0.5 rounded text-xs border border-[#cbd5e1] bg-[#f8fafc] text-[#334155]">{item.changeCount} fix</span>}
+                                {hasSuggestion && <span className="px-1.5 py-0.5 rounded text-xs border border-[#ffd8a8] bg-[#fff4e9] text-[#8f4600]">{item.suggestionCount} sug</span>}
+                              </div>
+                              <p className="text-xs text-[#64748b] truncate">{item.stem || '—'}</p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </aside>
+
+                <section className="min-h-0 overflow-auto bg-[#f8fafc] p-5">
+                  <div className="max-w-4xl mx-auto">
+                    {activeCleanRow ? (
+                      <>
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="text-xs font-semibold text-[#0f172a]">{activeCleanRow.rowId}</span>
+                          <span className="text-xs text-[#64748b]">·</span>
+                          <span className="text-xs text-[#64748b] truncate">{activeCleanRow.stem || '—'}</span>
+                        </div>
+
+                        {activeCleanRow.changeCount === 0 && activeCleanRow.suggestionCount === 0 && (
+                          <div className="rounded-lg border border-[#e2e8f0] bg-card p-8 text-center mb-4">
+                            <CheckCircle2 className="w-5 h-5 mx-auto text-[#1f2937]" />
+                            <p className="text-sm font-semibold text-[#0f172a] mt-2">No changes needed</p>
+                            <p className="text-xs text-[#64748b] mt-1">This row was already clean.</p>
+                          </div>
+                        )}
+
+                        {activeCleanRow.changeCount > 0 && (
+                          <div className="rounded-lg border border-[#e2e8f0] bg-card overflow-hidden mb-4">
+                            <div className="px-4 py-2 border-b border-[#e2e8f0] bg-[#f8fafc] text-xs font-semibold text-[#334155]">Applied fixes · {activeCleanRow.changeCount}</div>
+                            <table className="w-full text-xs">
+                              <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+                                <tr>
+                                  <th className="px-3 py-2 text-left">Field</th>
+                                  <th className="px-3 py-2 text-left">Pass</th>
+                                  <th className="px-3 py-2 text-left">Before</th>
+                                  <th className="px-3 py-2 text-left">After</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {activeCleanRow.changes.map((change, idx) => (
+                                  <tr key={`change-${activeCleanRow.rowKey}-${idx}`} className="border-b border-[#f1f5f9] last:border-0">
+                                    <td className="px-3 py-2 text-[#0f172a] font-medium">{change.field}</td>
+                                    <td className="px-3 py-2"><span className="px-1.5 py-0.5 rounded border border-[#e2e8f0] bg-[#f8fafc] text-xs">{change.pass === 'PASS_1' ? 'P1' : 'P2'}</span></td>
+                                    <td className="px-3 py-2 text-[#64748b]">{String(change.before) || '∅'}</td>
+                                    <td className="px-3 py-2 text-[#0f172a]">{String(change.after) || '∅'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {(() => {
+                          const isAutoFixedRow = autoFixedRowKeys.has(activeCleanRow.rowKey);
+                          const isValidRow = activeCleanValidation?.status === 'valid';
+                          const isLocked = isAutoFixedRow || isValidRow;
+
+                          if (isLocked) {
+                            return (
+                              <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-6 text-center mt-4">
+                                <Shield className="w-6 h-6 mx-auto text-[#64748b] mb-2" />
+                                <p className="text-sm font-semibold text-[#0f172a]">Row Locked</p>
+                                <p className="text-xs text-[#64748b] mt-1">This row is {isValidRow ? 'valid' : 'automatically fixed'} and cannot be manually edited here.</p>
+                              </div>
+                            );
+                          }
+
+                          return activeCleanSuggestions.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold text-[#0f172a]">Pass 3 suggestions</p>
+                            {activeCleanSuggestions.map((s, idx) => {
+                              const key = `${s.rowKey}:${s.type}:${idx}`;
+                              const accepted = acceptedCleanSuggestionKeys.has(key);
+                              const editingThis = manualCleanEditKey === key;
+                              const confidenceClass = s.confidence === 'HIGH'
+                                ? 'bg-[#eefaf2] border-[#b7e2c6] text-[#1f2937]'
+                                : s.confidence === 'MEDIUM'
+                                  ? 'bg-[#fff4e9] border-[#ffd8a8] text-[#8f4600]'
+                                  : 'bg-[#ffeceb] border-[#ffc9c6] text-[#ba1a1a]';
+                              return (
+                                <div key={`sugg-${key}`} className="rounded-lg border border-[#e2e8f0] bg-card p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles className="w-3.5 h-3.5 text-[#334155]" />
+                                    <span className="text-xs font-semibold text-[#0f172a]">{s.type.replace(/_/g, ' ')}</span>
+                                    <span className={`px-1.5 py-0.5 rounded border text-xs ${confidenceClass}`}>{s.confidence}</span>
+                                    <span className="text-xs text-[#64748b]">field: {s.field}</span>
+                                  </div>
+                                  <p className="text-xs text-[#334155] mb-2">{s.message}</p>
+                                  {s.suggestedValue && (
+                                    <div className="rounded border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1.5 text-xs text-[#334155] mb-2">
+                                      suggested value: <span className="font-semibold text-[#0f172a]">{s.suggestedValue}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {s.suggestedValue ? (
+                                      <>
+                                        <Button
+                                          type="button"
+                                          variant={accepted ? 'default' : 'outline'}
+                                          size="sm"
+                                          onClick={() => {
+                                            setAcceptedCleanSuggestionKeys((prev) => {
+                                              const next = new Set(prev);
+                                              if (next.has(key)) next.delete(key);
+                                              else next.add(key);
+                                              return next;
+                                            });
+                                          }}
+                                          className={accepted ? 'h-7 text-xs bg-[#111827] hover:bg-[#1f2937]' : 'h-7 text-xs'}
+                                        >
+                                          {accepted ? 'Accepted' : 'Accept fix'}
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs">Reject</Button>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 text-xs"
+                                          onClick={() => {
+                                            setManualCleanEditKey(key);
+                                            const currentValue = String((activeCleanRow?.row as any)?.[s.field] ?? '');
+                                            setManualCleanDraftValue(currentValue);
+                                            const draftSource = (activeCleanRow?.row as Record<string, any>) ?? {};
+                                            const cols = fileData?.columns?.length
+                                              ? fileData.columns
+                                              : Object.keys(draftSource).filter((k) => !k.startsWith('__'));
+                                            const draft: Record<string, string> = {};
+                                            cols.forEach((col) => { draft[col] = String(draftSource[col] ?? ''); });
+                                            setManualCleanDraftRow(draft);
+                                          }}
+                                        >
+                                          Fix manually
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        onClick={() => {
+                                          setManualCleanEditKey(key);
+                                          const currentValue = String((activeCleanRow?.row as any)?.[s.field] ?? '');
+                                          setManualCleanDraftValue(currentValue);
+                                          const draftSource = (activeCleanRow?.row as Record<string, any>) ?? {};
+                                          const cols = fileData?.columns?.length
+                                            ? fileData.columns
+                                            : Object.keys(draftSource).filter((k) => !k.startsWith('__'));
+                                          const draft: Record<string, string> = {};
+                                          cols.forEach((col) => { draft[col] = String(draftSource[col] ?? ''); });
+                                          setManualCleanDraftRow(draft);
+                                        }}
+                                      >
+                                        Fix manually
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  {editingThis && (
+                                    <div className="mt-2 rounded border border-[#e2e8f0] bg-[#f8fafc] p-2.5">
+                                      <p className="text-xs uppercase tracking-[0.08em] text-[#64748b] mb-2">Manual edit · Row {activeCleanRow?.rowNumber}</p>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[320px] overflow-auto pr-1">
+                                        {(fileData?.columns?.length ? fileData.columns : Object.keys((activeCleanRow?.row as Record<string, any>) ?? {}).filter((k) => !k.startsWith('__'))).map((col) => {
+                                          const isIssueCol = activeCleanIssueColumns.has(col);
+                                          const value = manualCleanDraftRow?.[col] ?? String((activeCleanRow?.row as any)?.[col] ?? '');
+                                          return (
+                                            <div key={`manual-edit-col-${col}`} className="space-y-1">
+                                              <label className={`text-xs uppercase tracking-[0.06em] ${isIssueCol ? 'text-[#ba1a1a] font-semibold' : 'text-[#64748b]'}`}>
+                                                {col}
+                                              </label>
+                                              <Input
+                                                value={value}
+                                                onChange={(e) => {
+                                                  const next = { ...(manualCleanDraftRow ?? {}) };
+                                                  next[col] = e.target.value;
+                                                  setManualCleanDraftRow(next);
+                                                }}
+                                                className={`h-8 text-xs bg-card ${isIssueCol ? 'border-[#ffc9c6] bg-[#ffeceb]/40 focus-visible:ring-[#ba1a1a]' : ''}`}
+                                              />
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          className="h-7 text-xs bg-[#111827] hover:bg-[#1f2937] text-primary-foreground"
+                                          onClick={() => {
+                                            const sourceRow = (activeCleanRow?.row as Record<string, any>) ?? null;
+                                            if (!sourceRow || !manualCleanDraftRow) return;
+
+                                            const edits: Record<string, string> = {};
+                                            Object.entries(manualCleanDraftRow).forEach(([field, nextValue]) => {
+                                              const prevValue = String(sourceRow[field] ?? '');
+                                              if (String(nextValue) !== prevValue) {
+                                                edits[field] = String(nextValue);
+                                              }
+                                            });
+                                            if (Object.keys(edits).length === 0) return;
+
+                                            applyBulkManualEdits(s.rowKey, edits);
+
+                                            // Keep local clean-stage row immediately in sync with manual edits.
+                                            setEditedRows((prev) => prev.map((row, ridx) => {
+                                              if (getRowValidationKey(row, ridx) !== s.rowKey) return row;
+                                              return { ...row, ...edits };
+                                            }));
+
+                                            setManualCleanEditKey(null);
+                                            setManualCleanDraftValue('');
+                                            setManualCleanDraftRow(null);
+                                            toast.success('Manual edits applied. Highlighted cells will clear once issue is resolved.');
+                                          }}
+                                        >
+                                          Apply
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 text-xs"
+                                          onClick={() => {
+                                            setManualCleanEditKey(null);
+                                            setManualCleanDraftValue('');
+                                            setManualCleanDraftRow(null);
+                                          }}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ); })()}
+                      </>
+                    ) : (
+                      <p className="text-xs text-[#64748b]">No rows available.</p>
+                    )}
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+
+          <footer className="h-14 px-5 border-t border-[#e2e8f0] bg-card flex items-center justify-between">
+            <Button variant="outline" onClick={() => setCurrentStep('validating')} className="text-xs">Back</Button>
+            <div className="text-xs text-[#64748b]"><span className="font-semibold text-[#0f172a]">{acceptedSuggestionCount}</span> of {suggestionTotal} suggestions accepted</div>
+            <Button onClick={handleProceedAfterCleanFix} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold">
+              {nextStepAfterCleanFix === 'ai-audit' ? 'Continue to AI audit' : 'Continue to preview'}
+            </Button>
+          </footer>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentStep === 'ai-audit') {
+    // Always open the reviewer view by default; audits run only on explicit user clicks.
+    const hasCompletedAiAudit = Object.keys(auditResults).length > 0 || manualAuditStarted;
+    let auditStageMode: 'ready' | 'running' | 'done' = 'ready';
+    if (hasCompletedAiAudit) {
+      auditStageMode = 'done';
+    } else if (/* condition for running audit */ false) {
+      auditStageMode = 'running';
+    }
+
+    const totalRows = filteredAiAuditQueueRows.length;
+    const visibleStart = totalRows === 0 ? 0 : aiAuditPageIndex * AI_AUDIT_PAGE_SIZE + 1;
+    const visibleEnd = Math.min(totalRows, (aiAuditPageIndex + 1) * AI_AUDIT_PAGE_SIZE);
+    const reviewedCount = aiAuditQueueRows.filter((row) => row.aiStatus !== 'PENDING').length;
+    const acceptedCount = aiAuditQueueRows.filter((row) => row.aiStatus === 'PASSED').length;
+    const rejectedCount = aiAuditQueueRows.filter((row) => row.aiStatus === 'FAILED').length;
+    const failedCount = aiAuditQueueRows.filter((row) => row.aiStatus === 'FAILED').length;
+    const passedCount = aiAuditQueueRows.filter((row) => row.aiStatus === 'PASSED').length;
+    const pendingCount = Math.max(0, aiAuditQueueRows.length - reviewedCount);
+    const currentAuditRow = activeAiAuditRow;
+    const questionColKey = columnMapping?.questionCol || 'question';
+    const answerColKey = columnMapping?.answerCol || 'answer';
+    const questionTypeColKey = columnMapping?.questionTypeCol || 'questionType';
+    const optionColKeys: string[] = columnMapping?.optionCols || [];
+    const hasMetadataValueEntries = Array.from(metadataValues.values()).some((rowMeta) =>
+      Object.values(rowMeta ?? {}).some((v) => String(v ?? '').trim().length > 0)
+    );
+    const hasInlineDraftChanges = Array.from(aiAuditDraftRows.entries()).some(([rowKey, draft]) => {
+      const queueRow = aiAuditQueueRows.find((r) => r.rowKey === rowKey);
+      if (!queueRow) return false;
+      return Object.keys(draft ?? {}).some((field) => String((draft as any)?.[field] ?? '') !== String((queueRow.rowData as any)?.[field] ?? ''));
+    });
+    const hasAiAuditUserChanges = hasMetadataValueEntries || addedMetadataKeys.length > 0 || hasInlineDraftChanges;
+    const canExportCorrectedSheet = hasCompletedAiAudit || hasAiAuditUserChanges;
+
+    return (
+      <div className="h-screen overflow-hidden grid bg-[#f8fafc] text-[#0f172a]" style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}>
+        <aside
+          className="border-r border-[#e2e8f0] bg-card flex flex-col sticky top-0 h-screen transition-[width] duration-300 overflow-hidden"
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+          style={{ width: sidebarWidth }}
+        >
+          <div className={`h-14 px-3 border-b border-[#e2e8f0] flex items-center gap-2 ${!isSidebarHovered ? 'justify-center' : ''}`}>
+            {isSidebarHovered && (
+              <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 text-[#0f172a] hover:text-[#334155]">
+                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+                <span className="text-sm font-semibold">AssessmentCore</span>
+              </button>
+            )}
+            {!isSidebarHovered && <button type="button" onClick={() => navigate('/workspace/dashboard')} className="flex items-center justify-center text-[#475569] hover:text-[#111827]"><Home className="w-4 h-4" /></button>}
+          </div>
+          {isSidebarHovered && (
+            <div className="px-4 py-3 border-b border-[#e2e8f0]">
+              <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mb-2">Current batch</p>
+              {fileData ? (
+                <>
+                  <p className="text-xs font-medium truncate">{fileData.fileName}</p>
+                  <p className="text-xs text-[#64748b] mt-1">{fileData.rows.length} rows · {fileData.columns.length} cols</p>
+                </>
+              ) : (
+                <p className="text-xs text-[#64748b]">No file loaded</p>
+              )}
+            </div>
+          )}
+          <nav className="flex-1 px-2 py-3 overflow-auto">
+            {isSidebarHovered && <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] px-2 mb-2">Batch creator</p>}
+            {stepOrder.map((step, idx) => {
+              const isActive = idx === currentStepIndex;
+              const isDone = idx < currentStepIndex;
+              const enabled = canNavigateToStep(step);
+              return (
+                <button
+                  key={`audit-shell-step-${step}`}
+                  type="button"
+                  onClick={() => enabled && handleStepperJump(step)}
+                  disabled={!enabled}
+                  className={`w-full flex items-center rounded-md py-2 mb-1 text-xs text-left transition-colors ${!isSidebarHovered ? 'gap-0 px-0 justify-center' : 'gap-2 px-2'} ${isActive ? 'bg-[#e2e8f0] text-[#111827] font-semibold' : 'text-[#475569] hover:bg-[#f1f5f9]'} ${!enabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span className={`h-5 w-5 rounded flex items-center justify-center text-xs border ${isActive ? 'bg-[#111827] text-primary-foreground border-[#111827]' : isDone ? 'bg-[#f1f5f9] text-[#1f2937] border-[#cbd5e1]' : 'bg-card text-[#64748b] border-[#dbe1e8]'}`}>
+                    {isDone ? <Check className="w-3 h-3" /> : (
+                      (!isPremium && ['ai-audit', 'configure', 'transform'].includes(step))
+                        ? <Lock className="w-3 h-3 text-warning" />
+                        : (isSidebarHovered ? idx + 1 : getSidebarStepIcon(step))
+                    )}
+                  </span>
+                  {isSidebarHovered && <span>{stepLabels[step]}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="h-14 px-3 border-t border-[#e2e8f0] flex items-center">
+            <button type="button" className={`w-full flex items-center rounded-md py-2 text-xs text-[#475569] hover:bg-[#f1f5f9] ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'}`}>
+              <Settings className="w-4 h-4" /> {isSidebarHovered && 'Settings'}
+            </button>
+          </div>
+        </aside>
+
+        <main className="min-w-0 min-h-0 flex flex-col">
+          <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">AI audit reviewer</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {auditStageMode === 'done' && (
+                <div className="text-xs text-[#475569] mr-1">
+                  <span className="font-semibold text-[#0f172a]">{pendingCount}</span> pending ·{' '}
+                  <span className="font-semibold text-[#1f2937]">{acceptedCount}</span> accepted ·{' '}
+                  <span className="font-semibold text-[#ba1a1a]">{rejectedCount}</span> rejected
+                </div>
+              )}
+              <Button variant="outline" size="sm" onClick={handleClearAuditResults}>
+                <RefreshCw className="w-4 h-4 mr-1" />Reset
+              </Button>
+            </div>
+          </header>
+
+          {auditStageMode === 'ready' && (
+            <div className="min-h-0 flex-1 overflow-auto px-4 py-6">
+              <div className="max-w-5xl mx-auto space-y-5">
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-4 h-4" />AI audit - Gate 2</CardTitle>
+                    <CardDescription>One LLM call per row, suggestion output, human-in-the-loop decisions.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 text-xs text-[#475569]">
+                    <div className="rounded-md border border-[#e2e8f0] bg-[#f8fafc] p-3"><p className="font-semibold text-[#1f2937] mb-1">Clarity</p><p>Stem is unambiguous and grammatically correct.</p></div>
+                    <div className="rounded-md border border-[#e2e8f0] bg-[#f8fafc] p-3"><p className="font-semibold text-[#1f2937] mb-1">Specificity</p><p>Question should have one verifiable answer.</p></div>
+                    <div className="rounded-md border border-[#e2e8f0] bg-[#f8fafc] p-3"><p className="font-semibold text-[#1f2937] mb-1">Distractor quality</p><p>Wrong options should stay plausible.</p></div>
+                    <div className="rounded-md border border-[#e2e8f0] bg-[#f8fafc] p-3"><p className="font-semibold text-[#1f2937] mb-1">Ambiguity</p><p>No dual interpretations in stem/options.</p></div>
+                  </CardContent>
+                </Card>
+
+                <div className="rounded-xl border border-[#e2e8f0] bg-card p-4">
+                  <p className="text-sm font-semibold text-[#0f172a]">Human-in-the-loop guarantee</p>
+                  <p className="text-xs text-[#475569] mt-1">No AI suggestion is auto-applied. You review each flagged row side-by-side, then accept, reject, or edit before export.</p>
+                </div>
+
+                <div className="flex items-center justify-center gap-2">
+                  <Button onClick={() => setManualAuditStarted(true)} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground">
+                    Proceed to AI Audit Workspace
+                  </Button>
+                  <Button variant="outline" onClick={() => handleStepperJump('configure')}>Skip audit</Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {auditStageMode === 'running' && (
+            <div className="min-h-0 flex-1 flex items-center justify-center p-6">
+              <Card className="w-full max-w-xl border border-[#e2e8f0] bg-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base"><Loader2 className="w-5 h-5 animate-spin" />Running AI audit...</CardTitle>
+                  <CardDescription>
+                    Auditing {auditProgress.current} / {Math.max(auditProgress.total, 1)} rows
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Progress value={Math.max(0, Math.min(100, auditProgress.total > 0 ? (auditProgress.current / auditProgress.total) * 100 : 0))} />
+                  <p className="text-xs text-[#64748b] text-center">This stage reviews pedagogy, clarity, and distractor quality.</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {auditStageMode === 'done' && (
+            <div className="min-h-0 flex-1 overflow-auto bg-[#f8fafc] px-4 py-5">
+              <div className="mx-auto max-w-7xl space-y-4">
+                <div className="rounded-xl border border-[#e2e8f0] bg-card p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiAuditStatusFilter('ALL');
+                          setAiAuditPageIndex(0);
+                        }}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
+                          aiAuditStatusFilter === 'ALL'
+                            ? 'bg-[#f1f5f9] border-[#cbd5e1] text-[#111827]'
+                            : 'bg-card border-[#e2e8f0] text-[#475569] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        All ({aiAuditQueueRows.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiAuditStatusFilter('FAILED');
+                          setAiAuditPageIndex(0);
+                        }}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
+                          aiAuditStatusFilter === 'FAILED'
+                            ? 'bg-[#ffeceb] border-[#ffc9c6] text-[#ba1a1a]'
+                            : 'bg-card border-[#e2e8f0] text-[#475569] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        Failed ({failedCount})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiAuditStatusFilter('PASSED');
+                          setAiAuditPageIndex(0);
+                        }}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
+                          aiAuditStatusFilter === 'PASSED'
+                            ? 'bg-[#eefaf2] border-[#cdeed8] text-[#14532d]'
+                            : 'bg-card border-[#e2e8f0] text-[#475569] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        Passed ({passedCount})
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDownloadCorrectedSheet}
+                        disabled={aiAuditQueueRows.length === 0 || !canExportCorrectedSheet}
+                      >
+                        <Download className="w-4 h-4 mr-1" />Export corrected sheet
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748b]">
+                    <span>
+                      Showing {visibleStart}-{visibleEnd} of {totalRows}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setAiAuditPageIndex((prev) => Math.max(0, prev - 1))}
+                        disabled={aiAuditPageIndex === 0}
+                        className="h-7 w-7 rounded-md border border-[#e2e8f0] bg-card text-[#475569] disabled:text-[#94a3b8] disabled:bg-[#f8fafc] disabled:cursor-not-allowed hover:bg-[#f8fafc] flex items-center justify-center"
+                        title="Previous page"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiAuditPageIndex((prev) => Math.min(totalAiAuditPages - 1, prev + 1))}
+                        disabled={aiAuditPageIndex >= totalAiAuditPages - 1}
+                        className="h-7 w-7 rounded-md border border-[#e2e8f0] bg-card text-[#475569] disabled:text-[#94a3b8] disabled:bg-[#f8fafc] disabled:cursor-not-allowed hover:bg-[#f8fafc] flex items-center justify-center"
+                        title="Next page"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[#e2e8f0] bg-card p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b]">Metadata fields</p>
+                    {addedMetadataKeys.length > 0 && (
+                      <span className="px-1.5 py-0.5 bg-[#f1f5f9] text-[#111827] rounded text-xs font-semibold">
+                        {addedMetadataKeys.length} added
+                      </span>
+                    )}
+                  </div>
+
+                  {addedMetadataFields.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {addedMetadataFields.map((field) => (
+                        <span
+                          key={field.key}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#f8fafc] border border-[#cbd5e1] text-xs font-semibold text-[#334155]"
+                        >
+                          {field.label}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMetadataField(field.key)}
+                            className="text-[#64748b] hover:text-[#111827] transition-colors"
+                            title={`Remove ${field.label}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {availableMetadataToAdd.length > 0 && (
+                    <div className="relative" ref={metadataDropdownRef}>
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsMetadataDropdownOpen((prev) => !prev)}
+                          className="h-8 px-3 rounded-lg border border-[#cbd5e1] bg-card text-[#475569] text-xs font-semibold hover:bg-[#f8fafc] hover:border-[#94a3b8] transition-colors inline-flex items-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add field
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isMetadataDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        <span className="text-xs text-[#64748b] font-semibold">
+                          {availableMetadataToAdd.length} available
+                        </span>
+                      </div>
+                      {isMetadataDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-[#e2e8f0] rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto py-1">
+                          {availableMetadataToAdd.map((field) => (
+                            <button
+                              key={field.key}
+                              type="button"
+                              onClick={() => handleAddMetadataField(field.key)}
+                              className="w-full text-left px-3 py-2 text-xs text-[#334155] hover:bg-[#f8fafc] hover:text-[#111827] transition-colors"
+                            >
+                              <span className="font-semibold">{field.label}</span>
+                              <span className="text-[#94a3b8] ml-1.5">- {field.placeholder}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 pb-4">
+                  {visibleAiAuditQueueRows.map((row) => {
+                    const isActive = row.rowKey === currentAuditRow?.rowKey;
+                    const isFailed = row.aiStatus === 'FAILED';
+                    const isPassed = row.aiStatus === 'PASSED';
+                    const isEditing = aiAuditEditingRowKey === row.rowKey;
+                    const draftRow = aiAuditDraftRows.get(row.rowKey) ?? row.rowData;
+                    const optionPreview = optionColKeys
+                      .map((col, idx) => ({
+                        key: col,
+                        label: String.fromCharCode(65 + idx),
+                        value: String(draftRow?.[col] ?? '').trim(),
+                      }))
+                      .filter((opt) => opt.value.length > 0);
+
+                    return (
+                      <button
+                        key={`audit-row-${row.rowKey}`}
+                        type="button"
+                        onClick={() => setSelectedAuditRowKey(row.rowKey)}
+                        className={`w-full text-left rounded-xl border p-4 transition-all ${isActive ? 'border-[#111827] bg-card shadow-sm' : 'border-[#e2e8f0] bg-card hover:bg-[#f8fafc]'}`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-[#334155]">Q-{1000 + row.rowNumber}</span>
+                            {row.fixTag === 'MANUAL_FIXED' && (
+                              <span className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#f1f5f9] text-[#1f2937]">
+                                Manually fixed
+                              </span>
+                            )}
+                            {row.fixTag === 'AUTO_FIXED' && (
+                              <span className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#e2e8f0] text-[#334155]">
+                                Auto fixed
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {isPassed ? (
+                              <CheckCircle2 className="w-4 h-4 text-[#14532d]" />
+                            ) : isFailed ? (
+                              <XCircle className="w-4 h-4 text-[#ba1a1a]" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-[#94a3b8]" />
+                            )}
+                            <span className={`text-xs font-bold uppercase tracking-wider ${isPassed ? 'text-[#14532d]' : isFailed ? 'text-[#ba1a1a]' : 'text-[#64748b]'}`}>
+                              {isPassed ? 'AI Passed' : isFailed ? 'AI Failed' : 'Not Audited'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-[#334155] leading-relaxed">{row.questionText || 'Question text unavailable.'}</p>
+
+                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                          <div className="rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1.5">
+                            <span className="font-semibold text-[#64748b] uppercase tracking-wide">Type</span>
+                            <p className="text-[#334155] mt-0.5">{String(draftRow?.[questionTypeColKey] ?? '-')}</p>
+                          </div>
+                          <div className="rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1.5 md:col-span-2">
+                            <span className="font-semibold text-[#64748b] uppercase tracking-wide">Answer</span>
+                            <p className="text-[#334155] mt-0.5">{String(draftRow?.[answerColKey] ?? '-')}</p>
+                          </div>
+                        </div>
+
+                        {optionPreview.length > 0 && (
+                          <div className="mt-2 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-2 py-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[#64748b] mb-1">Options</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-[#334155]">
+                              {optionPreview.map((opt) => (
+                                <div key={`${row.rowKey}-${opt.key}`} className="truncate">
+                                  <span className="font-semibold mr-1">{opt.label}.</span>
+                                  {opt.value}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {isFailed && (
+                          <div className="mt-2 rounded-md border border-[#ffc9c6] bg-[#ffeceb] px-2.5 py-2">
+                            <p className="text-xs font-semibold text-[#ba1a1a] uppercase tracking-wide mb-1">Fail reason</p>
+                            <p className="text-xs text-[#7f1d1d]">{row.aiFeedback || 'AI marked this question as failed but no explanation was returned.'}</p>
+                          </div>
+                        )}
+
+                        {addedMetadataFields.length > 0 && (
+                          <div className="mt-2 rounded-md border border-[#dbe1e8] bg-[#f8fafc] px-2.5 py-2">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Tags className="w-3 h-3 text-[#64748b]" />
+                              <span className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">Metadata</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                              {addedMetadataFields.map((field) => {
+                                const rowMeta = metadataValues.get(row.rowKey);
+                                const val = rowMeta?.[field.key] ?? '';
+                                return (
+                                  <div key={`${row.rowKey}-meta-${field.key}`} className="flex flex-col">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <label className="text-xs font-bold uppercase tracking-wider text-[#94a3b8]">{field.label}</label>
+                                      {isActive && val.trim() && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplyMetadataToAll(field.key, val);
+                                          }}
+                                          className="text-xs font-semibold text-[#111827] hover:text-[#334155] transition-colors"
+                                          title={`Apply "${val}" to all rows`}
+                                        >
+                                          Apply to all
+                                        </button>
+                                      )}
+                                    </div>
+                                    <input
+                                      type="text"
+                                      value={val}
+                                      placeholder={field.placeholder}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => handleMetadataValueChange(row.rowKey, field.key, e.target.value)}
+                                      className="h-7 rounded border border-[#e2e8f0] bg-card px-1.5 text-xs text-[#334155] placeholder:text-[#94a3b8] focus:border-[#111827] focus:outline-none"
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {isActive && (
+                          <div className="mt-3 pt-3 border-t border-[#e2e8f0] space-y-3">
+                            <div className={`rounded-lg p-3 text-xs leading-relaxed border ${isPassed ? 'bg-[#eefaf2] border-[#cdeed8] text-[#14532d]' : isFailed ? 'bg-[#ffeceb] border-[#ffc9c6] text-[#7f1d1d]' : 'bg-[#f8fafc] border-[#e2e8f0] text-[#334155]'}`}>
+                              {row.aiFeedback || 'No AI narrative available.'}
+                            </div>
+
+                            {isFailed && row.aiIssues.length > 0 && (
+                              <div className="rounded-lg p-3 text-xs leading-relaxed border bg-[#ffeceb] border-[#ffc9c6] text-[#7f1d1d] space-y-2">
+                                <p className="font-semibold uppercase tracking-wide text-xs">Detailed AI findings</p>
+                                {row.aiIssues.map((issue, idx) => (
+                                  <div key={`${row.rowKey}-issue-${idx}`} className="rounded-md border border-[#ffc9c6] bg-card px-2 py-1.5">
+                                    <p className="font-semibold text-xs uppercase tracking-wide text-[#ba1a1a]">{issue.issue_type}</p>
+                                    <p>{issue.description}</p>
+                                    <p className="mt-1 text-[#ba1a1a]"><span className="font-semibold">Suggestion:</span> {issue.suggestion}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {isFailed && row.aiSuggestedFix && (
+                              <div className="rounded-lg p-3 text-xs leading-relaxed border bg-[#fff7ed] border-[#fed7aa] text-[#9a3412]">
+                                <p className="font-semibold uppercase tracking-wide text-xs mb-1">Suggested fix</p>
+                                {row.aiSuggestedFix}
+                              </div>
+                            )}
+
+                            {isFailed && isEditing && (
+                              <div className="rounded-lg p-3 border border-[#cbd5e1] bg-[#f8fafc] space-y-2 text-xs">
+                                <p className="font-semibold uppercase tracking-wide text-xs text-[#111827]">Inline edit</p>
+                                <div>
+                                  <label className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">Question</label>
+                                  <textarea
+                                    value={String(draftRow?.[questionColKey] ?? '')}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => handleInlineAuditFieldChange(row.rowKey, questionColKey, e.target.value)}
+                                    rows={2}
+                                    className="mt-1 w-full rounded-md border border-[#cbd5e1] bg-card px-2 py-1.5 text-xs text-[#0f172a]"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">Answer</label>
+                                    <input
+                                      value={String(draftRow?.[answerColKey] ?? '')}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => handleInlineAuditFieldChange(row.rowKey, answerColKey, e.target.value)}
+                                      className="mt-1 w-full h-8 rounded-md border border-[#cbd5e1] bg-card px-2 text-xs text-[#0f172a]"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">Type</label>
+                                    <input
+                                      value={String(draftRow?.[questionTypeColKey] ?? '')}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => handleInlineAuditFieldChange(row.rowKey, questionTypeColKey, e.target.value)}
+                                      className="mt-1 w-full h-8 rounded-md border border-[#cbd5e1] bg-card px-2 text-xs text-[#0f172a]"
+                                    />
+                                  </div>
+                                </div>
+                                {optionColKeys.length > 0 && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {optionColKeys.map((col, idx) => (
+                                      <div key={`${row.rowKey}-edit-${col}`}>
+                                        <label className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">Option {String.fromCharCode(65 + idx)}</label>
+                                        <input
+                                          value={String(draftRow?.[col] ?? '')}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={(e) => handleInlineAuditFieldChange(row.rowKey, col, e.target.value)}
+                                          className="mt-1 w-full h-8 rounded-md border border-[#cbd5e1] bg-card px-2 text-xs text-[#0f172a]"
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAuditSingleQuestion(row.rowData, row.rowKey);
+                                }}
+                                disabled={isAuditing || isPassed}
+                                className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground"
+                              >
+                                {isAuditing ? 'Auditing...' : 'AI audit this question'}
+                              </Button>
+
+                              {isFailed && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isEditing) {
+                                      handleSaveInlineAuditEdit(row.rowKey);
+                                    } else {
+                                      handleStartInlineAuditEdit(row.rowKey, row.rowData);
+                                    }
+                                  }}
+                                >
+                                  {isEditing ? 'Save inline fix' : 'Edit in this card'}
+                                </Button>
+                              )}
+
+                              {isFailed && isEditing && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAiAuditEditingRowKey(null);
+                                  }}
+                                >
+                                  Cancel edit
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {visibleAiAuditQueueRows.length === 0 && (
+                    <div className="bg-card p-4 rounded-xl border border-[#e2e8f0] text-sm text-[#64748b]">
+                      No rows available on this page.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <footer className="h-14 px-5 border-t border-[#e2e8f0] bg-card flex items-center justify-between">
+            <Button variant="outline" onClick={() => setCurrentStep('clean-fix')} className="text-xs">Back</Button>
+            <div className="text-xs text-[#64748b]">{reviewedCount} of {aiAuditQueueRows.length} reviewed</div>
+            <Button onClick={() => handleStepperJump('configure')} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold">Continue to preview</Button>
+          </footer>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentStep === 'configure') {
+    const configChecklist = [
+      { label: 'QTI version', done: !!outputFormat },
+      { label: 'Package type', done: !!exportMode },
+      { label: 'Images setting', done: !!containsImages },
+      { label: 'Math setting', done: !!containsMath && (containsMath !== 'yes' || !!mathFormat) },
+      { label: 'Template XML', done: !!hasTemplateXml && (hasTemplateXml !== 'yes' || !!templateXmlFile) },
+    ];
+    const completedConfigCount = configChecklist.filter((item) => item.done).length;
+    const configProgress = Math.round((completedConfigCount / configChecklist.length) * 100);
+    const exportableCount = stats.valid + stats.caution;
+    const formatOptions = [
+      { value: 'qti-1.2', label: 'QTI 1.2', desc: 'Legacy LMS compatibility' },
+      { value: 'qti-2.1', label: 'QTI 2.1', desc: 'Broad LMS interoperability' },
+      { value: 'qti-3.0', label: 'QTI 3.0', desc: 'Modern QTI package format' },
+      { value: 'json', label: 'JSON', desc: 'Structured API format' },
+    ];
+
+    return (
+      <div className="h-screen overflow-hidden grid bg-[#f8fafc] text-[#0f172a]" style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}>
+        <aside
+          className="border-r border-[#e2e8f0] bg-card flex flex-col sticky top-0 h-screen transition-[width] duration-300 overflow-hidden"
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+          style={{ width: sidebarWidth }}
+        >
+          <div className={`h-14 px-3 border-b border-[#e2e8f0] flex items-center gap-2 ${!isSidebarHovered ? 'justify-center' : ''}`}>
+            {isSidebarHovered && (
+              <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 text-[#0f172a] hover:text-[#334155]">
+                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+                <span className="text-sm font-semibold">AssessmentCore</span>
+              </button>
+            )}
+            {!isSidebarHovered && <button type="button" onClick={() => navigate('/workspace/dashboard')} className="flex items-center justify-center text-[#475569] hover:text-[#111827]"><Home className="w-4 h-4" /></button>}
+          </div>
+          {isSidebarHovered && (
+            <div className="px-4 py-3 border-b border-[#e2e8f0]">
+              <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] mb-2">Current batch</p>
+              {fileData ? (
+                <>
+                  <p className="text-xs font-medium truncate">{fileData.fileName}</p>
+                  <p className="text-xs text-[#64748b] mt-1">{fileData.rows.length} rows · {fileData.columns.length} cols</p>
+                </>
+              ) : (
+                <p className="text-xs text-[#64748b]">No file loaded</p>
+              )}
+            </div>
+          )}
+          <nav className="flex-1 px-2 py-3 overflow-auto">
+            {isSidebarHovered && <p className="text-xs uppercase tracking-[0.12em] font-semibold text-[#64748b] px-2 mb-2">Batch creator</p>}
+            {stepOrder.map((step, idx) => {
+              const isActive = idx === currentStepIndex;
+              const isDone = idx < currentStepIndex;
+              const enabled = canNavigateToStep(step);
+              return (
+                <button
+                  key={`cfg-shell-step-${step}`}
+                  type="button"
+                  onClick={() => enabled && handleStepperJump(step)}
+                  disabled={!enabled}
+                  className={`w-full flex items-center rounded-md py-2 mb-1 text-xs text-left transition-colors ${!isSidebarHovered ? 'gap-0 px-0 justify-center' : 'gap-2 px-2'} ${isActive ? 'bg-[#e2e8f0] text-[#111827] font-semibold' : 'text-[#475569] hover:bg-[#f1f5f9]'} ${!enabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span className={`h-5 w-5 rounded flex items-center justify-center text-xs border ${isActive ? 'bg-[#111827] text-primary-foreground border-[#111827]' : isDone ? 'bg-[#f1f5f9] text-[#1f2937] border-[#cbd5e1]' : 'bg-card text-[#64748b] border-[#dbe1e8]'}`}>
+                    {isDone ? <Check className="w-3 h-3" /> : (
+                      (!isPremium && ['ai-audit', 'configure', 'transform'].includes(step))
+                        ? <Lock className="w-3 h-3 text-warning" />
+                        : (isSidebarHovered ? idx + 1 : getSidebarStepIcon(step))
+                    )}
+                  </span>
+                  {isSidebarHovered && <span>{stepLabels[step]}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="h-14 px-3 border-t border-[#e2e8f0] flex items-center">
+            <button type="button" className={`w-full flex items-center rounded-md py-2 text-xs text-[#475569] hover:bg-[#f1f5f9] ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'}`}>
+              <Settings className="w-4 h-4" /> {isSidebarHovered && 'Settings'}
+            </button>
+          </div>
+        </aside>
+
+        <main className="min-w-0 min-h-0 flex flex-col">
+          <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Configure export</h2>
+            </div>
+            <div className="text-xs text-[#475569]">{completedConfigCount}/{configChecklist.length} complete</div>
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-auto px-4 py-5 bg-[#f8fafc]">
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
+              <div className="space-y-5">
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2"><Settings className="w-4 h-4" />Format</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-2">
+                    {formatOptions.map((option) => (
+                      <button
+                        key={`format-${option.value}`}
+                        type="button"
+                        onClick={() => {
+                          setOutputFormat(option.value);
+                          setExportValidationError('');
+                          setConfigurationValidationError('');
+                        }}
+                        className={`rounded-lg border p-3 text-left transition-colors ${outputFormat === option.value ? 'border-[#111827] bg-[#f8fafc]' : 'border-[#e2e8f0] bg-card hover:bg-[#f8fafc]'}`}
+                      >
+                        <p className="text-sm font-semibold text-[#0f172a]">{option.label}</p>
+                        <p className="text-xs text-[#64748b] mt-1">{option.desc}</p>
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2"><Download className="w-4 h-4" />Package Type</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-2">
+                    {[
+                      { value: 'qti-package', title: 'QTI Package', desc: 'ZIP with manifest' },
+                      { value: 'xml-media-folder', title: 'XML + Media', desc: 'Separate xml and media folders' },
+                    ].map((pkg) => (
+                      <button
+                        key={`pkg-${pkg.value}`}
+                        type="button"
+                        onClick={() => {
+                          setExportMode(pkg.value as 'qti-package' | 'xml-media-folder');
+                          setExportValidationError('');
+                          setConfigurationValidationError('');
+                        }}
+                        className={`rounded-lg border p-3 text-left transition-colors ${exportMode === pkg.value ? 'border-[#111827] bg-[#f8fafc]' : 'border-[#e2e8f0] bg-card hover:bg-[#f8fafc]'}`}
+                      >
+                        <p className="text-sm font-semibold text-[#0f172a]">{pkg.title}</p>
+                        <p className="text-xs text-[#64748b] mt-1">{pkg.desc}</p>
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader className="pb-3"><CardTitle className="text-sm">Data Features</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-[#e2e8f0] p-3">
+                        <p className="text-xs font-semibold text-[#334155] mb-2">Contains Images?</p>
+                        <div className="flex gap-2">
+                          {(['yes', 'no'] as const).map((v) => (
+                            <button
+                              key={`img-${v}`}
+                              type="button"
+                              onClick={() => {
+                                setContainsImages(v);
+                                setConfigurationValidationError('');
+                                if (v === 'no') {
+                                  setMediaZipFile(null);
+                                  setMediaFiles(new Map());
+                                  setMediaValidationErrors([]);
+                                }
+                              }}
+                              className={`flex-1 rounded border px-3 py-1.5 text-xs font-semibold ${containsImages === v ? 'bg-[#111827] text-primary-foreground border-[#111827]' : 'bg-card text-[#475569] border-[#e2e8f0]'}`}
+                            >
+                              {v.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-[#e2e8f0] p-3">
+                        <p className="text-xs font-semibold text-[#334155] mb-2">Contains Math?</p>
+                        <div className="flex gap-2 mb-2">
+                          {(['yes', 'no'] as const).map((v) => (
+                            <button
+                              key={`math-${v}`}
+                              type="button"
+                              onClick={() => {
+                                setContainsMath(v);
+                                setConfigurationValidationError('');
+                                if (v === 'no') setMathFormat('');
+                              }}
+                              className={`flex-1 rounded border px-3 py-1.5 text-xs font-semibold ${containsMath === v ? 'bg-[#111827] text-primary-foreground border-[#111827]' : 'bg-card text-[#475569] border-[#e2e8f0]'}`}
+                            >
+                              {v.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                        {containsMath === 'yes' && (
+                          <div className="flex gap-2">
+                            {(['mathjax', 'mathml'] as const).map((fmt) => (
+                              <button
+                                key={`mathfmt-${fmt}`}
+                                type="button"
+                                onClick={() => { setMathFormat(fmt); setConfigurationValidationError(''); }}
+                                className={`flex-1 rounded border px-3 py-1.5 text-xs font-semibold ${mathFormat === fmt ? 'bg-[#f1f5f9] text-[#111827] border-[#111827]' : 'bg-card text-[#475569] border-[#e2e8f0]'}`}
+                              >
+                                {fmt.toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-[#e2e8f0] p-3">
+                      <p className="text-xs font-semibold text-[#334155] mb-2">Use template XML?</p>
+                      <div className="flex gap-2">
+                        {(['yes', 'no'] as const).map((v) => (
+                          <button
+                            key={`tpl-${v}`}
+                            type="button"
+                            onClick={() => {
+                              setHasTemplateXml(v);
+                              setConfigurationValidationError('');
+                              if (v === 'no') setTemplateXmlFile(null);
+                            }}
+                            className={`flex-1 rounded border px-3 py-1.5 text-xs font-semibold ${hasTemplateXml === v ? 'bg-[#111827] text-primary-foreground border-[#111827]' : 'bg-card text-[#475569] border-[#e2e8f0]'}`}
+                          >
+                            {v.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {hasTemplateXml === 'yes' && (
+                      <div className="rounded-lg border border-dashed border-[#cbd5e1] p-3">
+                        <label htmlFor="template-xml-upload-dedicated" className="text-xs font-semibold text-[#334155] cursor-pointer">
+                          {templateXmlFile ? `Template: ${templateXmlFile.name}` : 'Upload template XML'}
+                        </label>
+                        <input id="template-xml-upload-dedicated" type="file" className="hidden" onChange={handleTemplateUpload} accept=".xml" />
+                      </div>
+                    )}
+
+                    {containsImages === 'yes' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <label htmlFor="media-upload-dedicated" className="rounded-lg border border-dashed border-[#cbd5e1] p-3 text-center text-xs font-semibold text-[#334155] cursor-pointer">Upload ZIP<input id="media-upload-dedicated" type="file" className="hidden" onChange={handleMediaUpload} accept=".zip" /></label>
+                        <label htmlFor="media-folder-upload-dedicated" className="rounded-lg border border-dashed border-[#cbd5e1] p-3 text-center text-xs font-semibold text-[#334155] cursor-pointer">Upload Folder<input id="media-folder-upload-dedicated" type="file" className="hidden" multiple onChange={handleMediaFolderUpload} accept=".png,.jpg,.jpeg,.gif,.svg,.webp,.bmp" {...({ webkitdirectory: 'true', directory: 'true' } as any)} /></label>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {configurationValidationError && (
+                  <Alert className="bg-[#ffeceb] border-[#ffc9c6]">
+                    <AlertCircle className="h-4 w-4 text-[#ba1a1a]" />
+                    <AlertDescription className="text-[#ba1a1a] text-sm">{configurationValidationError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Configuration Progress</CardTitle>
+                    <CardDescription className="text-xs">{configProgress}% complete</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {configChecklist.map((item) => (
+                      <div key={`cfg-check-${item.label}`} className="flex items-center gap-2 text-xs">
+                        <span className={`h-4 w-4 rounded-full flex items-center justify-center ${item.done ? 'bg-[#111827] text-primary-foreground' : 'bg-[#e2e8f0] text-[#64748b]'}`}>{item.done ? <Check className="w-2.5 h-2.5" /> : ''}</span>
+                        <span className={item.done ? 'text-[#0f172a] font-medium' : 'text-[#64748b]'}>{item.label}</span>
+                      </div>
+                    ))}
+                    <div className="h-1.5 rounded bg-[#e2e8f0] overflow-hidden mt-3">
+                      <div className="h-full bg-[#111827]" style={{ width: `${configProgress}%` }} />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader className="pb-3"><CardTitle className="text-sm">Export Summary</CardTitle></CardHeader>
+                  <CardContent className="space-y-2 text-xs text-[#475569]">
+                    <div className="flex justify-between"><span>Format</span><span className="font-medium text-[#0f172a]">{outputFormat || '—'}</span></div>
+                    <div className="flex justify-between"><span>Package</span><span className="font-medium text-[#0f172a]">{exportMode || '—'}</span></div>
+                    <div className="flex justify-between"><span>Exportable</span><span className="font-semibold text-[#0f172a]">{exportableCount}</span></div>
+                    <div className="flex justify-between"><span>Rejected</span><span className="font-medium text-[#ba1a1a]">{stats.rejected}</span></div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+
+          <footer className="h-14 px-5 border-t border-[#e2e8f0] bg-card flex items-center justify-between">
+            <Button variant="outline" onClick={() => setCurrentStep(previousStepBeforeConfigure)} className="text-xs">Back</Button>
+            <Button onClick={handleTransformClick} disabled={isExporting || !isExportConfigComplete()} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold disabled:bg-[#94a3b8]">
+              {isExporting ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Exporting...</> : <>Proceed to Transform</>}
+            </Button>
+          </footer>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentStep === 'transform') {
+    const exportedCount = stats.valid + stats.caution;
+    const isDone = transformDone && !isExporting;
+
+    return (
+      <div className="h-screen overflow-hidden grid bg-[#f8fafc] text-[#0f172a]" style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}>
+        <aside
+          className="border-r border-[#e2e8f0] bg-card flex flex-col sticky top-0 h-screen transition-[width] duration-300 overflow-hidden"
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+          style={{ width: sidebarWidth }}
+        >
+          <div className={`h-14 px-3 border-b border-[#e2e8f0] flex items-center gap-2 ${!isSidebarHovered ? 'justify-center' : ''}`}>
+            {isSidebarHovered && (
+              <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 text-[#0f172a] hover:text-[#334155]">
+                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+                <span className="text-sm font-semibold">AssessmentCore</span>
+              </button>
+            )}
+            {!isSidebarHovered && <button type="button" onClick={() => navigate('/workspace/dashboard')} className="flex items-center justify-center text-[#475569] hover:text-[#111827]"><Home className="w-4 h-4" /></button>}
+          </div>
+          <nav className="flex-1 px-2 py-3 overflow-auto">
+            {stepOrder.map((step, idx) => {
+              const isActive = idx === currentStepIndex;
+              const isDoneStep = idx < currentStepIndex;
+              const enabled = canNavigateToStep(step);
+              return (
+                <button
+                  key={`transform-shell-step-${step}`}
+                  type="button"
+                  onClick={() => enabled && handleStepperJump(step)}
+                  disabled={!enabled}
+                  className={`w-full flex items-center rounded-md py-2 mb-1 text-xs text-left transition-colors ${!isSidebarHovered ? 'gap-0 px-0 justify-center' : 'gap-2 px-2'} ${isActive ? 'bg-[#e2e8f0] text-[#111827] font-semibold' : 'text-[#475569] hover:bg-[#f1f5f9]'} ${!enabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span className={`h-5 w-5 rounded flex items-center justify-center text-xs border ${isActive ? 'bg-[#111827] text-primary-foreground border-[#111827]' : isDoneStep ? 'bg-[#f1f5f9] text-[#1f2937] border-[#cbd5e1]' : 'bg-card text-[#64748b] border-[#dbe1e8]'}`}>
+                    {isDoneStep ? <Check className="w-3 h-3" /> : (isSidebarHovered ? idx + 1 : getSidebarStepIcon(step))}
+                  </span>
+                  {isSidebarHovered && <span>{stepLabels[step]}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="h-14 px-3 border-t border-[#e2e8f0] flex items-center">
+            <button type="button" className={`w-full flex items-center rounded-md py-2 text-xs text-[#475569] hover:bg-[#f1f5f9] ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'}`}>
+              <Settings className="w-4 h-4" /> {isSidebarHovered && 'Settings'}
+            </button>
+          </div>
+        </aside>
+
+        <main className="min-w-0 min-h-0 flex flex-col">
+          <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center">
+            <h2 className="text-lg font-semibold tracking-tight">Export build</h2>
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            {!isDone && !isExporting && (
+              <div className="max-w-3xl mx-auto">
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader>
+                    <CardTitle className="text-base">Ready to transform</CardTitle>
+                    <CardDescription>{exportedCount} questions will be built in {outputFormat || 'selected'} format.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-center">
+                    <Button onClick={handleTransformClick} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground">Start Build</Button>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {isExporting && (
+              <div className="max-w-xl mx-auto">
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base"><Loader2 className="w-5 h-5 animate-spin" />Building export...</CardTitle>
+                    <CardDescription>Encoding questions and packaging assets.</CardDescription>
+                  </CardHeader>
+                  <CardContent><Progress value={70} /></CardContent>
+                </Card>
+              </div>
+            )}
+
+            {isDone && (
+              <div className="max-w-3xl mx-auto">
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base"><CheckCircle2 className="w-5 h-5 text-[#1f2937]" />Export complete</CardTitle>
+                    <CardDescription>{exportedCount} questions prepared and downloaded.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-3 text-xs text-[#475569] space-y-1">
+                      <p><span className="font-semibold text-[#0f172a]">Format:</span> {outputFormat}</p>
+                      <p><span className="font-semibold text-[#0f172a]">Package:</span> {exportMode}</p>
+                      <p><span className="font-semibold text-[#0f172a]">Exported:</span> {exportedCount} (valid + caution)</p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button variant="outline" onClick={handleDownloadValidationReport}><FileText className="w-4 h-4 mr-1" />Validation PDF</Button>
+                      <Button variant="outline" onClick={handleDownloadRowLevelReport}><FileText className="w-4 h-4 mr-1" />Row Analysis</Button>
+                      <Button variant="outline" onClick={handleDownloadAnnotatedSheet}><Download className="w-4 h-4 mr-1" />Annotated Sheet</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          <footer className="h-14 px-5 border-t border-[#e2e8f0] bg-card flex items-center justify-between">
+            <Button variant="outline" onClick={() => setCurrentStep('configure')} className="text-xs">Back</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/workspace/dashboard')} className="text-xs">Back to dashboard</Button>
+              <Button onClick={resetBatchWorkflow} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold">New batch</Button>
+            </div>
+          </footer>
+        </main>
+      </div>
+    );
+  }
+
+  const useLegacyStageScreens = false;
+
+  if (useLegacyStageScreens && currentStep === 'upload') {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#F9FAFB] text-foreground antialiased flex">
         {/* Sidebar */}
         <aside
-          className="h-screen flex-shrink-0 bg-white flex flex-col border-r border-slate-200 transition-[width] duration-300"
+          className="h-screen flex-shrink-0 bg-card flex flex-col border-r border-border transition-[width] duration-300"
           style={{ width: sidebarWidth }}
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
@@ -5155,8 +8087,8 @@ Thank you.`;
           <div className={`mb-4 ${isSidebarHovered ? 'p-8' : 'p-4 flex justify-center'}`}>
             {isSidebarHovered ? (
               <>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">AssessmentCore</h1>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Workflow Wizard</p>
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground leading-none">AssessmentCore</h1>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50 mt-1">Workflow Wizard</p>
               </>
             ) : (
               <div className="w-9 h-9 rounded-lg bg-[#0052CC]/10 text-[#0052CC] font-black flex items-center justify-center">A</div>
@@ -5167,7 +8099,7 @@ Thank you.`;
             <button
               type="button"
               onClick={() => navigate('/')}
-              className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
               title="Home"
             >
               <Home className="w-5 h-5" />
@@ -5177,7 +8109,7 @@ Thank you.`;
             <button
               type="button"
               onClick={() => toast.info('XML Previewer will be available soon')}
-              className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
             >
               <Code className="w-5 h-5" />
               {isSidebarHovered && <span>XML Previewer</span>}
@@ -5194,7 +8126,7 @@ Thank you.`;
             <button
               type="button"
               onClick={() => toast.info('LMS Export will be available soon')}
-              className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}
             >
               <Download className="w-5 h-5" />
               {isSidebarHovered && <span>LMS Export</span>}
@@ -5205,7 +8137,7 @@ Thank you.`;
             <button
               type="button"
               onClick={() => toast.info('Draft saved locally')}
-              className={`w-full py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}
+              className={`w-full py-2.5 bg-card border border-border text-foreground rounded-lg text-sm font-semibold hover:bg-muted/50 transition-colors hover:border-border transition-colors transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}
             >
               <FileText className="w-4 h-4" />
               {isSidebarHovered && <span>Save Draft</span>}
@@ -5215,19 +8147,19 @@ Thank you.`;
 
         {/* Main Content */}
         <div className="flex-1 min-h-screen flex flex-col overflow-auto">
-          <header className="w-full bg-white border-b border-slate-200 pt-4 pb-5 px-12 flex flex-col">
+          <header className="w-full bg-card border-b border-border pt-4 pb-5 px-12 flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <nav className="flex items-center gap-2 text-xs font-medium">
-                <span className="text-slate-400">Batches</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className="text-muted-foreground/50">Batches</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
                 <span className="text-[#0052CC] font-semibold">New Assessment Batch</span>
               </nav>
 
               <div className="flex items-center gap-6" ref={profileMenuRef}>
-                <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
+                <div className="flex items-center gap-4 border-r border-border pr-6">
                   <button
                     type="button"
-                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                    className="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                     title="Help"
                     aria-label="Help"
                   >
@@ -5236,13 +8168,13 @@ Thank you.`;
 
                   <button
                     type="button"
-                    className="text-slate-400 hover:text-slate-600 transition-colors relative"
+                    className="text-muted-foreground/50 hover:text-muted-foreground transition-colors relative"
                     title="Notifications"
                     aria-label="Notifications"
                     onClick={() => toast.info('No new notifications')}
                   >
                     <Bell className="w-5 h-5" />
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full border-2 border-white" />
                   </button>
                 </div>
 
@@ -5254,22 +8186,22 @@ Thank you.`;
                     aria-expanded={isProfileMenuOpen}
                   >
                     <div className="text-right">
-                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'Alex Rivera'}</p>
-                      <p className="text-[10px] text-slate-500">Administrator</p>
+                      <p className="text-xs font-bold text-foreground leading-none">{user?.email?.split('@')[0] || 'Alex Rivera'}</p>
+                      <p className="text-xs text-muted-foreground">Administrator</p>
                     </div>
-                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#f1f5f9] text-[#0052CC] flex items-center justify-center">
                       <UserRound className="w-4 h-4" />
                     </div>
                   </button>
 
-                  <div className={`absolute right-0 mt-2 w-72 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-3 origin-top-right transition-all duration-200 ${
+                  <div className={`absolute right-0 mt-2 w-72 rounded-xl border border-[#e2e8f0] bg-card shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-3 origin-top-right transition-all duration-200 ${
                     isProfileMenuOpen
                       ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                       : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
                   }`}>
                     <div className="px-2 pb-2 border-b border-[#f0f3ff] mb-2">
-                      <p className="text-sm font-semibold text-[#111c2d] truncate">{user?.email || 'User'}</p>
-                      <p className="text-xs text-[#454652]">Account menu</p>
+                      <p className="text-sm font-semibold text-[#0f172a] truncate">{user?.email || 'User'}</p>
+                      <p className="text-xs text-[#475569]">Account menu</p>
                     </div>
 
                     <button
@@ -5278,7 +8210,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         toast.info('Profile page will be available soon');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Profile
                     </button>
@@ -5289,20 +8221,20 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         navigate('/workspace');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Dashboard
                     </button>
 
-                    <div className="mt-2 rounded-lg bg-[#f9f9ff] border border-[#c5c5d4] p-2.5">
+                    <div className="mt-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] p-2.5">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-[#111c2d]">Usage</span>
-                        <span className="text-xs font-semibold text-[#003a9f]">{Math.round(quotaUsedPercent)}%</span>
+                        <span className="text-xs font-semibold text-[#0f172a]">Usage</span>
+                        <span className="text-xs font-semibold text-[#111827]">{Math.round(quotaUsedPercent)}%</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-[#c5c5d4] overflow-hidden">
-                        <div className="h-full bg-[#003a9f] transition-all duration-300" style={{ width: `${quotaUsedPercent}%` }} />
+                      <div className="h-1.5 rounded-full bg-[#e2e8f0] overflow-hidden">
+                        <div className="h-full bg-[#111827] transition-all duration-300" style={{ width: `${quotaUsedPercent}%` }} />
                       </div>
-                      <p className="text-[11px] text-[#454652] mt-1">{quotaSummary}</p>
+                      <p className="text-xs text-[#475569] mt-1">{quotaSummary}</p>
                     </div>
                   </div>
                 </div>
@@ -5310,7 +8242,7 @@ Thank you.`;
             </div>
 
             <div className="max-w-5xl mx-auto w-full relative px-8">
-              <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-200" />
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-muted" />
               <div className="flex items-center justify-between relative z-10">
                 {stepOrder.map((step, idx) => {
                   const isCurrent = idx === currentStepIndex;
@@ -5326,10 +8258,10 @@ Thank you.`;
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all ${
                           isCurrent
-                            ? 'bg-[#0052CC] text-white border-[#0052CC] ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
+                            ? 'bg-[#0052CC] text-primary-foreground border-[#0052CC] ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
                             : isDone
-                            ? 'bg-[#e7eeff] text-[#0052CC] border-[#b4c5ff]'
-                            : 'bg-white text-slate-400 border-slate-200'
+                            ? 'bg-[#f1f5f9] text-[#0052CC] border-[#b4c5ff]'
+                            : 'bg-card text-muted-foreground/50 border-border'
                         }`}
                       >
                         {getStepperIcon(step)}
@@ -5341,18 +8273,18 @@ Thank you.`;
             </div>
           </header>
 
-          <div className="flex-1 px-12 py-10 bg-slate-50/50">
+          <div className="flex-1 px-12 py-10 bg-muted/50">
             <div className="max-w-7xl mx-auto grid grid-cols-12 gap-10">
               <div className="col-span-12 space-y-6">
 
                 <label htmlFor="file-upload" className="block cursor-pointer">
-                  <div className="border-2 border-dashed border-[#0052CC]/20 bg-white hover:border-[#0052CC]/40 hover:bg-blue-50/30 transition-all rounded-xl p-16 flex flex-col items-center justify-center text-center group shadow-sm">
+                  <div className="border-2 border-dashed border-[#0052CC]/20 bg-card hover:border-[#0052CC]/40 hover:bg-muted transition-colors transition-all rounded-xl p-16 flex flex-col items-center justify-center text-center group shadow-sm">
                     <div className="w-16 h-16 bg-[#0052CC]/5 text-[#0052CC] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                       <Upload className="w-9 h-9" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Drag &amp; Drop Assessment File</h3>
-                    <p className="text-sm text-slate-400 mb-8">Support for Excel (.xlsx, .xls), JSON and CSV files up to 50MB</p>
-                    <span className="px-8 py-3 bg-[#0052CC] text-white rounded-lg font-bold hover:bg-[#0047B3] transition-all shadow-lg shadow-[#0052CC]/20">
+                    <h3 className="text-xl font-bold text-foreground mb-2">Drag &amp; Drop Assessment File</h3>
+                    <p className="text-sm text-muted-foreground/50 mb-8">Support for Excel (.xlsx, .xls), JSON and CSV files up to 50MB</p>
+                    <span className="px-8 py-3 bg-[#0052CC] text-primary-foreground rounded-lg font-bold hover:bg-[#0047B3] transition-all shadow-lg shadow-[#0052CC]/20">
                       Browse Local Files
                     </span>
                   </div>
@@ -5366,39 +8298,39 @@ Thank you.`;
                 </label>
 
                 {uploadedFiles.length > 0 && (
-                  <div className="bg-[#e7eeff] border border-[#b4c5ff] rounded-xl p-4">
-                    <div className="flex items-center gap-2 text-[#003a9f] font-semibold text-sm mb-1">
+                  <div className="bg-[#f1f5f9] border border-[#b4c5ff] rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-[#111827] font-semibold text-sm mb-1">
                       <CheckCircle2 className="w-4 h-4" /> File Ready
                     </div>
                     {uploadedFiles.map((file, idx) => (
-                      <div key={idx} className="text-sm text-[#111c2d]">
+                      <div key={idx} className="text-sm text-[#0f172a]">
                         <p className="font-semibold">{file.name}</p>
-                        <p className="text-xs text-[#454652]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p className="text-xs text-[#475569]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                  <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-                    <div className="flex items-center gap-2.5 font-bold text-slate-800">
+                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+                  <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card">
+                    <div className="flex items-center gap-2.5 font-bold text-foreground">
                       <FileText className="w-5 h-5 text-[#0052CC]" />
                       Raw Data Preview
                     </div>
                     <div className="flex items-center gap-2">
                       {uploadedFiles[0] && (
                         <>
-                          <span className="text-[11px] font-mono font-medium bg-slate-100 px-3 py-1.5 rounded-full text-slate-600 border border-slate-200">
+                          <span className="text-xs font-mono font-medium bg-muted px-3 py-1.5 rounded-full text-muted-foreground border border-border">
                             {uploadedFiles[0].name}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-medium">{(uploadedFiles[0].size / 1024 / 1024).toFixed(2)}MB</span>
+                          <span className="text-xs text-muted-foreground/50 font-medium">{(uploadedFiles[0].size / 1024 / 1024).toFixed(2)}MB</span>
                         </>
                       )}
                     </div>
                   </div>
 
                   {isParsingUploadPreview && (
-                    <div className="px-6 py-4 text-sm text-[#454652] flex items-center gap-2">
+                    <div className="px-6 py-4 text-sm text-[#475569] flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" /> Loading preview...
                     </div>
                   )}
@@ -5406,22 +8338,22 @@ Thank you.`;
                   {!isParsingUploadPreview && (
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[760px] text-left text-sm">
-                        <thead className="bg-slate-50/80">
-                          <tr className="text-slate-500 border-b border-slate-100">
+                        <thead className="bg-muted/80">
+                          <tr className="text-muted-foreground border-b border-border">
                             {previewTableColumns.map((col) => (
-                              <th key={`preview-head-${col}`} className="px-6 py-4 font-semibold text-[11px] uppercase tracking-wider">
+                              <th key={`preview-head-${col}`} className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">
                                 {col}
                               </th>
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="text-slate-600 divide-y divide-slate-50">
+                        <tbody className="text-muted-foreground divide-y divide-slate-50">
                           {(previewTableRows.length > 0 ? previewTableRows : [
                             { ID: '101', 'Question Content': 'What is the capital of Renaissance Italy?', Ans_A: 'Rome', Ans_B: 'Florence', Correct: 'B' },
                             { ID: '102', 'Question Content': 'Determine the derivative of f(x) = sin(x).', Ans_A: 'cos(x)', Ans_B: '-cos(x)', Correct: 'A' },
                             { ID: '103', 'Question Content': 'Which molecule is used as biological energy?', Ans_A: 'DNA', Ans_B: 'ATP', Correct: 'B' },
                           ]).map((row, rowIndex) => (
-                            <tr key={`preview-row-${rowIndex}`} className="hover:bg-slate-50/50 transition-colors">
+                            <tr key={`preview-row-${rowIndex}`} className="hover:bg-muted/50 transition-colors/50 transition-colors">
                               {previewTableColumns.map((col, colIndex) => {
                                 const value = String(row[col] ?? '');
                                 const isQuestionCol = colIndex === 1;
@@ -5430,7 +8362,7 @@ Thank you.`;
                                 return (
                                   <td
                                     key={`preview-cell-${rowIndex}-${col}`}
-                                    className={`px-6 py-4 ${isFirstCol ? 'font-mono text-xs text-slate-400' : ''} ${isQuestionCol ? 'font-medium text-slate-800 max-w-[420px] truncate' : ''}`}
+                                    className={`px-6 py-4 ${isFirstCol ? 'font-mono text-xs text-muted-foreground/50' : ''} ${isQuestionCol ? 'font-medium text-foreground max-w-[420px] truncate' : ''}`}
                                     title={value}
                                   >
                                     {isCorrectCol && value.length <= 3 ? (
@@ -5453,7 +8385,7 @@ Thank you.`;
             </div>
           </div>
 
-          <footer className="sticky bottom-0 w-full bg-white/80 backdrop-blur-md border-t border-slate-200 py-3.5 px-10 flex justify-end items-center gap-6 z-40">
+          <footer className="sticky bottom-0 w-full bg-card/80 backdrop-blur-md border-t border-border py-3.5 px-10 flex justify-end items-center gap-6 z-40">
             <button
               type="button"
               onClick={() => {
@@ -5461,7 +8393,7 @@ Thank you.`;
                 setUploadPreviewColumns([]);
                 setUploadPreviewRows([]);
               }}
-              className="text-slate-500 text-sm font-bold hover:text-slate-900 transition-colors"
+              className="text-muted-foreground text-sm font-bold hover:text-foreground transition-colors transition-colors"
             >
               Cancel Import
             </button>
@@ -5469,7 +8401,7 @@ Thank you.`;
             <Button
               onClick={handleProceedToValidation}
               disabled={uploadedFiles.length === 0}
-              className="group px-8 py-2.5 bg-[#0052CC] text-white rounded-lg font-bold hover:bg-[#0047B3] hover:-translate-y-0.5 active:translate-y-0 disabled:bg-slate-300 disabled:text-white disabled:translate-y-0 shadow-lg shadow-[#0052CC]/25 transition-all flex items-center gap-2"
+              className="group px-8 py-2.5 bg-[#0052CC] text-primary-foreground rounded-lg font-bold hover:bg-[#0047B3] hover:-translate-y-0.5 active:translate-y-0 disabled:bg-muted disabled:text-primary-foreground disabled:translate-y-0 shadow-lg shadow-[#0052CC]/25 transition-all flex items-center gap-2"
             >
               Proceed to Validation
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -5480,12 +8412,12 @@ Thank you.`;
     );
   }
 
-  if (currentStep === 'validating') {
+  if (useLegacyStageScreens && currentStep === 'validating') {
     return (
-      <div className="fixed inset-0 z-50 bg-[#F9FAFB] text-slate-900 antialiased flex">
+      <div className="fixed inset-0 z-50 bg-[#F9FAFB] text-foreground antialiased flex">
         {/* Sidebar */}
         <aside
-          className="h-screen flex-shrink-0 bg-slate-50 border-r border-slate-200 flex flex-col transition-[width] duration-300"
+          className="h-screen flex-shrink-0 bg-muted border-r border-border flex flex-col transition-[width] duration-300"
           style={{ width: sidebarWidth }}
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
@@ -5493,18 +8425,18 @@ Thank you.`;
           <div className={`${isSidebarHovered ? 'p-6' : 'p-4 flex justify-center'}`}>
             {isSidebarHovered ? (
               <>
-                <h1 className="text-lg font-black tracking-tighter text-blue-700">AssessmentCore</h1>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Educator Portal</p>
+                <h1 className="text-lg font-black tracking-tighter text-foreground">AssessmentCore</h1>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Educator Portal</p>
               </>
             ) : (
-              <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 font-black flex items-center justify-center">A</div>
+              <div className="w-9 h-9 rounded-lg bg-muted text-foreground font-black flex items-center justify-center">A</div>
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
             <button
               type="button"
               onClick={() => navigate('/')}
-              className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-2 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
               title="Home"
             >
               <Home className="w-5 h-5" />
@@ -5514,14 +8446,14 @@ Thank you.`;
             <button
               type="button"
               onClick={() => toast.info('XML Previewer will be available soon')}
-              className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-2 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
             >
               <Eye className="w-5 h-5" />
               {isSidebarHovered && <span>XML Previewer</span>}
             </button>
             <button
               type="button"
-              className={`w-full flex items-center py-2 bg-slate-200 text-blue-700 font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-2 bg-muted text-foreground font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
             >
               <Layers className="w-5 h-5" />
               {isSidebarHovered && <span>Batch Creator</span>}
@@ -5529,7 +8461,7 @@ Thank you.`;
             <button
               type="button"
               onClick={() => toast.info('LMS Export will be available soon')}
-              className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-2 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
             >
               <Download className="w-5 h-5" />
               {isSidebarHovered && <span>LMS Export</span>}
@@ -5537,24 +8469,24 @@ Thank you.`;
             <button
               type="button"
               onClick={() => toast.info('Draft saved locally')}
-              className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-2 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
             >
               <FileText className="w-5 h-5" />
               {isSidebarHovered && <span>Save Draft</span>}
             </button>
           </nav>
-          <div className="p-4 border-t border-slate-200 space-y-1">
+          <div className="p-4 border-t border-border space-y-1">
             <button
               type="button"
-              className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              className={`w-full flex items-center py-2 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
             >
               <CircleHelp className="w-5 h-5" />
               {isSidebarHovered && <span>Support</span>}
             </button>
             <button
               type="button"
-              onClick={() => navigate('/')}
-              className={`w-full flex items-center py-2 text-slate-600 hover:bg-slate-200/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
+              onClick={handleLogout}
+              className={`w-full flex items-center py-2 text-muted-foreground hover:bg-muted/50 transition-all rounded-lg text-sm font-medium ${isSidebarHovered ? 'gap-3 px-3 justify-start' : 'px-0 justify-center'}`}
             >
               <LogIn className="w-5 h-5" />
               {isSidebarHovered && <span>Logout</span>}
@@ -5564,19 +8496,19 @@ Thank you.`;
 
         {/* Main Stage */}
         <div className="flex-1 min-h-screen flex flex-col overflow-auto">
-          <header className="w-full bg-white border-b border-slate-200 pt-4 pb-5 px-12 flex flex-col">
+          <header className="w-full bg-card border-b border-border pt-4 pb-5 px-12 flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <nav className="flex items-center gap-2 text-xs font-medium">
-                <span className="text-slate-400">Batches</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className="text-muted-foreground/50">Batches</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
                 <span className="text-[#0052CC] font-semibold">New Assessment Batch</span>
               </nav>
 
               <div className="flex items-center gap-6" ref={profileMenuRef}>
-                <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
+                <div className="flex items-center gap-4 border-r border-border pr-6">
                   <button
                     type="button"
-                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                    className="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                     title="Help"
                     aria-label="Help"
                   >
@@ -5585,13 +8517,13 @@ Thank you.`;
 
                   <button
                     type="button"
-                    className="text-slate-400 hover:text-slate-600 transition-colors relative"
+                    className="text-muted-foreground/50 hover:text-muted-foreground transition-colors relative"
                     title="Notifications"
                     aria-label="Notifications"
                     onClick={() => toast.info('No new notifications')}
                   >
                     <Bell className="w-5 h-5" />
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full border-2 border-white" />
                   </button>
                 </div>
 
@@ -5603,22 +8535,22 @@ Thank you.`;
                     aria-expanded={isProfileMenuOpen}
                   >
                     <div className="text-right">
-                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'Alex Rivera'}</p>
-                      <p className="text-[10px] text-slate-500">Administrator</p>
+                      <p className="text-xs font-bold text-foreground leading-none">{user?.email?.split('@')[0] || 'Alex Rivera'}</p>
+                      <p className="text-xs text-muted-foreground">Administrator</p>
                     </div>
-                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#f1f5f9] text-[#0052CC] flex items-center justify-center">
                       <UserRound className="w-4 h-4" />
                     </div>
                   </button>
 
-                  <div className={`absolute right-0 mt-2 w-72 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-3 origin-top-right transition-all duration-200 ${
+                  <div className={`absolute right-0 mt-2 w-72 rounded-xl border border-[#e2e8f0] bg-card shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-3 origin-top-right transition-all duration-200 ${
                     isProfileMenuOpen
                       ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                       : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
                   }`}>
                     <div className="px-2 pb-2 border-b border-[#f0f3ff] mb-2">
-                      <p className="text-sm font-semibold text-[#111c2d] truncate">{user?.email || 'User'}</p>
-                      <p className="text-xs text-[#454652]">Account menu</p>
+                      <p className="text-sm font-semibold text-[#0f172a] truncate">{user?.email || 'User'}</p>
+                      <p className="text-xs text-[#475569]">Account menu</p>
                     </div>
 
                     <button
@@ -5627,7 +8559,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         toast.info('Profile page will be available soon');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Profile
                     </button>
@@ -5638,20 +8570,20 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         navigate('/workspace/dashboard');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Dashboard
                     </button>
 
-                    <div className="mt-2 rounded-lg bg-[#f9f9ff] border border-[#c5c5d4] p-2.5">
+                    <div className="mt-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] p-2.5">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-[#111c2d]">Usage</span>
-                        <span className="text-xs font-semibold text-[#003a9f]">{Math.round(quotaUsedPercent)}%</span>
+                        <span className="text-xs font-semibold text-[#0f172a]">Usage</span>
+                        <span className="text-xs font-semibold text-[#111827]">{Math.round(quotaUsedPercent)}%</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-[#c5c5d4] overflow-hidden">
-                        <div className="h-full bg-[#003a9f] transition-all duration-300" style={{ width: `${quotaUsedPercent}%` }} />
+                      <div className="h-1.5 rounded-full bg-[#e2e8f0] overflow-hidden">
+                        <div className="h-full bg-[#111827] transition-all duration-300" style={{ width: `${quotaUsedPercent}%` }} />
                       </div>
-                      <p className="text-[11px] text-[#454652] mt-1">{quotaSummary}</p>
+                      <p className="text-xs text-[#475569] mt-1">{quotaSummary}</p>
                     </div>
                   </div>
                 </div>
@@ -5659,7 +8591,7 @@ Thank you.`;
             </div>
 
             <div className="max-w-5xl mx-auto w-full relative px-8">
-              <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-200" />
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-muted" />
               <div className="flex items-center justify-between relative z-10">
                 {stepOrder.map((step, idx) => {
                   const isCurrent = idx === currentStepIndex;
@@ -5675,10 +8607,10 @@ Thank you.`;
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all ${
                           isCurrent
-                            ? 'bg-[#0052CC] text-white border-[#0052CC] ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
+                            ? 'bg-[#0052CC] text-primary-foreground border-[#0052CC] ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
                             : isDone
-                            ? 'bg-[#e7eeff] text-[#0052CC] border-[#b4c5ff]'
-                            : 'bg-white text-slate-400 border-slate-200'
+                            ? 'bg-[#f1f5f9] text-[#0052CC] border-[#b4c5ff]'
+                            : 'bg-card text-muted-foreground/50 border-border'
                         }`}
                       >
                         {getStepperIcon(step)}
@@ -5695,25 +8627,25 @@ Thank you.`;
             {/* Show progress spinner while validating */}
             {isValidating ? (
               <div className="max-w-xl mx-auto space-y-6 pt-12">
-                <Card className="border border-slate-200 shadow-sm">
+                <Card className="border border-border shadow-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                      <Loader2 className="w-5 h-5 animate-spin text-foreground" />
                       Validating Questions
                     </CardTitle>
                     <CardDescription>Parsing your file and running validation checks...</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm text-slate-500">
+                      <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{validationProgressText || 'Processing file...'}</span>
                         <span>{Math.round(validationProgress)}%</span>
                       </div>
                       <Progress value={validationProgress} />
                     </div>
                     {uploadedFiles.length > 0 && (
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        <p className="text-xs text-slate-500">File: <strong>{uploadedFiles[0].name}</strong></p>
+                      <div className="bg-muted border border-border rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground">File: <strong>{uploadedFiles[0].name}</strong></p>
                       </div>
                     )}
                     <Button
@@ -5730,43 +8662,43 @@ Thank you.`;
               <>
                 {/* Metric Cards */}
                 <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                  <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-emerald-500 transition-all ${
-                    stats.valid > 0 ? 'bg-emerald-50 shadow-md ring-2 ring-emerald-500 ring-inset' : 'bg-white shadow-sm hover:bg-emerald-50/30'
+                  <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-success transition-all ${
+                    stats.valid > 0 ? 'bg-success-light shadow-md ring-2 ring-emerald-500 ring-inset' : 'bg-card shadow-sm hover:bg-success-light/30'
                   }`}>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Valid</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Valid</span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-slate-900 font-mono">{stats.valid.toLocaleString()}</span>
-                      <span className="text-emerald-600 font-bold text-sm">Items</span>
+                      <span className="text-4xl font-black text-foreground font-mono">{stats.valid.toLocaleString()}</span>
+                      <span className="text-success font-bold text-sm">Items</span>
                     </div>
                   </div>
                   <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-amber-500 transition-all ${
-                    stats.caution > 0 ? 'bg-amber-50 shadow-md ring-2 ring-amber-500 ring-inset' : 'bg-white shadow-sm hover:bg-amber-50/30'
+                    stats.caution > 0 ? 'bg-warning-light shadow-md ring-2 ring-amber-500 ring-inset' : 'bg-card shadow-sm hover:bg-warning-light/30'
                   }`}>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Need Review</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Need Review</span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-slate-900 font-mono">{stats.caution.toLocaleString()}</span>
-                      <span className="text-amber-600 font-bold text-sm">Items</span>
+                      <span className="text-4xl font-black text-foreground font-mono">{stats.caution.toLocaleString()}</span>
+                      <span className="text-warning font-bold text-sm">Items</span>
                     </div>
                   </div>
                   <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-rose-600 relative overflow-hidden ${
-                    stats.rejected > 0 ? 'bg-rose-50 shadow-md ring-2 ring-rose-600 ring-inset' : 'bg-white shadow-sm'
+                    stats.rejected > 0 ? 'bg-rose-50 shadow-md ring-2 ring-rose-600 ring-inset' : 'bg-card shadow-sm'
                   }`}>
                     <div className="absolute top-0 right-0 p-2 text-rose-200">
                       <XCircle className="w-10 h-10 opacity-20" />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-rose-700 mb-1">Rejected</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-rose-700 mb-1">Rejected</span>
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-black text-rose-900 font-mono">{stats.rejected.toLocaleString()}</span>
                       <span className="text-rose-600 font-bold text-sm">Items</span>
                     </div>
                   </div>
-                  <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-indigo-500 transition-all ${
-                    stats.duplicates > 0 ? 'bg-indigo-50 shadow-md ring-2 ring-indigo-500 ring-inset' : 'bg-white shadow-sm hover:bg-indigo-50/30'
+                  <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-border transition-all ${
+                    stats.duplicates > 0 ? 'bg-muted shadow-md ring-2 ring-slate-300 ring-inset' : 'bg-card shadow-sm hover:bg-muted transition-colors'
                   }`}>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Duplicates</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Duplicates</span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-slate-900 font-mono">{stats.duplicates.toLocaleString()}</span>
-                      <span className="text-indigo-600 font-bold text-sm">Items</span>
+                      <span className="text-4xl font-black text-foreground font-mono">{stats.duplicates.toLocaleString()}</span>
+                      <span className="text-foreground font-bold text-sm">Items</span>
                     </div>
                   </div>
                 </section>
@@ -5774,90 +8706,90 @@ Thank you.`;
                 {autoFixComparison?.after && (
                   <section className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black uppercase tracking-[0.1em] text-slate-600">After Automated Fixing</h4>
+                      <h4 className="text-xs font-black uppercase tracking-[0.1em] text-muted-foreground">After Automated Fixing</h4>
                       <span className="text-xs font-semibold text-[#0052CC]">
                         {autoFixComparison.autoFixedCount} auto-fixed applied
                       </span>
                     </div>
 
                     <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                      <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-emerald-500 transition-all ${
-                        autoFixComparison.after.valid > 0 ? 'bg-emerald-50 shadow-md ring-2 ring-emerald-500 ring-inset' : 'bg-white shadow-sm hover:bg-emerald-50/30'
+                      <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-success transition-all ${
+                        autoFixComparison.after.valid > 0 ? 'bg-success-light shadow-md ring-2 ring-emerald-500 ring-inset' : 'bg-card shadow-sm hover:bg-success-light/30'
                       }`}>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Valid</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Valid</span>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black text-slate-900 font-mono">{autoFixComparison.after.valid.toLocaleString()}</span>
-                          <span className="text-emerald-600 font-bold text-sm">Items</span>
+                          <span className="text-4xl font-black text-foreground font-mono">{autoFixComparison.after.valid.toLocaleString()}</span>
+                          <span className="text-success font-bold text-sm">Items</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-2">
+                        <p className="text-xs text-muted-foreground mt-2">
                           Δ {autoFixComparison.after.valid - autoFixComparison.before.valid >= 0 ? '+' : ''}{autoFixComparison.after.valid - autoFixComparison.before.valid}
                         </p>
                       </div>
 
                       <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-amber-500 transition-all ${
-                        autoFixComparison.after.caution > 0 ? 'bg-amber-50 shadow-md ring-2 ring-amber-500 ring-inset' : 'bg-white shadow-sm hover:bg-amber-50/30'
+                        autoFixComparison.after.caution > 0 ? 'bg-warning-light shadow-md ring-2 ring-amber-500 ring-inset' : 'bg-card shadow-sm hover:bg-warning-light/30'
                       }`}>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Need Review</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Need Review</span>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black text-slate-900 font-mono">{autoFixComparison.after.caution.toLocaleString()}</span>
-                          <span className="text-amber-600 font-bold text-sm">Items</span>
+                          <span className="text-4xl font-black text-foreground font-mono">{autoFixComparison.after.caution.toLocaleString()}</span>
+                          <span className="text-warning font-bold text-sm">Items</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-2">
+                        <p className="text-xs text-muted-foreground mt-2">
                           Δ {autoFixComparison.after.caution - autoFixComparison.before.caution >= 0 ? '+' : ''}{autoFixComparison.after.caution - autoFixComparison.before.caution}
                         </p>
                       </div>
 
                       <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-rose-600 relative overflow-hidden ${
-                        autoFixComparison.after.rejected > 0 ? 'bg-rose-50 shadow-md ring-2 ring-rose-600 ring-inset' : 'bg-white shadow-sm'
+                        autoFixComparison.after.rejected > 0 ? 'bg-rose-50 shadow-md ring-2 ring-rose-600 ring-inset' : 'bg-card shadow-sm'
                       }`}>
                         <div className="absolute top-0 right-0 p-2 text-rose-200">
                           <XCircle className="w-10 h-10 opacity-20" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-rose-700 mb-1">Rejected</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-rose-700 mb-1">Rejected</span>
                         <div className="flex items-baseline gap-2">
                           <span className="text-4xl font-black text-rose-900 font-mono">{autoFixComparison.after.rejected.toLocaleString()}</span>
                           <span className="text-rose-600 font-bold text-sm">Items</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-2">
+                        <p className="text-xs text-muted-foreground mt-2">
                           Δ {autoFixComparison.after.rejected - autoFixComparison.before.rejected >= 0 ? '+' : ''}{autoFixComparison.after.rejected - autoFixComparison.before.rejected}
                         </p>
                       </div>
 
-                      <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-indigo-500 transition-all ${
-                        autoFixComparison.autoFixedCount > 0 ? 'bg-indigo-50 shadow-md ring-2 ring-indigo-500 ring-inset' : 'bg-white shadow-sm hover:bg-indigo-50/30'
+                      <div className={`flex flex-col items-start p-6 rounded-xl border-l-4 border-border transition-all ${
+                        autoFixComparison.autoFixedCount > 0 ? 'bg-muted shadow-md ring-2 ring-slate-300 ring-inset' : 'bg-card shadow-sm hover:bg-muted transition-colors'
                       }`}>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Auto-fixed</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Auto-fixed</span>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black text-slate-900 font-mono">{autoFixComparison.autoFixedCount.toLocaleString()}</span>
-                          <span className="text-indigo-600 font-bold text-sm">Items</span>
+                          <span className="text-4xl font-black text-foreground font-mono">{autoFixComparison.autoFixedCount.toLocaleString()}</span>
+                          <span className="text-foreground font-bold text-sm">Items</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-2">Applied in Clean &amp; Fix</p>
+                        <p className="text-xs text-muted-foreground mt-2">Applied in Clean &amp; Fix</p>
                       </div>
                     </section>
                   </section>
                 )}
 
                 {/* Reports Section */}
-                <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 space-y-5">
+                <section className="bg-card rounded-2xl border border-border shadow-sm p-6 md:p-8 space-y-5">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.1em] text-slate-700">Reports Download Center</h4>
-                      <p className="text-xs text-slate-500">Download every report generated by this validation run.</p>
+                      <h4 className="text-sm font-black uppercase tracking-[0.1em] text-foreground">Reports Download Center</h4>
+                      <p className="text-xs text-muted-foreground">Download every report generated by this validation run.</p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Dataset</p>
-                      <p className="text-xs font-semibold text-slate-700 truncate">{fileData?.fileName || reportDatasetName || 'Current Batch'}</p>
+                    <div className="rounded-lg border border-border bg-muted px-3 py-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50">Dataset</p>
+                      <p className="text-xs font-semibold text-foreground truncate">{fileData?.fileName || reportDatasetName || 'Current Batch'}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="rounded-xl border border-[#bfd6ff] bg-[#eef4ff] p-5 flex flex-col gap-3">
+                    <div className="rounded-xl border border-[#cbd5e1] bg-[#eef4ff] p-5 flex flex-col gap-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-black uppercase tracking-[0.1em] text-[#2457b8]">PDF Report</p>
-                        <Download className="w-4 h-4 text-[#2457b8]" />
+                        <p className="text-xs font-black uppercase tracking-[0.1em] text-[#111827]">PDF Report</p>
+                        <Download className="w-4 h-4 text-[#111827]" />
                       </div>
                       <p className="text-xs text-[#2f4b80] leading-relaxed">Executive summary with quality metrics and validation outcomes.</p>
-                      <Button type="button" onClick={handleDownloadValidationReport} className="mt-auto w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
+                      <Button type="button" onClick={handleDownloadValidationReport} className="mt-auto w-full bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold">
                         Download PDF
                       </Button>
                     </div>
@@ -5868,7 +8800,7 @@ Thank you.`;
                         <FileText className="w-4 h-4 text-[#a45a07]" />
                       </div>
                       <p className="text-xs text-[#7a4c1b] leading-relaxed">Detailed row-level diagnostics for every question in the batch.</p>
-                      <Button type="button" onClick={handleDownloadRowLevelReport} className="mt-auto w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
+                      <Button type="button" onClick={handleDownloadRowLevelReport} className="mt-auto w-full bg-[#a45a07] hover:bg-[#8c4d05] text-primary-foreground text-xs font-semibold">
                         Download Analysis
                       </Button>
                     </div>
@@ -5879,7 +8811,7 @@ Thank you.`;
                         <FileJson className="w-4 h-4 text-[#18794e]" />
                       </div>
                       <p className="text-xs text-[#1f6c4a] leading-relaxed">Spreadsheet export with validation flags and context for remediation.</p>
-                      <Button type="button" onClick={handleDownloadAnnotatedSheet} className="mt-auto w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold">
+                      <Button type="button" onClick={handleDownloadAnnotatedSheet} className="mt-auto w-full bg-[#18794e] hover:bg-[#136541] text-primary-foreground text-xs font-semibold">
                         Download Sheet
                       </Button>
                     </div>
@@ -5893,21 +8825,21 @@ Thank you.`;
           {/* Sticky Footer */}
           {!isValidating && (
             <footer
-              className="fixed bottom-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
+              className="fixed bottom-0 right-0 bg-card/90 backdrop-blur-md border-t border-border px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
               style={{ left: sidebarWidth }}
             >
               <button
                 type="button"
                 onClick={() => setCurrentStep('upload')}
-                className="px-6 py-2.5 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors rounded-xl"
+                className="px-6 py-2.5 text-xs font-semibold text-muted-foreground border border-border/60 hover:bg-muted transition-colors transition-colors rounded-xl"
               >
                 Back to Upload
               </button>
 
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={handleProceedToCleanFix}
-                  className="group px-8 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors flex items-center gap-2"
+                  onClick={() => setCurrentStep('clean-fix')}
+                  className="group px-8 py-2.5 text-xs font-semibold text-primary-foreground bg-[#111827] hover:bg-[#1f2937] rounded-md shadow-sm transition-colors flex items-center gap-2"
                 >
                   Proceed to Clean &amp; Fix
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -5920,7 +8852,7 @@ Thank you.`;
     );
   }
 
-  if (currentStep === 'ai-audit') {
+  if (useLegacyStageScreens && currentStep === 'ai-audit') {
     const totalRows = filteredAiAuditQueueRows.length;
     const visibleStart = totalRows === 0 ? 0 : aiAuditPageIndex * AI_AUDIT_PAGE_SIZE + 1;
     const visibleEnd = Math.min(totalRows, (aiAuditPageIndex + 1) * AI_AUDIT_PAGE_SIZE);
@@ -5933,9 +8865,9 @@ Thank you.`;
     const optionColKeys: string[] = columnMapping?.optionCols || [];
 
     return (
-      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-slate-900 antialiased flex overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-foreground antialiased flex overflow-hidden">
         <aside
-          className="h-screen flex-shrink-0 bg-white flex flex-col border-r border-slate-200 z-50 transition-[width] duration-300"
+          className="h-screen flex-shrink-0 bg-card flex flex-col border-r border-border z-50 transition-[width] duration-300"
           style={{ width: sidebarWidth }}
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
@@ -5943,29 +8875,29 @@ Thank you.`;
           <div className={`mb-4 ${isSidebarHovered ? 'p-8' : 'p-4 flex justify-center'}`}>
             {isSidebarHovered ? (
               <>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">AssessmentCore</h1>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Workflow Wizard</p>
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground leading-none">AssessmentCore</h1>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50 mt-1">Workflow Wizard</p>
               </>
             ) : (
               <div className="w-9 h-9 rounded-lg bg-[#0052CC]/10 text-[#0052CC] font-black flex items-center justify-center">A</div>
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
-            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}
             </button>
-            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
+            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}
             </button>
             <button type="button" className={`w-full flex items-center py-3 bg-[#0052CC]/5 text-[#0052CC] font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Upload className="w-5 h-5" /> {isSidebarHovered && <span>Batch Creator</span>}
             </button>
-            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
+            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}
             </button>
           </nav>
           <div className="p-6 mt-auto">
-            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}>
+            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-card border border-border text-foreground rounded-lg text-sm font-semibold hover:bg-muted/50 transition-colors hover:border-border transition-colors transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}>
               <FileText className="w-4 h-4" />
               {isSidebarHovered && <span>Save Draft</span>}
             </button>
@@ -5973,19 +8905,19 @@ Thank you.`;
         </aside>
 
         <div className="flex-1 ml-0 flex flex-col min-w-0 bg-[#f0f4f8] overflow-hidden">
-          <header className="w-full bg-white border-b border-slate-200 pt-4 pb-5 px-12 flex flex-col shrink-0">
+          <header className="w-full bg-card border-b border-border pt-4 pb-5 px-12 flex flex-col shrink-0">
             <div className="flex justify-between items-center mb-6">
               <nav className="flex items-center gap-2 text-xs font-medium">
-                <span className="text-slate-400">Batches</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className="text-muted-foreground/50">Batches</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
                 <span className="text-[#0052CC] font-semibold">{fileData?.fileName || 'Calculus_Midterm_Batch'}</span>
               </nav>
               <div className="flex items-center gap-6" ref={profileMenuRef}>
-                <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
-                  <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
-                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-slate-400 hover:text-slate-600 transition-colors relative" title="Notifications">
+                <div className="flex items-center gap-4 border-r border-border pr-6">
+                  <button type="button" className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
+                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors relative" title="Notifications">
                     <Bell className="w-5 h-5" />
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full border-2 border-white" />
                   </button>
                 </div>
                 <div className="relative">
@@ -5996,15 +8928,15 @@ Thank you.`;
                     aria-expanded={isProfileMenuOpen}
                   >
                     <div className="text-right">
-                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'Prof. Harrison'}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                      <p className="text-xs font-bold text-foreground leading-none">{user?.email?.split('@')[0] || 'Prof. Harrison'}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest">Admin Tier</p>
                     </div>
-                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#f1f5f9] text-[#0052CC] flex items-center justify-center">
                       <UserRound className="w-4 h-4" />
                     </div>
                   </button>
 
-                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#e2e8f0] bg-card shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
                     isProfileMenuOpen
                       ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                       : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
@@ -6015,7 +8947,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         toast.info('Profile page will be available soon');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Profile
                     </button>
@@ -6026,7 +8958,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         navigate('/workspace/dashboard');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Dashboard
                     </button>
@@ -6036,7 +8968,7 @@ Thank you.`;
             </div>
 
             <div className="max-w-5xl mx-auto w-full relative px-8">
-              <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-200" />
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-muted" />
               <div className="flex items-center justify-between relative z-10">
                 {stepOrder.map((step, idx) => {
                   const isCurrent = idx === currentStepIndex;
@@ -6045,10 +8977,10 @@ Thank you.`;
                     <button key={`audit-step-${step}`} type="button" onClick={() => handleStepperJump(step)} disabled={!canNavigateToStep(step)} className="flex items-center justify-center disabled:cursor-not-allowed">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
                         isDone
-                          ? 'bg-emerald-600 text-white ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20'
+                          ? 'bg-emerald-600 text-primary-foreground ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20'
                           : isCurrent
-                          ? 'bg-[#0052CC] text-white ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
-                          : 'bg-white border-2 border-slate-200 text-slate-400'
+                          ? 'bg-[#0052CC] text-primary-foreground ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
+                          : 'bg-card border-2 border-border text-muted-foreground/50'
                       }`}>
                         {getStepperIcon(step)}
                       </div>
@@ -6060,12 +8992,12 @@ Thank you.`;
           </header>
 
           <main className="flex-1 overflow-hidden flex">
-            <div className="flex-1 flex flex-col p-8 min-w-0 space-y-6 overflow-y-auto bg-slate-50/50 pb-24">
+            <div className="flex-1 flex flex-col p-8 min-w-0 space-y-6 overflow-y-auto bg-muted/50 pb-24">
               <div className="grid grid-cols-12 gap-6 items-stretch">
                 <div className="col-span-12 flex flex-col gap-4">
                   <div className="flex items-center justify-between px-2">
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Audit Queue</span>
-                    <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full text-[10px] font-bold">{totalRows} Rows</span>
+                    <span className="text-xs uppercase tracking-widest font-bold text-muted-foreground/50">Audit Queue</span>
+                    <span className="px-2 py-0.5 bg-muted text-foreground rounded-full text-xs font-bold">{totalRows} Rows</span>
                   </div>
                   <div className="px-2 flex flex-wrap items-center gap-2">
                     <button
@@ -6074,10 +9006,10 @@ Thank you.`;
                         setAiAuditStatusFilter('ALL');
                         setAiAuditPageIndex(0);
                       }}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border ${
+                      className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
                         aiAuditStatusFilter === 'ALL'
-                          ? 'bg-[#e7eeff] border-[#c5d8ff] text-[#003a9f]'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          ? 'bg-[#f1f5f9] border-[#c5d8ff] text-[#111827]'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted/50 transition-colors'
                       }`}
                     >
                       All ({aiAuditQueueRows.length})
@@ -6088,10 +9020,10 @@ Thank you.`;
                         setAiAuditStatusFilter('FAILED');
                         setAiAuditPageIndex(0);
                       }}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border ${
+                      className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
                         aiAuditStatusFilter === 'FAILED'
                           ? 'bg-rose-50 border-rose-200 text-rose-700'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted/50 transition-colors'
                       }`}
                     >
                       Failed ({failedCount})
@@ -6102,17 +9034,17 @@ Thank you.`;
                         setAiAuditStatusFilter('PASSED');
                         setAiAuditPageIndex(0);
                       }}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border ${
+                      className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
                         aiAuditStatusFilter === 'PASSED'
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          ? 'bg-success-light border-success text-success'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted/50 transition-colors'
                       }`}
                     >
                       Passed ({passedCount})
                     </button>
                   </div>
                   <div className="flex items-center justify-between gap-2 px-2">
-                    <div className="text-[11px] font-semibold text-slate-500">
+                    <div className="text-xs font-semibold text-muted-foreground">
                       Showing {visibleStart}-{visibleEnd} of {totalRows}
                     </div>
                     <div className="flex items-center gap-1">
@@ -6120,7 +9052,7 @@ Thank you.`;
                         type="button"
                         onClick={() => setAiAuditPageIndex((prev) => Math.max(0, prev - 1))}
                         disabled={aiAuditPageIndex === 0}
-                        className="h-7 w-7 rounded-md border border-slate-200 bg-white text-slate-600 disabled:text-slate-300 disabled:bg-slate-100 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center justify-center"
+                        className="h-7 w-7 rounded-md border border-border bg-card text-muted-foreground disabled:text-muted-foreground/30 disabled:bg-muted disabled:cursor-not-allowed hover:bg-muted/50 transition-colors flex items-center justify-center"
                         title="Previous 100 rows"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
@@ -6129,25 +9061,96 @@ Thank you.`;
                         type="button"
                         onClick={() => setAiAuditPageIndex((prev) => Math.min(totalAiAuditPages - 1, prev + 1))}
                         disabled={aiAuditPageIndex >= totalAiAuditPages - 1}
-                        className="h-7 w-7 rounded-md border border-slate-200 bg-white text-slate-600 disabled:text-slate-300 disabled:bg-slate-100 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center justify-center"
+                        className="h-7 w-7 rounded-md border border-border bg-card text-muted-foreground disabled:text-muted-foreground/30 disabled:bg-muted disabled:cursor-not-allowed hover:bg-muted/50 transition-colors flex items-center justify-center"
                         title="Next 100 rows"
                       >
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-                  <div className="px-2">
-                    <button
-                      type="button"
-                      onClick={handleStartAiAudit}
-                      disabled={isAuditing || visibleAiAuditQueueRows.length === 0}
-                      className="w-full h-8 rounded-lg bg-[#0052CC] text-white text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[#0047B3] transition-colors"
-                    >
-                      {isAuditing
-                        ? `Auditing ${auditProgress.current}/${auditProgress.total}`
-                        : `Run AI Audit (Visible ${visibleAiAuditQueueRows.length})`}
-                    </button>
+                  <div className="px-2 space-y-1.5">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadCorrectedSheet}
+                        disabled={aiAuditQueueRows.length === 0}
+                        className="w-full h-8 rounded-lg border border-border bg-card text-foreground text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed hover:bg-muted/50 transition-colors transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Export Sheet
+                      </button>
+                    </div>
                   </div>
+
+                  {/* ── Metadata Controls ──────────────────────────────── */}
+                  <div className="px-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs uppercase tracking-widest font-bold text-muted-foreground/50">Metadata</span>
+                      {addedMetadataKeys.length > 0 && (
+                        <span className="px-1.5 py-0.5 bg-[#f1f5f9] text-[#111827] rounded text-xs font-bold">
+                          {addedMetadataKeys.length} added
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Active metadata tags */}
+                    {addedMetadataKeys.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {addedMetadataFields.map((field) => (
+                          <span
+                            key={field.key}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#f0f5ff] border border-[#c5d8ff] text-xs font-semibold text-[#1d4ed8]"
+                          >
+                            {field.label}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMetadataField(field.key)}
+                              className="text-[#1d4ed8]/50 hover:text-[#1d4ed8] transition-colors"
+                              title={`Remove ${field.label}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add metadata dropdown */}
+                    {availableMetadataToAdd.length > 0 && (
+                      <div className="relative" ref={metadataDropdownRef}>
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsMetadataDropdownOpen((prev) => !prev)}
+                            className="h-8 px-3 rounded-lg border border-border/60 bg-card text-muted-foreground text-xs font-semibold hover:bg-muted/50 transition-colors hover:border-border transition-colors inline-flex items-center gap-1.5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Add Field
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isMetadataDropdownOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          <span className="text-xs text-muted-foreground font-semibold">
+                            {availableMetadataToAdd.length} available
+                          </span>
+                        </div>
+                        {isMetadataDropdownOpen && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto py-1">
+                            {availableMetadataToAdd.map((field) => (
+                              <button
+                                key={field.key}
+                                type="button"
+                                onClick={() => handleAddMetadataField(field.key)}
+                                className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-[#f0f5ff] hover:text-[#1d4ed8] transition-colors"
+                              >
+                                <span className="font-semibold">{field.label}</span>
+                                <span className="text-muted-foreground/50 ml-1.5">— {field.placeholder}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-3">
                     {visibleAiAuditQueueRows.map((row) => {
                       const isActive = row.rowKey === activeRow?.rowKey;
@@ -6167,54 +9170,54 @@ Thank you.`;
                           key={`audit-row-${row.rowKey}`}
                           type="button"
                           onClick={() => setSelectedAuditRowKey(row.rowKey)}
-                          className={`w-full text-left bg-white p-4 rounded-xl transition-all ${isActive ? 'border-2 border-[#0052CC] shadow-sm' : 'border border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                          className={`w-full text-left bg-card p-4 rounded-xl transition-all ${isActive ? 'border-2 border-[#0052CC] shadow-sm' : 'border border-border hover:border-border transition-colors hover:bg-muted/50 transition-colors'}`}
                         >
                           <div className="flex justify-between items-start mb-2 gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs font-bold text-slate-700">Q-{1000 + row.rowNumber}</span>
+                              <span className="font-mono text-xs font-bold text-foreground">Q-{1000 + row.rowNumber}</span>
                               {row.fixTag === 'MANUAL_FIXED' && (
-                                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-[#e7eeff] text-[#004fd2]">
+                                <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-[#f1f5f9] text-[#1f2937]">
                                   Manually Fixed
                                 </span>
                               )}
                               {row.fixTag === 'AUTO_FIXED' && (
-                                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                                <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-muted text-foreground">
                                   Auto Fixed
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5">
                               {isPassed ? (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <CheckCircle2 className="w-4 h-4 text-success" />
                               ) : isFailed ? (
                                 <XCircle className="w-4 h-4 text-rose-600" />
                               ) : (
-                                <AlertCircle className="w-4 h-4 text-slate-400" />
+                                <AlertCircle className="w-4 h-4 text-muted-foreground/50" />
                               )}
-                              <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                                isPassed ? 'text-emerald-700' : isFailed ? 'text-rose-700' : 'text-slate-500'
+                              <span className={`text-xs font-bold uppercase tracking-wider ${
+                                isPassed ? 'text-success' : isFailed ? 'text-rose-700' : 'text-muted-foreground'
                               }`}>
                                 {isPassed ? 'AI Passed' : isFailed ? 'AI Failed' : 'Not Audited'}
                               </span>
                             </div>
                           </div>
-                          <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">{row.questionText || 'Question text unavailable.'}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{row.questionText || 'Question text unavailable.'}</p>
 
-                          <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
-                            <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
-                              <span className="font-semibold text-slate-500 uppercase tracking-wide">Type</span>
-                              <p className="text-slate-700 mt-0.5">{String(draftRow?.[questionTypeColKey] ?? '—')}</p>
+                          <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                            <div className="rounded-md border border-border bg-muted px-2 py-1.5">
+                              <span className="font-semibold text-muted-foreground uppercase tracking-wide">Type</span>
+                              <p className="text-foreground mt-0.5">{String(draftRow?.[questionTypeColKey] ?? '—')}</p>
                             </div>
-                            <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 md:col-span-2">
-                              <span className="font-semibold text-slate-500 uppercase tracking-wide">Answer</span>
-                              <p className="text-slate-700 mt-0.5">{String(draftRow?.[answerColKey] ?? '—')}</p>
+                            <div className="rounded-md border border-border bg-muted px-2 py-1.5 md:col-span-2">
+                              <span className="font-semibold text-muted-foreground uppercase tracking-wide">Answer</span>
+                              <p className="text-foreground mt-0.5">{String(draftRow?.[answerColKey] ?? '—')}</p>
                             </div>
                           </div>
 
                           {optionPreview.length > 0 && (
-                            <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Options</p>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-[11px] text-slate-700">
+                            <div className="mt-2 rounded-md border border-border bg-muted px-2 py-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Options</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-foreground">
                                 {optionPreview.map((opt) => (
                                   <div key={`${row.rowKey}-${opt.key}`} className="truncate">
                                     <span className="font-semibold mr-1">{opt.label}.</span>
@@ -6227,29 +9230,73 @@ Thank you.`;
 
                           {isFailed && (
                             <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-2">
-                              <p className="text-[11px] font-semibold text-rose-700 uppercase tracking-wide mb-1">Fail Reason</p>
+                              <p className="text-xs font-semibold text-rose-700 uppercase tracking-wide mb-1">Fail Reason</p>
                               <p className="text-xs text-rose-800 line-clamp-2">{row.aiFeedback || 'AI marked this question as failed but no explanation was returned.'}</p>
                             </div>
                           )}
 
+                          {/* Per-row metadata inputs */}
+                          {addedMetadataFields.length > 0 && (
+                            <div className="mt-2 rounded-md border border-[#d5e0f5] bg-[#f8faff] px-2.5 py-2">
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <Tags className="w-3 h-3 text-[#4a7ccc]" />
+                                <span className="text-xs font-semibold uppercase tracking-wide text-[#4a7ccc]">Metadata</span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                {addedMetadataFields.map((field) => {
+                                  const rowMeta = metadataValues.get(row.rowKey);
+                                  const val = rowMeta?.[field.key] ?? '';
+                                  return (
+                                    <div key={`${row.rowKey}-meta-${field.key}`} className="flex flex-col">
+                                      <div className="flex items-center justify-between mb-0.5">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50">{field.label}</label>
+                                        {isActive && val.trim() && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleApplyMetadataToAll(field.key, val);
+                                            }}
+                                            className="text-xs font-semibold text-[#0052CC] hover:text-[#111827] transition-colors"
+                                            title={`Apply "${val}" to all rows`}
+                                          >
+                                            Apply to all
+                                          </button>
+                                        )}
+                                      </div>
+                                      <input
+                                        type="text"
+                                        value={val}
+                                        placeholder={field.placeholder}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => handleMetadataValueChange(row.rowKey, field.key, e.target.value)}
+                                        className="h-6 rounded border border-border bg-card px-1.5 text-xs text-foreground placeholder:text-muted-foreground/30 focus:border-[#0052CC] focus:outline-none focus:ring-1 focus:ring-[#0052CC]/20 transition-colors"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
                           {isActive && (
-                            <div className="mt-3 pt-3 border-t border-slate-200 space-y-3">
+                            <div className="mt-3 pt-3 border-t border-border space-y-3">
                               <div className={`rounded-lg p-3 text-xs leading-relaxed border ${
                                 isPassed
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                  ? 'bg-success-light border-success text-emerald-800'
                                   : isFailed
                                   ? 'bg-rose-50 border-rose-200 text-rose-800'
-                                  : 'bg-slate-50 border-slate-200 text-slate-700'
+                                  : 'bg-muted border-border text-foreground'
                               }`}>
                                 {row.aiFeedback}
                               </div>
 
                               {isFailed && row.aiIssues.length > 0 && (
                                 <div className="rounded-lg p-3 text-xs leading-relaxed border bg-rose-50 border-rose-200 text-rose-800 space-y-2">
-                                  <p className="font-semibold uppercase tracking-wide text-[10px]">Detailed AI Findings</p>
+                                  <p className="font-semibold uppercase tracking-wide text-xs">Detailed AI Findings</p>
                                   {row.aiIssues.map((issue, idx) => (
-                                    <div key={`${row.rowKey}-issue-${idx}`} className="rounded-md border border-rose-200 bg-white px-2 py-1.5">
-                                      <p className="font-semibold text-[11px] uppercase tracking-wide text-rose-700">{issue.issue_type}</p>
+                                    <div key={`${row.rowKey}-issue-${idx}`} className="rounded-md border border-rose-200 bg-card px-2 py-1.5">
+                                      <p className="font-semibold text-xs uppercase tracking-wide text-rose-700">{issue.issue_type}</p>
                                       <p>{issue.description}</p>
                                       <p className="mt-1 text-rose-700"><span className="font-semibold">Suggestion:</span> {issue.suggestion}</p>
                                     </div>
@@ -6259,41 +9306,41 @@ Thank you.`;
 
                               {isFailed && row.aiSuggestedFix && (
                                 <div className="rounded-lg p-3 text-xs leading-relaxed border bg-[#fff7ed] border-[#fed7aa] text-[#9a3412]">
-                                  <p className="font-semibold uppercase tracking-wide text-[10px] mb-1">Suggested Fix</p>
+                                  <p className="font-semibold uppercase tracking-wide text-xs mb-1">Suggested Fix</p>
                                   {row.aiSuggestedFix}
                                 </div>
                               )}
 
                               {isFailed && isEditing && (
                                 <div className="rounded-lg p-3 border border-[#c5d8ff] bg-[#f5f8ff] space-y-2 text-xs">
-                                  <p className="font-semibold uppercase tracking-wide text-[10px] text-[#003a9f]">Inline Edit</p>
+                                  <p className="font-semibold uppercase tracking-wide text-xs text-[#111827]">Inline Edit</p>
                                   <div>
-                                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Question</label>
+                                    <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Question</label>
                                     <textarea
                                       value={String(draftRow?.[questionColKey] ?? '')}
                                       onClick={(e) => e.stopPropagation()}
                                       onChange={(e) => handleInlineAuditFieldChange(row.rowKey, questionColKey, e.target.value)}
                                       rows={2}
-                                      className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800"
+                                      className="mt-1 w-full rounded-md border border-border/60 bg-card px-2 py-1.5 text-xs text-foreground"
                                     />
                                   </div>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     <div>
-                                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Answer</label>
+                                      <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Answer</label>
                                       <input
                                         value={String(draftRow?.[answerColKey] ?? '')}
                                         onClick={(e) => e.stopPropagation()}
                                         onChange={(e) => handleInlineAuditFieldChange(row.rowKey, answerColKey, e.target.value)}
-                                        className="mt-1 w-full h-8 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800"
+                                        className="mt-1 w-full h-8 rounded-md border border-border/60 bg-card px-2 text-xs text-foreground"
                                       />
                                     </div>
                                     <div>
-                                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Type</label>
+                                      <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</label>
                                       <input
                                         value={String(draftRow?.[questionTypeColKey] ?? '')}
                                         onClick={(e) => e.stopPropagation()}
                                         onChange={(e) => handleInlineAuditFieldChange(row.rowKey, questionTypeColKey, e.target.value)}
-                                        className="mt-1 w-full h-8 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800"
+                                        className="mt-1 w-full h-8 rounded-md border border-border/60 bg-card px-2 text-xs text-foreground"
                                       />
                                     </div>
                                   </div>
@@ -6301,12 +9348,12 @@ Thank you.`;
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                       {optionColKeys.map((col, idx) => (
                                         <div key={`${row.rowKey}-edit-${col}`}>
-                                          <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Option {String.fromCharCode(65 + idx)}</label>
+                                          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Option {String.fromCharCode(65 + idx)}</label>
                                           <input
                                             value={String(draftRow?.[col] ?? '')}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => handleInlineAuditFieldChange(row.rowKey, col, e.target.value)}
-                                            className="mt-1 w-full h-8 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800"
+                                            className="mt-1 w-full h-8 rounded-md border border-border/60 bg-card px-2 text-xs text-foreground"
                                           />
                                         </div>
                                       ))}
@@ -6322,8 +9369,8 @@ Thank you.`;
                                     e.stopPropagation();
                                     handleAuditSingleQuestion(row.rowData, row.rowKey);
                                   }}
-                                  disabled={isAuditing}
-                                  className="px-3 py-1.5 rounded-md bg-[#0052CC] text-white text-[11px] font-semibold hover:bg-[#0047B3] disabled:opacity-60 disabled:cursor-not-allowed"
+                                  disabled={isAuditing || isPassed}
+                                  className="px-3 py-1.5 rounded-md bg-[#0052CC] text-primary-foreground text-xs font-semibold hover:bg-[#0047B3] disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                   {isAuditing ? 'Auditing...' : 'AI Audit This Question'}
                                 </button>
@@ -6339,7 +9386,7 @@ Thank you.`;
                                         handleStartInlineAuditEdit(row.rowKey, row.rowData);
                                       }
                                     }}
-                                    className="px-3 py-1.5 rounded-md border border-rose-300 bg-rose-50 text-rose-700 text-[11px] font-semibold hover:bg-rose-100"
+                                    className="px-3 py-1.5 rounded-md border border-rose-300 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100"
                                   >
                                     {isEditing ? 'Save Inline Fix' : 'Edit in This Card'}
                                   </button>
@@ -6352,7 +9399,7 @@ Thank you.`;
                                       e.stopPropagation();
                                       setAiAuditEditingRowKey(null);
                                     }}
-                                    className="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 text-[11px] font-semibold hover:bg-slate-50"
+                                    className="px-3 py-1.5 rounded-md border border-border/60 bg-card text-foreground text-xs font-semibold hover:bg-muted/50 transition-colors"
                                   >
                                     Cancel Edit
                                   </button>
@@ -6364,7 +9411,7 @@ Thank you.`;
                       );
                     })}
                     {visibleAiAuditQueueRows.length === 0 && (
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 text-sm text-slate-500">
+                      <div className="bg-card p-4 rounded-xl border border-border text-sm text-muted-foreground">
                         No rows available on this page.
                       </div>
                     )}
@@ -6374,24 +9421,33 @@ Thank you.`;
             </div>
 
             <footer
-              className="absolute bottom-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3.5 px-10 flex justify-between items-center z-40 shrink-0 transition-[left] duration-300"
+              className="absolute bottom-0 right-0 bg-card/95 backdrop-blur-md border-t border-border py-3.5 px-10 flex justify-between items-center z-40 shrink-0 transition-[left] duration-300"
               style={{ left: sidebarWidth }}
             >
               <button
                 type="button"
-                onClick={handleProceedToCleanFix}
-                className="px-6 py-2.5 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors rounded-xl"
+                onClick={() => setCurrentStep('clean-fix')}
+                className="px-6 py-2.5 text-xs font-semibold text-muted-foreground border border-border/60 hover:bg-muted transition-colors transition-colors rounded-xl"
               >
                 Back to Clean & Fix Stage
               </button>
               <div className="flex items-center gap-3">
-                <Button
-                  onClick={() => setCurrentStep('configure')}
-                  className="group px-8 py-2.5 bg-[#0052CC] text-white rounded-lg font-bold hover:bg-[#0047B3] hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-[#0052CC]/25 transition-all flex items-center gap-2"
-                >
-                  Proceed to Config
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
+                {isPremium ? (
+                  <Button
+                    onClick={() => handleStepperJump('configure')}
+                    className="group px-8 py-2.5 bg-[#0052CC] text-primary-foreground rounded-lg font-bold hover:bg-[#0047B3] hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-[#0052CC]/25 transition-all flex items-center gap-2"
+                  >
+                    Proceed to Config
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => navigate('/workspace/dashboard')}
+                    className="px-8 py-2.5 bg-amber-600 text-primary-foreground rounded-lg font-bold hover:bg-amber-700 shadow-lg flex items-center gap-2"
+                  >
+                    <Lock className="w-4 h-4" /> Upgrade to Export
+                  </Button>
+                )}
               </div>
             </footer>
           </main>
@@ -6400,7 +9456,7 @@ Thank you.`;
     );
   }
 
-  if (currentStep === 'configure') {
+  if (useLegacyStageScreens && currentStep === 'configure') {
     const configChecklist = [
       { label: 'QTI Version', done: !!outputFormat },
       { label: 'Package Type', done: !!exportMode },
@@ -6412,9 +9468,9 @@ Thank you.`;
     const configProgress = Math.round((completedConfigCount / configChecklist.length) * 100);
 
     return (
-      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-slate-900 antialiased flex overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-foreground antialiased flex overflow-hidden">
         <aside
-          className="h-screen flex-shrink-0 bg-white flex flex-col border-r border-slate-200 transition-[width] duration-300"
+          className="h-screen flex-shrink-0 bg-card flex flex-col border-r border-border transition-[width] duration-300"
           style={{ width: sidebarWidth }}
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
@@ -6422,36 +9478,36 @@ Thank you.`;
           <div className={`mb-4 ${isSidebarHovered ? 'p-8' : 'p-4 flex justify-center'}`}>
             {isSidebarHovered ? (
               <>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">AssessmentCore</h1>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Workflow Wizard</p>
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground leading-none">AssessmentCore</h1>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50 mt-1">Workflow Wizard</p>
               </>
             ) : (
               <div className="w-9 h-9 rounded-lg bg-[#0052CC]/10 text-[#0052CC] font-black flex items-center justify-center">A</div>
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
-            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
-            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}</button>
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
+            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}</button>
             <button type="button" className={`w-full flex items-center py-3 bg-[#0052CC]/5 text-[#0052CC] font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Upload className="w-5 h-5" /> {isSidebarHovered && <span>Batch Creator</span>}</button>
-            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}</button>
+            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}</button>
           </nav>
           <div className="p-6 mt-auto">
-            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}><FileText className="w-4 h-4" />{isSidebarHovered && <span>Save Draft</span>}</button>
+            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-card border border-border text-foreground rounded-lg text-sm font-semibold hover:bg-muted/50 transition-colors hover:border-border transition-colors transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}><FileText className="w-4 h-4" />{isSidebarHovered && <span>Save Draft</span>}</button>
           </div>
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <header className="w-full bg-white border-b border-slate-200 pt-4 pb-5 px-12 flex flex-col shrink-0">
+          <header className="w-full bg-card border-b border-border pt-4 pb-5 px-12 flex flex-col shrink-0">
             <div className="flex justify-between items-center mb-6">
               <nav className="flex items-center gap-2 text-xs font-medium">
-                <span className="text-slate-400">Batches</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className="text-muted-foreground/50">Batches</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
                 <span className="text-[#0052CC] font-semibold">{fileData?.fileName || 'New Assessment Batch'}</span>
               </nav>
               <div className="flex items-center gap-6" ref={profileMenuRef}>
-                <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
-                  <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
-                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-slate-400 hover:text-slate-600 transition-colors relative" title="Notifications"><Bell className="w-5 h-5" /><span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" /></button>
+                <div className="flex items-center gap-4 border-r border-border pr-6">
+                  <button type="button" className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
+                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors relative" title="Notifications"><Bell className="w-5 h-5" /><span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full border-2 border-white" /></button>
                 </div>
                 <div className="relative">
                   <button
@@ -6461,13 +9517,13 @@ Thank you.`;
                     aria-expanded={isProfileMenuOpen}
                   >
                     <div className="text-right">
-                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                      <p className="text-xs font-bold text-foreground leading-none">{user?.email?.split('@')[0] || 'User'}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest">Admin Tier</p>
                     </div>
-                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#f1f5f9] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
                   </button>
 
-                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#e2e8f0] bg-card shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
                     isProfileMenuOpen
                       ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                       : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
@@ -6478,7 +9534,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         toast.info('Profile page will be available soon');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Profile
                     </button>
@@ -6489,7 +9545,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         navigate('/workspace/dashboard');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Dashboard
                     </button>
@@ -6498,14 +9554,14 @@ Thank you.`;
               </div>
             </div>
             <div className="max-w-5xl mx-auto w-full relative px-8">
-              <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-200" />
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-muted" />
               <div className="flex items-center justify-between relative z-10">
                 {stepOrder.map((step, idx) => {
                   const isCurrent = idx === currentStepIndex;
                   const isDone = idx < currentStepIndex;
                   return (
                     <button key={`cfg-stepper-${step}`} type="button" onClick={() => handleStepperJump(step)} disabled={!canNavigateToStep(step)} className="flex items-center justify-center disabled:cursor-not-allowed">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${isDone ? 'bg-emerald-600 text-white ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20' : isCurrent ? 'bg-[#0052CC] text-white ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20' : 'bg-white border-2 border-slate-200 text-slate-400'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${isDone ? 'bg-emerald-600 text-primary-foreground ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20' : isCurrent ? 'bg-[#0052CC] text-primary-foreground ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20' : 'bg-card border-2 border-border text-muted-foreground/50'}`}>
                         {getStepperIcon(step)}
                       </div>
                     </button>
@@ -6516,85 +9572,85 @@ Thank you.`;
           </header>
 
           <main className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-y-auto bg-slate-50/50 p-8 pb-28">
+            <div className="flex-1 overflow-y-auto bg-muted/50 p-8 pb-28">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div className="lg:col-span-8 space-y-6">
-                  <Card className="border border-slate-200 shadow-sm">
+                  <Card className="border border-border shadow-sm">
                     <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Settings className="w-4 h-4 text-[#0052CC]" /> Export Configuration</CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-base text-foreground"><Settings className="w-4 h-4 text-[#0052CC]" /> Export Configuration</CardTitle>
                       <CardDescription>Configure how your questions will be packaged and exported</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-4 rounded-xl border border-[#bfd6ff] bg-[#eef4ff] p-5">
-                        <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052CC] text-white text-xs flex items-center justify-center font-bold shrink-0">1</div><span className="text-sm font-semibold text-slate-900">Output Format</span></div>
+                      <div className="space-y-4 rounded-xl border border-[#cbd5e1] bg-[#eef4ff] p-5">
+                        <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052CC] text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0">1</div><span className="text-sm font-semibold text-foreground">Output Format</span></div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">QTI Version <span className="text-red-500">*</span></label>
-                          <div className="flex gap-2 flex-wrap">{[{ value: 'qti-1.2', label: 'QTI 1.2' }, { value: 'qti-2.1', label: 'QTI 2.1' }, { value: 'qti-3.0', label: 'QTI 3.0' }, { value: 'json', label: 'JSON' }].map(({ value, label }) => (<button key={value} type="button" onClick={() => { setOutputFormat(value); setExportValidationError(''); setConfigurationValidationError(''); }} className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${outputFormat === value ? 'bg-[#2457b8] text-white border-[#2457b8] shadow-sm' : 'bg-white text-[#2f4b80] border-[#bfd6ff] hover:border-[#2457b8] hover:text-[#2457b8]'} ${outputFormat === '' && showConfigErrors ? 'border-red-300' : ''}`}>{label}</button>))}</div>
+                          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">QTI Version <span className="text-destructive">*</span></label>
+                          <div className="flex gap-2 flex-wrap">{[{ value: 'qti-1.2', label: 'QTI 1.2' }, { value: 'qti-2.1', label: 'QTI 2.1' }, { value: 'qti-3.0', label: 'QTI 3.0' }, { value: 'json', label: 'JSON' }].map(({ value, label }) => (<button key={value} type="button" onClick={() => { setOutputFormat(value); setExportValidationError(''); setConfigurationValidationError(''); }} className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${outputFormat === value ? 'bg-[#111827] text-primary-foreground border-[#111827] shadow-sm' : 'bg-card text-[#2f4b80] border-[#cbd5e1] hover:border-[#111827] hover:text-[#111827]'} ${outputFormat === '' && showConfigErrors ? 'border-red-300' : ''}`}>{label}</button>))}</div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">Package Type <span className="text-red-500">*</span></label>
-                          <div className="grid grid-cols-2 gap-3">{[{ value: 'qti-package', icon: <Download className="w-5 h-5" />, title: 'QTI Package', desc: 'ZIP with imsmanifest.xml for standards-compliant package delivery' }, { value: 'xml-media-folder', icon: <FolderOpen className="w-5 h-5" />, title: 'XML + Media', desc: 'Separate xml/ and media/ folders - for custom pipelines' }].map(({ value, icon, title, desc }) => (<button key={value} type="button" onClick={() => { setExportMode(value as any); setExportValidationError(''); setConfigurationValidationError(''); }} className={`relative flex flex-col items-start gap-1.5 p-4 rounded-xl border-2 text-left transition-all ${exportMode === value ? 'border-[#2457b8] bg-white shadow-sm' : `border-[#bfd6ff] bg-white hover:border-[#2457b8]/60 ${exportMode === '' && showConfigErrors ? 'border-red-200' : ''}`}`}>{exportMode === value && (<CheckCircle2 className="w-4 h-4 text-[#2457b8] absolute top-3 right-3" />)}<span className={`${exportMode === value ? 'text-[#2457b8]' : 'text-[#2f4b80]'}`}>{icon}</span><span className={`text-sm font-semibold ${exportMode === value ? 'text-[#2457b8]' : 'text-slate-900'}`}>{title}</span><span className="text-xs text-slate-500 leading-snug">{desc}</span></button>))}</div>
+                          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Package Type <span className="text-destructive">*</span></label>
+                          <div className="grid grid-cols-2 gap-3">{[{ value: 'qti-package', icon: <Download className="w-5 h-5" />, title: 'QTI Package', desc: 'ZIP with imsmanifest.xml for standards-compliant package delivery' }, { value: 'xml-media-folder', icon: <FolderOpen className="w-5 h-5" />, title: 'XML + Media', desc: 'Separate xml/ and media/ folders - for custom pipelines' }].map(({ value, icon, title, desc }) => (<button key={value} type="button" onClick={() => { setExportMode(value as any); setExportValidationError(''); setConfigurationValidationError(''); }} className={`relative flex flex-col items-start gap-1.5 p-4 rounded-xl border-2 text-left transition-all ${exportMode === value ? 'border-[#111827] bg-card shadow-sm' : `border-[#cbd5e1] bg-card hover:border-[#111827]/60 ${exportMode === '' && showConfigErrors ? 'border-destructive' : ''}`}`}>{exportMode === value && (<CheckCircle2 className="w-4 h-4 text-[#111827] absolute top-3 right-3" />)}<span className={`${exportMode === value ? 'text-[#111827]' : 'text-[#2f4b80]'}`}>{icon}</span><span className={`text-sm font-semibold ${exportMode === value ? 'text-[#111827]' : 'text-foreground'}`}>{title}</span><span className="text-xs text-muted-foreground leading-snug">{desc}</span></button>))}</div>
                         </div>
                       </div>
 
-                      <div className="border-t border-slate-100" />
+                      <div className="border-t border-border" />
 
                       <div className="space-y-4 rounded-xl border border-[#ffd8a8] bg-[#fff5e9] p-5">
-                        <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052CC] text-white text-xs flex items-center justify-center font-bold shrink-0">2</div><span className="text-sm font-semibold text-slate-900">Data Features</span></div>
+                        <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052CC] text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0">2</div><span className="text-sm font-semibold text-foreground">Data Features</span></div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="bg-white rounded-xl p-4 space-y-3 border border-[#ffd8a8]"><div className="flex items-center gap-2"><Image className="w-4 h-4 text-[#a45a07]" /><span className="text-sm font-medium text-slate-900">Contains Images?</span><span className="text-red-500 text-xs ml-auto">*</span></div><div className="flex gap-2">{(['yes', 'no'] as const).map((v) => (<button key={v} type="button" onClick={() => { setContainsImages(v); setConfigurationValidationError(''); if (v === 'no') { setMediaZipFile(null); setMediaFiles(new Map()); setMediaValidationErrors([]); } }} className={`flex-1 py-1.5 rounded-lg border text-sm font-semibold transition-all capitalize ${containsImages === v ? v === 'yes' ? 'bg-[#a45a07] text-white border-[#a45a07]' : 'bg-slate-800 text-white border-slate-800' : `bg-white text-[#7a4c1b] border-[#ffd8a8] hover:border-[#a45a07] ${containsImages === '' && showConfigErrors ? 'border-red-200' : ''}`}`}>{v === 'yes' ? 'Yes' : 'No'}</button>))}</div></div>
-                          <div className="bg-white rounded-xl p-4 space-y-3 border border-[#ffd8a8]"><div className="flex items-center gap-2"><Code className="w-4 h-4 text-[#a45a07]" /><span className="text-sm font-medium text-slate-900">Contains Math?</span><span className="text-red-500 text-xs ml-auto">*</span></div><div className="flex gap-2">{(['yes', 'no'] as const).map((v) => (<button key={v} type="button" onClick={() => { setContainsMath(v); setConfigurationValidationError(''); if (v === 'no') setMathFormat(''); }} className={`flex-1 py-1.5 rounded-lg border text-sm font-semibold transition-all capitalize ${containsMath === v ? v === 'yes' ? 'bg-[#a45a07] text-white border-[#a45a07]' : 'bg-slate-800 text-white border-slate-800' : `bg-white text-[#7a4c1b] border-[#ffd8a8] hover:border-[#a45a07] ${containsMath === '' && showConfigErrors ? 'border-red-200' : ''}`}`}>{v === 'yes' ? 'Yes' : 'No'}</button>))}</div>{containsMath === 'yes' && (<div className="pt-1 space-y-1.5"><label className="block text-xs text-[#7a4c1b]">Math Format <span className="text-red-500">*</span></label><div className="flex gap-2">{[{ value: 'mathjax', label: 'MathJax' }, { value: 'mathml', label: 'MathML' }].map(({ value, label }) => (<button key={value} type="button" onClick={() => { setMathFormat(value as any); setConfigurationValidationError(''); }} className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all ${mathFormat === value ? 'bg-[#a45a07] text-white border-[#a45a07]' : `bg-white text-[#7a4c1b] border-[#ffd8a8] hover:border-[#a45a07] ${mathFormat === '' && showConfigErrors ? 'border-red-200' : ''}`}`}>{label}</button>))}</div></div>)}</div>
+                          <div className="bg-card rounded-xl p-4 space-y-3 border border-[#ffd8a8]"><div className="flex items-center gap-2"><Image className="w-4 h-4 text-[#a45a07]" /><span className="text-sm font-medium text-foreground">Contains Images?</span><span className="text-destructive text-xs ml-auto">*</span></div><div className="flex gap-2">{(['yes', 'no'] as const).map((v) => (<button key={v} type="button" onClick={() => { setContainsImages(v); setConfigurationValidationError(''); if (v === 'no') { setMediaZipFile(null); setMediaFiles(new Map()); setMediaValidationErrors([]); } }} className={`flex-1 py-1.5 rounded-lg border text-sm font-semibold transition-all capitalize ${containsImages === v ? v === 'yes' ? 'bg-[#a45a07] text-primary-foreground border-[#a45a07]' : 'bg-primary text-primary-foreground border-slate-800' : `bg-card text-[#7a4c1b] border-[#ffd8a8] hover:border-[#a45a07] ${containsImages === '' && showConfigErrors ? 'border-destructive' : ''}`}`}>{v === 'yes' ? 'Yes' : 'No'}</button>))}</div></div>
+                          <div className="bg-card rounded-xl p-4 space-y-3 border border-[#ffd8a8]"><div className="flex items-center gap-2"><Code className="w-4 h-4 text-[#a45a07]" /><span className="text-sm font-medium text-foreground">Contains Math?</span>{mathAutoApplied && mathDetection?.hasMath && (<span title={`LaTeX detected in ${mathDetection.rowsWithMath}/${mathDetection.totalRows} rows`} className="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[#fff1d8] text-[#a45a07] border border-[#ffd8a8]">Auto-detected</span>)}{mathAutoApplied && !mathDetection?.hasMath && (<span title="No LaTeX delimiters found in the uploaded sheet" className="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Auto: none</span>)}<span className="text-destructive text-xs ml-auto">*</span></div>{mathAutoApplied && mathDetection?.hasMath && (<p className="text-xs text-[#7a4c1b] -mt-1">LaTeX delimiters found in {mathDetection.rowsWithMath} of {mathDetection.totalRows} rows. You can override below if needed.</p>)}<div className="flex gap-2">{(['yes', 'no'] as const).map((v) => (<button key={v} type="button" onClick={() => { setContainsMath(v); setConfigurationValidationError(''); if (v === 'no') setMathFormat(''); }} className={`flex-1 py-1.5 rounded-lg border text-sm font-semibold transition-all capitalize ${containsMath === v ? v === 'yes' ? 'bg-[#a45a07] text-primary-foreground border-[#a45a07]' : 'bg-primary text-primary-foreground border-slate-800' : `bg-card text-[#7a4c1b] border-[#ffd8a8] hover:border-[#a45a07] ${containsMath === '' && showConfigErrors ? 'border-destructive' : ''}`}`}>{v === 'yes' ? 'Yes' : 'No'}</button>))}</div>{containsMath === 'yes' && (<div className="pt-1 space-y-1.5"><label className="block text-xs text-[#7a4c1b]">Math Format <span className="text-destructive">*</span></label><div className="flex gap-2">{[{ value: 'mathjax', label: 'MathJax' }, { value: 'mathml', label: 'MathML' }].map(({ value, label }) => (<button key={value} type="button" onClick={() => { setMathFormat(value as any); setConfigurationValidationError(''); }} className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all ${mathFormat === value ? 'bg-[#a45a07] text-primary-foreground border-[#a45a07]' : `bg-card text-[#7a4c1b] border-[#ffd8a8] hover:border-[#a45a07] ${mathFormat === '' && showConfigErrors ? 'border-destructive' : ''}`}`}>{label}</button>))}</div></div>)}</div>
                         </div>
                       </div>
 
-                      <div className="border-t border-slate-100" />
+                      <div className="border-t border-border" />
 
                       <div className="space-y-3 rounded-xl border border-[#b9e6d2] bg-[#ebfff5] p-5">
-                        <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052CC] text-white text-xs flex items-center justify-center font-bold shrink-0">3</div><span className="text-sm font-semibold text-slate-900">Template XML</span></div>
-                        <div className="bg-white rounded-xl p-4 space-y-3 border border-[#b9e6d2]">
-                          <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-slate-900">Use a template XML?</p><p className="text-xs text-[#1f6c4a] mt-0.5">Apply a structural XML template to all generated items</p></div><div className="flex gap-2 shrink-0">{(['yes', 'no'] as const).map((v) => (<button key={v} type="button" onClick={() => { setHasTemplateXml(v); setConfigurationValidationError(''); if (v === 'no') setTemplateXmlFile(null); }} className={`px-4 py-1.5 rounded-lg border text-sm font-semibold transition-all ${hasTemplateXml === v ? v === 'yes' ? 'bg-[#18794e] text-white border-[#18794e]' : 'bg-slate-800 text-white border-slate-800' : `bg-white text-[#1f6c4a] border-[#b9e6d2] hover:border-[#18794e] ${hasTemplateXml === '' && showConfigErrors ? 'border-red-200' : ''}`}`}>{v === 'yes' ? 'Yes' : 'No'}</button>))}</div></div>
+                        <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052CC] text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0">3</div><span className="text-sm font-semibold text-foreground">Template XML</span></div>
+                        <div className="bg-card rounded-xl p-4 space-y-3 border border-[#b9e6d2]">
+                          <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-foreground">Use a template XML?</p><p className="text-xs text-[#1f6c4a] mt-0.5">Apply a structural XML template to all generated items</p></div><div className="flex gap-2 shrink-0">{(['yes', 'no'] as const).map((v) => (<button key={v} type="button" onClick={() => { setHasTemplateXml(v); setConfigurationValidationError(''); if (v === 'no') setTemplateXmlFile(null); }} className={`px-4 py-1.5 rounded-lg border text-sm font-semibold transition-all ${hasTemplateXml === v ? v === 'yes' ? 'bg-[#18794e] text-primary-foreground border-[#18794e]' : 'bg-primary text-primary-foreground border-slate-800' : `bg-card text-[#1f6c4a] border-[#b9e6d2] hover:border-[#18794e] ${hasTemplateXml === '' && showConfigErrors ? 'border-destructive' : ''}`}`}>{v === 'yes' ? 'Yes' : 'No'}</button>))}</div></div>
                         </div>
                       </div>
 
-                      {configurationValidationError && (<Alert className="bg-[#ffdad6] border-red-300"><AlertCircle className="h-4 w-4 text-red-500" /><AlertDescription className="text-red-700 text-sm">{configurationValidationError}</AlertDescription></Alert>)}
+                      {configurationValidationError && (<Alert className="bg-[#ffdad6] border-red-300"><AlertCircle className="h-4 w-4 text-destructive" /><AlertDescription className="text-destructive text-sm">{configurationValidationError}</AlertDescription></Alert>)}
                     </CardContent>
                   </Card>
                 </div>
 
                 <div className="lg:col-span-4 space-y-4">
-                  <Card className="border border-[#bfd6ff] bg-[#eef4ff] shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-sm font-semibold text-[#2457b8]">Configuration Checklist</CardTitle><CardDescription className="text-xs text-[#2f4b80]">Progress: {completedConfigCount}/{configChecklist.length}</CardDescription></CardHeader><CardContent className="space-y-2">{configChecklist.map(({ label, done }) => (<div key={label} className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-[#2457b8]' : 'bg-[#bfd6ff]'}`}>{done && <Check className="w-2.5 h-2.5 text-white" />}</div><span className={`text-sm ${done ? 'text-[#2457b8] font-semibold' : 'text-[#2f4b80]'}`}>{label}</span></div>))}<div className="pt-2"><div className="h-1.5 rounded-full bg-[#bfd6ff] overflow-hidden"><div className="h-full bg-[#2457b8] transition-all duration-300" style={{ width: `${configProgress}%` }} /></div></div></CardContent></Card>
+                  <Card className="border border-[#cbd5e1] bg-[#eef4ff] shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-sm font-semibold text-[#111827]">Configuration Checklist</CardTitle><CardDescription className="text-xs text-[#2f4b80]">Progress: {completedConfigCount}/{configChecklist.length}</CardDescription></CardHeader><CardContent className="space-y-2">{configChecklist.map(({ label, done }) => (<div key={label} className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-[#111827]' : 'bg-[#cbd5e1]'}`}>{done && <Check className="w-2.5 h-2.5 text-primary-foreground" />}</div><span className={`text-sm ${done ? 'text-[#111827] font-semibold' : 'text-[#2f4b80]'}`}>{label}</span></div>))}<div className="pt-2"><div className="h-1.5 rounded-full bg-[#cbd5e1] overflow-hidden"><div className="h-full bg-[#111827] transition-all duration-300" style={{ width: `${configProgress}%` }} /></div></div></CardContent></Card>
 
                   {hasTemplateXml === 'yes' && (
-                    <Card className="border border-[#b9e6d2] bg-[#ebfff5] shadow-sm"><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#18794e]"><FileText className="w-4 h-4 text-[#18794e]" /> Template XML</CardTitle><CardDescription className="text-xs text-[#1f6c4a]">Upload the XML template to apply across generated items</CardDescription></CardHeader><CardContent className="space-y-3"><label htmlFor="template-xml-upload" className="block w-full cursor-pointer"><div className={`border border-dashed rounded-lg p-4 text-center hover:border-[#18794e] hover:bg-white transition-colors ${templateXmlFile ? 'border-[#18794e] bg-white' : 'border-[#b9e6d2] bg-[#ebfff5]'}`}>{templateXmlFile ? (<div className="flex items-center justify-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#18794e]" /><span className="text-sm font-semibold text-[#18794e]">{templateXmlFile.name}</span></div>) : (<><FileText className="w-6 h-6 text-[#1f6c4a] mx-auto mb-1" /><p className="text-sm text-[#1f6c4a]">Click to upload <span className="font-semibold">.xml</span> template</p></>)}</div><input id="template-xml-upload" type="file" className="hidden" onChange={handleTemplateUpload} accept=".xml" /></label></CardContent></Card>
+                    <Card className="border border-[#b9e6d2] bg-[#ebfff5] shadow-sm"><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#18794e]"><FileText className="w-4 h-4 text-[#18794e]" /> Template XML</CardTitle><CardDescription className="text-xs text-[#1f6c4a]">Upload the XML template to apply across generated items</CardDescription></CardHeader><CardContent className="space-y-3"><label htmlFor="template-xml-upload" className="block w-full cursor-pointer"><div className={`border border-dashed rounded-lg p-4 text-center hover:border-[#18794e] hover:bg-card transition-colors ${templateXmlFile ? 'border-[#18794e] bg-card' : 'border-[#b9e6d2] bg-[#ebfff5]'}`}>{templateXmlFile ? (<div className="flex items-center justify-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#18794e]" /><span className="text-sm font-semibold text-[#18794e]">{templateXmlFile.name}</span></div>) : (<><FileText className="w-6 h-6 text-[#1f6c4a] mx-auto mb-1" /><p className="text-sm text-[#1f6c4a]">Click to upload <span className="font-semibold">.xml</span> template</p></>)}</div><input id="template-xml-upload" type="file" className="hidden" onChange={handleTemplateUpload} accept=".xml" /></label></CardContent></Card>
                   )}
 
                   {containsImages === 'yes' && (
-                    <Card className="border border-[#b9e6d2] bg-[#ebfff5] shadow-sm"><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#18794e]"><Image className="w-4 h-4 text-[#18794e]" /> Media Files</CardTitle><CardDescription className="text-xs text-[#1f6c4a]">Upload images referenced in your questions</CardDescription></CardHeader><CardContent className="space-y-3"><div className="grid grid-cols-2 gap-2"><label htmlFor="media-upload-cfg" className="cursor-pointer"><div className="border border-dashed border-[#b9e6d2] rounded-lg p-3 text-center hover:border-[#18794e] hover:bg-white transition-colors"><Download className="w-5 h-5 text-[#1f6c4a] mx-auto mb-1" /><p className="text-xs font-semibold text-[#1f6c4a]">ZIP File</p></div><input id="media-upload-cfg" type="file" className="hidden" onChange={handleMediaUpload} accept=".zip" /></label><label htmlFor="media-folder-upload-cfg" className="cursor-pointer"><div className="border border-dashed border-[#b9e6d2] rounded-lg p-3 text-center hover:border-[#18794e] hover:bg-white transition-colors"><FolderOpen className="w-5 h-5 text-[#1f6c4a] mx-auto mb-1" /><p className="text-xs font-semibold text-[#1f6c4a]">Folder</p></div><input id="media-folder-upload-cfg" type="file" className="hidden" multiple onChange={handleMediaFolderUpload} accept=".png,.jpg,.jpeg,.gif,.svg,.webp,.bmp" {...({ webkitdirectory: 'true', directory: 'true' } as any)} /></label></div>{isProcessingMedia && (<p className="text-xs text-[#1f6c4a] flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Processing media files...</p>)}{(mediaZipFile || mediaFiles.size > 0) && !isProcessingMedia && (<div className="rounded-lg border border-[#b9e6d2] bg-white px-3 py-2"><p className="text-xs font-semibold text-[#18794e]">{mediaZipFile ? mediaZipFile.name : 'Folder selected'}</p><p className="text-[11px] text-[#1f6c4a]">{mediaFiles.size} image(s) loaded</p></div>)}</CardContent></Card>
+                    <Card className="border border-[#b9e6d2] bg-[#ebfff5] shadow-sm"><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#18794e]"><Image className="w-4 h-4 text-[#18794e]" /> Media Files</CardTitle><CardDescription className="text-xs text-[#1f6c4a]">Upload images referenced in your questions</CardDescription></CardHeader><CardContent className="space-y-3"><div className="grid grid-cols-2 gap-2"><label htmlFor="media-upload-cfg" className="cursor-pointer"><div className="border border-dashed border-[#b9e6d2] rounded-lg p-3 text-center hover:border-[#18794e] hover:bg-card transition-colors"><Download className="w-5 h-5 text-[#1f6c4a] mx-auto mb-1" /><p className="text-xs font-semibold text-[#1f6c4a]">ZIP File</p></div><input id="media-upload-cfg" type="file" className="hidden" onChange={handleMediaUpload} accept=".zip" /></label><label htmlFor="media-folder-upload-cfg" className="cursor-pointer"><div className="border border-dashed border-[#b9e6d2] rounded-lg p-3 text-center hover:border-[#18794e] hover:bg-card transition-colors"><FolderOpen className="w-5 h-5 text-[#1f6c4a] mx-auto mb-1" /><p className="text-xs font-semibold text-[#1f6c4a]">Folder</p></div><input id="media-folder-upload-cfg" type="file" className="hidden" multiple onChange={handleMediaFolderUpload} accept=".png,.jpg,.jpeg,.gif,.svg,.webp,.bmp" {...({ webkitdirectory: 'true', directory: 'true' } as any)} /></label></div>{isProcessingMedia && (<p className="text-xs text-[#1f6c4a] flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Processing media files...</p>)}{(mediaZipFile || mediaFiles.size > 0) && !isProcessingMedia && (<div className="rounded-lg border border-[#b9e6d2] bg-card px-3 py-2"><p className="text-xs font-semibold text-[#18794e]">{mediaZipFile ? mediaZipFile.name : 'Folder selected'}</p><p className="text-xs text-[#1f6c4a]">{mediaFiles.size} image(s) loaded</p></div>)}</CardContent></Card>
                   )}
                 </div>
               </div>
             </div>
 
             <footer
-              className="fixed bottom-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
+              className="fixed bottom-0 right-0 bg-card/90 backdrop-blur-md border-t border-border px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
               style={{ left: sidebarWidth }}
             >
               <button
                 type="button"
-                onClick={() => setCurrentStep('ai-audit')}
-                className="px-6 py-2.5 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors rounded-xl"
+                onClick={() => setCurrentStep(previousStepBeforeConfigure)}
+                className="px-6 py-2.5 text-xs font-semibold text-muted-foreground border border-border/60 hover:bg-muted transition-colors transition-colors rounded-xl"
               >
-                Back to AI Audit
+                {aiAuditStageEnabled ? 'Back to AI Audit' : 'Back to Clean & Fix Stage'}
               </button>
 
               <div className="flex items-center gap-3">
                 <Button
                   onClick={handleTransformClick}
                   disabled={isExporting || !isExportConfigComplete()}
-                  className={`group px-8 py-2.5 text-xs font-semibold text-white rounded-md shadow-sm transition-colors flex items-center gap-2 ${
+                  className={`group px-8 py-2.5 text-xs font-semibold text-primary-foreground rounded-md shadow-sm transition-colors flex items-center gap-2 ${
                     !isExportConfigComplete()
-                      ? 'bg-slate-400 cursor-not-allowed'
-                      : 'bg-[#2457b8] hover:bg-[#1f4aa0]'
+                      ? 'bg-muted-foreground/30 cursor-not-allowed'
+                      : 'bg-[#111827] hover:bg-[#1f2937]'
                   }`}
                 >
                   {isExporting ? <><Loader2 className="w-4 h-4 animate-spin" /> Exporting...</> : <>Proceed to Transform <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>}
@@ -6607,7 +9663,7 @@ Thank you.`;
     );
   }
 
-  if (currentStep === 'transform') {
+  if (useLegacyStageScreens && currentStep === 'transform') {
     const previewXmlContent = selectedXmlReviewItem
       ? (
         xmlPreviewMode === 'rendered' &&
@@ -6677,9 +9733,9 @@ Thank you.`;
     const reviewRangeEnd = Math.min(generatedXmlItems.length, visibleXmlReviewStart + XML_REVIEW_PAGE_SIZE);
 
     return (
-      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-slate-900 antialiased flex overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-foreground antialiased flex overflow-hidden">
         <aside
-          className="h-screen flex-shrink-0 bg-white flex flex-col border-r border-slate-200 transition-[width] duration-300"
+          className="h-screen flex-shrink-0 bg-card flex flex-col border-r border-border transition-[width] duration-300"
           style={{ width: sidebarWidth }}
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
@@ -6687,36 +9743,36 @@ Thank you.`;
           <div className={`mb-4 ${isSidebarHovered ? 'p-8' : 'p-4 flex justify-center'}`}>
             {isSidebarHovered ? (
               <>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">AssessmentCore</h1>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Workflow Wizard</p>
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground leading-none">AssessmentCore</h1>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50 mt-1">Workflow Wizard</p>
               </>
             ) : (
               <div className="w-9 h-9 rounded-lg bg-[#0052CC]/10 text-[#0052CC] font-black flex items-center justify-center">A</div>
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
-            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
-            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}</button>
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
+            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}</button>
             <button type="button" className={`w-full flex items-center py-3 bg-[#0052CC]/5 text-[#0052CC] font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Upload className="w-5 h-5" /> {isSidebarHovered && <span>Batch Creator</span>}</button>
-            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}</button>
+            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}</button>
           </nav>
           <div className="p-6 mt-auto">
-            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}><FileText className="w-4 h-4" />{isSidebarHovered && <span>Save Draft</span>}</button>
+            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-card border border-border text-foreground rounded-lg text-sm font-semibold hover:bg-muted/50 transition-colors hover:border-border transition-colors transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}><FileText className="w-4 h-4" />{isSidebarHovered && <span>Save Draft</span>}</button>
           </div>
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <header className="w-full bg-white border-b border-slate-200 pt-4 pb-5 px-12 flex flex-col shrink-0">
+          <header className="w-full bg-card border-b border-border pt-4 pb-5 px-12 flex flex-col shrink-0">
             <div className="flex justify-between items-center mb-6">
               <nav className="flex items-center gap-2 text-xs font-medium">
-                <span className="text-slate-400">Batches</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className="text-muted-foreground/50">Batches</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
                 <span className="text-[#0052CC] font-semibold">{fileData?.fileName || 'New Assessment Batch'}</span>
               </nav>
               <div className="flex items-center gap-6" ref={profileMenuRef}>
-                <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
-                  <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
-                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-slate-400 hover:text-slate-600 transition-colors relative" title="Notifications"><Bell className="w-5 h-5" /><span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" /></button>
+                <div className="flex items-center gap-4 border-r border-border pr-6">
+                  <button type="button" className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
+                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors relative" title="Notifications"><Bell className="w-5 h-5" /><span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full border-2 border-white" /></button>
                 </div>
                 <div className="relative">
                   <button
@@ -6726,13 +9782,13 @@ Thank you.`;
                     aria-expanded={isProfileMenuOpen}
                   >
                     <div className="text-right">
-                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                      <p className="text-xs font-bold text-foreground leading-none">{user?.email?.split('@')[0] || 'User'}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest">Admin Tier</p>
                     </div>
-                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#f1f5f9] text-[#0052CC] flex items-center justify-center"><UserRound className="w-4 h-4" /></div>
                   </button>
 
-                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#e2e8f0] bg-card shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
                     isProfileMenuOpen
                       ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                       : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
@@ -6743,7 +9799,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         toast.info('Profile page will be available soon');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Profile
                     </button>
@@ -6754,7 +9810,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         navigate('/workspace/dashboard');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Dashboard
                     </button>
@@ -6763,14 +9819,14 @@ Thank you.`;
               </div>
             </div>
             <div className="max-w-5xl mx-auto w-full relative px-8">
-              <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-200" />
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-muted" />
               <div className="flex items-center justify-between relative z-10">
                 {stepOrder.map((step, idx) => {
                   const isCurrent = idx === currentStepIndex;
                   const isDone = idx < currentStepIndex;
                   return (
                     <button key={`transform-stepper-${step}`} type="button" onClick={() => handleStepperJump(step)} disabled={!canNavigateToStep(step)} className="flex items-center justify-center disabled:cursor-not-allowed">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${isDone ? 'bg-emerald-600 text-white ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20' : isCurrent ? 'bg-[#0052CC] text-white ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20' : 'bg-white border-2 border-slate-200 text-slate-400'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${isDone ? 'bg-emerald-600 text-primary-foreground ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20' : isCurrent ? 'bg-[#0052CC] text-primary-foreground ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20' : 'bg-card border-2 border-border text-muted-foreground/50'}`}>
                         {getStepperIcon(step)}
                       </div>
                     </button>
@@ -6781,14 +9837,14 @@ Thank you.`;
           </header>
 
           <main className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-y-auto bg-slate-50/50 p-8 pb-28">
+            <div className="flex-1 overflow-y-auto bg-muted/50 p-8 pb-28">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                <div className="lg:col-span-8 space-y-6">
+                <div className={`${isXmlReviewOpen ? 'lg:col-span-12' : 'lg:col-span-8'} space-y-6`}>
                   {isXmlReviewOpen ? (
                     <Card className="border border-[#c7dcff] shadow-sm bg-[#f7faff] overflow-hidden">
                       <CardHeader className="pb-3 border-b border-[#dbe8ff] bg-[#eef4ff]/70">
                         <div className="flex items-center justify-between gap-4">
-                          <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
+                          <CardTitle className="flex items-center gap-2 text-lg text-foreground">
                             <Eye className="w-5 h-5 text-[#0052CC]" />
                             XML Review Before Download
                           </CardTitle>
@@ -6799,28 +9855,46 @@ Thank you.`;
                                 setXmlPreviewMode('rendered');
                                 setIsRawXmlEditing(false);
                               }}
-                              className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${xmlPreviewMode === 'rendered' ? 'bg-[#2457b8] text-white border-[#2457b8]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}
+                              className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${xmlPreviewMode === 'rendered' ? 'bg-[#111827] text-primary-foreground border-[#111827]' : 'bg-card text-muted-foreground border-border/60 hover:bg-muted/50 transition-colors'}`}
                             >
                               Rendered Preview
                             </button>
                             <button
                               type="button"
                               onClick={() => setXmlPreviewMode('raw')}
-                              className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${xmlPreviewMode === 'raw' ? 'bg-[#2457b8] text-white border-[#2457b8]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}
+                              className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${xmlPreviewMode === 'raw' ? 'bg-[#111827] text-primary-foreground border-[#111827]' : 'bg-card text-muted-foreground border-border/60 hover:bg-muted/50 transition-colors'}`}
                             >
                               Raw XML
                             </button>
                           </div>
                         </div>
+                        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
+                          <div className="rounded-md border border-border bg-card px-2.5 py-2">
+                            <p className="font-semibold text-foreground">Questions</p>
+                            <p>{stats.valid + stats.caution}</p>
+                          </div>
+                          <div className="rounded-md border border-border bg-card px-2.5 py-2">
+                            <p className="font-semibold text-foreground">Rejected</p>
+                            <p>{stats.rejected}</p>
+                          </div>
+                          <div className="rounded-md border border-border bg-card px-2.5 py-2">
+                            <p className="font-semibold text-foreground">Format</p>
+                            <p>{outputFormat || 'Not selected'}</p>
+                          </div>
+                          <div className="rounded-md border border-border bg-card px-2.5 py-2">
+                            <p className="font-semibold text-foreground">Package</p>
+                            <p>{exportMode || 'Not selected'}</p>
+                          </div>
+                        </div>
                       </CardHeader>
-                      <CardContent className="p-0">
-                        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[560px]">
-                          <div className="md:col-span-4 border-r border-slate-200 flex flex-col">
-                            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Questions</p>
-                              <span className="text-xs text-slate-500">{reviewRangeStart}-{reviewRangeEnd} / {generatedXmlItems.length}</span>
+                      <CardContent className="p-0 h-[68vh] min-h-[560px]">
+                        <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+                          <div className="md:col-span-3 border-r border-border flex flex-col min-h-0">
+                            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Questions</p>
+                              <span className="text-xs text-muted-foreground">{reviewRangeStart}-{reviewRangeEnd} / {generatedXmlItems.length}</span>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                            <div className="flex-1 overflow-y-auto overscroll-contain p-2 space-y-1">
                               {visibleXmlReviewItems.map((item, idx) => {
                                 const absoluteIndex = visibleXmlReviewStart + idx;
                                 return (
@@ -6831,60 +9905,60 @@ Thank you.`;
                                       setSelectedXmlReviewIndex(absoluteIndex);
                                       setIsRawXmlEditing(false);
                                     }}
-                                    className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${selectedXmlReviewIndex === absoluteIndex ? 'border-[#2457b8] bg-[#eef4ff]' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                                    className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${selectedXmlReviewIndex === absoluteIndex ? 'border-[#111827] bg-[#eef4ff]' : 'border-border bg-card hover:bg-muted/50 transition-colors'}`}
                                   >
-                                    <p className="text-xs font-semibold text-slate-900 truncate">{item.fileName.replace('.xml', '')}</p>
-                                    <p className="text-[11px] text-slate-500 truncate">{item.fileName}</p>
+                                    <p className="text-xs font-semibold text-foreground truncate">{item.fileName.replace('.xml', '')}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{item.fileName}</p>
                                   </button>
                                 );
                               })}
                             </div>
-                            <div className="px-3 py-2 border-t border-slate-100 flex items-center justify-between">
+                            <div className="px-3 py-2 border-t border-border flex items-center justify-between">
                               <button
                                 type="button"
                                 onClick={() => setXmlReviewPageIndex((prev) => Math.max(0, prev - 1))}
                                 disabled={xmlReviewPageIndex === 0}
-                                className="h-8 w-8 rounded-md border border-slate-200 bg-white text-slate-600 disabled:text-slate-300 disabled:bg-slate-100 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center justify-center"
+                                className="h-8 w-8 rounded-md border border-border bg-card text-muted-foreground disabled:text-muted-foreground/30 disabled:bg-muted disabled:cursor-not-allowed hover:bg-muted/50 transition-colors flex items-center justify-center"
                               >
                                 <ChevronLeft className="w-4 h-4" />
                               </button>
-                              <span className="text-xs font-medium text-slate-500">Page {xmlReviewPageIndex + 1} / {totalXmlReviewPages}</span>
+                              <span className="text-xs font-medium text-muted-foreground">Page {xmlReviewPageIndex + 1} / {totalXmlReviewPages}</span>
                               <button
                                 type="button"
                                 onClick={() => setXmlReviewPageIndex((prev) => Math.min(totalXmlReviewPages - 1, prev + 1))}
                                 disabled={xmlReviewPageIndex >= totalXmlReviewPages - 1}
-                                className="h-8 w-8 rounded-md border border-slate-200 bg-white text-slate-600 disabled:text-slate-300 disabled:bg-slate-100 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center justify-center"
+                                className="h-8 w-8 rounded-md border border-border bg-card text-muted-foreground disabled:text-muted-foreground/30 disabled:bg-muted disabled:cursor-not-allowed hover:bg-muted/50 transition-colors flex items-center justify-center"
                               >
                                 <ChevronRight className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
 
-                          <div className="md:col-span-8 flex flex-col">
+                          <div className="md:col-span-9 flex flex-col min-h-0">
                             {!selectedXmlReviewItem ? (
-                              <div className="p-6 text-sm text-slate-500">No XML item selected.</div>
+                              <div className="p-6 text-sm text-muted-foreground">No XML item selected.</div>
                             ) : (
                               <>
-                                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
+                                <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
                                   <div>
-                                    <p className="text-sm font-semibold text-slate-900">{selectedXmlReviewItem.fileName}</p>
-                                    <p className="text-xs text-slate-500">Item {selectedXmlReviewIndex + 1} of {generatedXmlItems.length}</p>
+                                    <p className="text-sm font-semibold text-foreground">{selectedXmlReviewItem.fileName}</p>
+                                    <p className="text-xs text-muted-foreground">Item {selectedXmlReviewIndex + 1} of {generatedXmlItems.length}</p>
                                   </div>
                                   {xmlPreviewMode === 'raw' && (
                                     <div className="flex items-center gap-2">
                                       {isRawXmlEditing ? (
                                         <>
-                                          <button type="button" onClick={handleSaveCurrentRawXml} className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[#2457b8] text-white hover:bg-[#1f4aa0]">Save Edit</button>
-                                          <button type="button" onClick={() => { setRawXmlDraft(selectedXmlReviewItem.xmlContent); setIsRawXmlEditing(false); }} className="px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50">Cancel</button>
+                                          <button type="button" onClick={handleSaveCurrentRawXml} className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[#111827] text-primary-foreground hover:bg-[#1f2937]">Save Edit</button>
+                                          <button type="button" onClick={() => { setRawXmlDraft(selectedXmlReviewItem.xmlContent); setIsRawXmlEditing(false); }} className="px-3 py-1.5 rounded-md text-xs font-semibold border border-border/60 text-foreground hover:bg-muted/50 transition-colors">Cancel</button>
                                         </>
                                       ) : (
-                                        <button type="button" onClick={() => setIsRawXmlEditing(true)} className="px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50">Edit XML</button>
+                                        <button type="button" onClick={() => setIsRawXmlEditing(true)} className="px-3 py-1.5 rounded-md text-xs font-semibold border border-border/60 text-foreground hover:bg-muted/50 transition-colors">Edit XML</button>
                                       )}
                                       <button
                                         type="button"
                                         onClick={handleAiFixCurrentXml}
                                         disabled={xmlReviewFixingIndex === selectedXmlReviewIndex}
-                                        className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[#18794e] text-white hover:bg-[#136541] disabled:opacity-60"
+                                        className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[#18794e] text-primary-foreground hover:bg-[#136541] disabled:opacity-60"
                                       >
                                         {xmlReviewFixingIndex === selectedXmlReviewIndex ? 'AI Fixing...' : 'AI Fix'}
                                       </button>
@@ -6892,31 +9966,31 @@ Thank you.`;
                                   )}
                                 </div>
 
-                                <div className="flex-1 overflow-auto p-4 bg-slate-50/50">
+                                <div className="flex-1 overflow-auto p-4 bg-muted/50 min-h-0">
                                   {xmlPreviewMode === 'rendered' ? (
                                     selectedPreviewData?.parseError ? (
                                       <Alert className="bg-rose-50 border-rose-200"><AlertCircle className="h-4 w-4 text-rose-600" /><AlertDescription className="text-rose-700 text-sm">Unable to render XML: {selectedPreviewData.parseError}</AlertDescription></Alert>
                                     ) : (
                                       <div className="space-y-4">
-                                        <Card className="border-[#bfd6ff] bg-[#f5f9ff] shadow-sm">
+                                        <Card className="border-[#cbd5e1] bg-[#f5f9ff] shadow-sm">
                                           <CardHeader className="pb-2">
-                                            <CardTitle className="text-sm font-semibold text-slate-900">Student Preview</CardTitle>
+                                            <CardTitle className="text-sm font-semibold text-foreground">Student Preview</CardTitle>
                                           </CardHeader>
                                           <CardContent className="space-y-4">
-                                            <div className="rounded-lg border border-[#d7e5ff] bg-white p-3 text-xs text-slate-700">
-                                              <p><span className="font-semibold text-slate-900">Question ID:</span> {selectedPreviewData?.itemIdentifier || selectedXmlReviewItem.fileName.replace('.xml', '')}</p>
+                                            <div className="rounded-lg border border-[#e2e8f0] bg-card p-3 text-xs text-foreground">
+                                              <p><span className="font-semibold text-foreground">Question ID:</span> {selectedPreviewData?.itemIdentifier || selectedXmlReviewItem.fileName.replace('.xml', '')}</p>
                                             </div>
 
-                                            <div className="rounded-lg border border-[#d7e5ff] bg-white p-4 space-y-3">
-                                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Question</p>
+                                            <div className="rounded-lg border border-[#e2e8f0] bg-card p-4 space-y-3">
+                                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Question</p>
                                               <MathMLRenderer
                                                 content={selectedPreviewData?.stemHtml || selectedPreviewData?.interactionPromptHtml || selectedPreviewData?.itemBodyHtml || ''}
-                                                className="text-sm text-slate-800 leading-relaxed"
+                                                className="text-sm text-foreground leading-relaxed"
                                               />
                                             </div>
 
-                                            <div className="rounded-lg border border-[#d7e5ff] bg-[#fcfdff] p-4 space-y-3">
-                                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Interaction</p>
+                                            <div className="rounded-lg border border-[#e2e8f0] bg-[#fcfdff] p-4 space-y-3">
+                                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Interaction</p>
 
                                               {selectedPreviewData?.interactionType === 'choice' && (
                                                 <div className="space-y-2">
@@ -6924,7 +9998,7 @@ Thank you.`;
                                                     const isMultiple = (selectedPreviewData.maxChoices || 1) > 1;
                                                     const checked = selectedChoiceResponse.includes(choice.id);
                                                     return (
-                                                      <label key={`student-choice-${choice.id}`} className="flex items-start gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white">
+                                                      <label key={`student-choice-${choice.id}`} className="flex items-start gap-2 rounded-md border border-border px-3 py-2 text-sm text-foreground bg-card">
                                                         <input
                                                           type={isMultiple ? 'checkbox' : 'radio'}
                                                           name={`student-choice-${selectedXmlReviewIndex}`}
@@ -6943,7 +10017,7 @@ Thank you.`;
                                                             });
                                                           }}
                                                         />
-                                                        <span className="flex-1"><MathMLRenderer content={choice.html} inline className="text-sm text-slate-800" /></span>
+                                                        <span className="flex-1"><MathMLRenderer content={choice.html} inline className="text-sm text-foreground" /></span>
                                                       </label>
                                                     );
                                                   })}
@@ -6963,7 +10037,7 @@ Thank you.`;
                                                     });
                                                   }}
                                                   placeholder={selectedPreviewData.textEntryPlaceholders[0]?.placeholderText || 'Enter your answer'}
-                                                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                                                  className="w-full rounded-md border border-border/60 bg-card px-3 py-2 text-sm text-foreground"
                                                 />
                                               )}
 
@@ -6973,9 +10047,9 @@ Thank you.`;
                                                     const choice = selectedPreviewData.orderChoices.find((c) => c.id === choiceId);
                                                     if (!choice) return null;
                                                     return (
-                                                      <div key={`student-order-${choice.id}-${idx}`} className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 bg-white">
-                                                        <span className="text-xs font-semibold text-slate-500 w-6">{idx + 1}.</span>
-                                                        <span className="flex-1"><MathMLRenderer content={choice.html} inline className="text-sm text-slate-800" /></span>
+                                                      <div key={`student-order-${choice.id}-${idx}`} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 bg-card">
+                                                        <span className="text-xs font-semibold text-muted-foreground w-6">{idx + 1}.</span>
+                                                        <span className="flex-1"><MathMLRenderer content={choice.html} inline className="text-sm text-foreground" /></span>
                                                         <button
                                                           type="button"
                                                           disabled={idx === 0}
@@ -6989,7 +10063,7 @@ Thank you.`;
                                                               return cleared;
                                                             });
                                                           }}
-                                                          className="px-2 py-1 rounded border border-slate-300 text-xs text-slate-700 disabled:opacity-40"
+                                                          className="px-2 py-1 rounded border border-border/60 text-xs text-foreground disabled:opacity-40"
                                                         >
                                                           Up
                                                         </button>
@@ -7006,7 +10080,7 @@ Thank you.`;
                                                               return cleared;
                                                             });
                                                           }}
-                                                          className="px-2 py-1 rounded border border-slate-300 text-xs text-slate-700 disabled:opacity-40"
+                                                          className="px-2 py-1 rounded border border-border/60 text-xs text-foreground disabled:opacity-40"
                                                         >
                                                           Down
                                                         </button>
@@ -7017,7 +10091,7 @@ Thank you.`;
                                               )}
 
                                               {selectedPreviewData?.interactionType === 'unknown' && (
-                                                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                                <div className="rounded-md border border-warning bg-warning-light px-3 py-2 text-xs text-amber-800">
                                                   Interaction type could not be determined for this XML.
                                                 </div>
                                               )}
@@ -7026,7 +10100,7 @@ Thank you.`;
                                                 <button
                                                   type="button"
                                                   onClick={submitStudentPreview}
-                                                  className="px-4 py-2 rounded-md text-sm font-semibold bg-[#2457b8] text-white hover:bg-[#1f4aa0]"
+                                                  className="px-4 py-2 rounded-md text-sm font-semibold bg-[#111827] text-primary-foreground hover:bg-[#1f2937]"
                                                 >
                                                   Submit
                                                 </button>
@@ -7034,13 +10108,13 @@ Thank you.`;
                                             </div>
 
                                             {selectedSubmission?.submitted && (
-                                              <div className={`rounded-lg border px-4 py-3 ${selectedSubmission.isCorrect ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
-                                                <p className={`text-sm font-semibold ${selectedSubmission.isCorrect ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                              <div className={`rounded-lg border px-4 py-3 ${selectedSubmission.isCorrect ? 'border-success bg-success-light' : 'border-rose-200 bg-rose-50'}`}>
+                                                <p className={`text-sm font-semibold ${selectedSubmission.isCorrect ? 'text-success' : 'text-rose-700'}`}>
                                                   {selectedSubmission.isCorrect ? 'Correct submission' : 'Incorrect submission'}
                                                 </p>
-                                                <p className="text-xs text-slate-700 mt-1">Score: {selectedSubmission.score}</p>
-                                                <div className="mt-2 text-sm text-slate-800">
-                                                  <MathMLRenderer content={selectedSubmission.feedbackHtml} className="text-sm text-slate-800" />
+                                                <p className="text-xs text-foreground mt-1">Score: {selectedSubmission.score}</p>
+                                                <div className="mt-2 text-sm text-foreground">
+                                                  <MathMLRenderer content={selectedSubmission.feedbackHtml} className="text-sm text-foreground" />
                                                 </div>
                                               </div>
                                             )}
@@ -7055,10 +10129,10 @@ Thank you.`;
                                         setRawXmlDraft(e.target.value);
                                         setRawXmlDraftSourceIndex(selectedXmlReviewIndex);
                                       }}
-                                      className="w-full h-[460px] rounded-lg border border-slate-300 bg-white p-3 text-xs font-mono text-slate-800"
+                                      className="w-full h-[460px] rounded-lg border border-border/60 bg-card p-3 text-xs font-mono text-foreground"
                                     />
                                   ) : (
-                                    <pre className="w-full h-[460px] rounded-lg border border-slate-200 bg-white p-3 text-xs font-mono text-slate-800 overflow-auto whitespace-pre-wrap">{selectedXmlReviewItem.xmlContent}</pre>
+                                    <pre className="w-full h-[460px] rounded-lg border border-border bg-card p-3 text-xs font-mono text-foreground overflow-auto whitespace-pre-wrap">{selectedXmlReviewItem.xmlContent}</pre>
                                   )}
                                 </div>
                               </>
@@ -7090,17 +10164,17 @@ Thank you.`;
                       progress={aiValidationPhase === 'running' ? aiValidationProgress : undefined}
                     />
                   ) : (
-                    <Card className="border border-[#c7dcff] shadow-sm bg-[#f7faff]">
+                    <Card className="border-border shadow-sm bg-card">
                       <CardHeader className="pb-3 space-y-3">
-                        <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
-                          <Sparkles className="w-5 h-5 text-[#0052CC]" />
+                        <CardTitle className="flex items-center gap-2 text-lg text-foreground">
+                          <Sparkles className="w-5 h-5 text-chart-1" />
                           {transformDone && !isExporting ? 'Transform Complete' : isExporting ? 'Transforming...' : 'Ready to Transform'}
                         </CardTitle>
                         {getAvailableProviders().length > 0 && (
-                          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                          <div className="flex items-center justify-between pt-3 border-t border-border">
                             <div className="flex items-center gap-2">
-                              <Shield className="w-4 h-4 text-[#0052CC]" />
-                              <span className="text-sm font-medium text-slate-800">AI Validation{!canUseAIValidation && ' (Unlimited plan only)'}</span>
+                              <Shield className="w-4 h-4 text-chart-1" />
+                              <span className="text-sm font-medium text-foreground">AI Validation{!canUseAIValidation && ' (Unlimited plan only)'}</span>
                             </div>
                             <Switch
                               checked={aiValidationEnabled}
@@ -7122,31 +10196,31 @@ Thank you.`;
                       </CardHeader>
                       <CardContent className="space-y-4">
                         {transformDone && !isExporting ? (
-                          <Alert className="bg-emerald-50 border-emerald-200">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            <AlertTitle className="text-emerald-700">Download Started</AlertTitle>
-                            <AlertDescription className="text-emerald-700 text-sm">Your file has been exported and the download has started.</AlertDescription>
+                          <Alert className="bg-success-light border-success">
+                            <CheckCircle2 className="h-4 w-4 text-success" />
+                            <AlertTitle className="text-success">Download Started</AlertTitle>
+                            <AlertDescription className="text-success text-sm">Your file has been exported and the download has started.</AlertDescription>
                           </Alert>
                         ) : (
-                          <Alert className="bg-[#edf4ff] border-[#c7dcff]">
-                            <FileJson className="h-4 w-4 text-[#0052CC]" />
-                            <AlertTitle className="text-slate-900">Ready to Export</AlertTitle>
-                            <AlertDescription className="text-slate-600 text-sm">
-                              <span className="font-semibold text-[#2457b8]">{stats.valid + stats.caution} questions</span> ready to export ({stats.valid} valid, {stats.caution} with warnings) • <span className="font-semibold text-rose-700">{stats.rejected} rejected</span>
+                          <Alert className="bg-accent border-border">
+                            <FileJson className="h-4 w-4 text-chart-1" />
+                            <AlertTitle className="text-foreground">Ready to Export</AlertTitle>
+                            <AlertDescription className="text-muted-foreground text-sm">
+                              <span className="font-semibold text-foreground">{stats.valid + stats.caution} questions</span> ready to export ({stats.valid} valid, {stats.caution} with warnings) • <span className="font-semibold text-destructive">{stats.rejected} rejected</span>
                             </AlertDescription>
                           </Alert>
                         )}
 
                         {exportValidationError && (
-                          <Alert className="bg-rose-50 border-rose-200">
-                            <AlertCircle className="h-4 w-4 text-rose-600" />
-                            <AlertDescription className="text-rose-700 text-sm">{exportValidationError}</AlertDescription>
+                          <Alert className="bg-destructive-light border-destructive/20">
+                            <AlertCircle className="h-4 w-4 text-destructive" />
+                            <AlertDescription className="text-destructive text-sm">{exportValidationError}</AlertDescription>
                           </Alert>
                         )}
 
                         {isExporting && (
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Loader2 className="w-4 h-4 animate-spin text-[#0052CC]" />
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin text-chart-1" />
                             Generating and packaging your files...
                           </div>
                         )}
@@ -7155,7 +10229,7 @@ Thank you.`;
                           <Button
                             onClick={exportMode === 'qti-package' ? exportToQTI : exportXmlMediaFolder}
                             disabled={isExporting || (stats.valid + stats.caution) === 0}
-                            className="font-semibold px-6 rounded-md bg-[#2457b8] hover:bg-[#1f4aa0] text-white"
+                            className="font-semibold px-6 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
                             size="lg"
                           >
                             {isExporting ? (
@@ -7171,7 +10245,7 @@ Thank you.`;
                             onClick={exportToJSON}
                             disabled={isExporting || (stats.valid + stats.caution) === 0}
                             variant="outline"
-                            className="font-semibold px-6 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50"
+                            className="font-semibold px-6 rounded-md border border-border text-foreground hover:bg-muted transition-colors"
                             size="lg"
                           >
                             {isExporting ? (
@@ -7186,45 +10260,47 @@ Thank you.`;
                   )}
                 </div>
 
+                {!isXmlReviewOpen && (
                 <div className="lg:col-span-4 space-y-4">
                   <Card className="border border-[#c7dcff] bg-[#f7faff] shadow-sm">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-900">{isXmlReviewOpen ? 'Review Checklist' : 'Export Checklist'}</CardTitle>
-                      <CardDescription className="text-xs text-slate-500">{isXmlReviewOpen ? 'Review items before final download' : 'Final verification before delivery'}</CardDescription>
+                      <CardTitle className="text-sm font-semibold text-foreground">{isXmlReviewOpen ? 'Review Checklist' : 'Export Checklist'}</CardTitle>
+                      <CardDescription className="text-xs text-muted-foreground">{isXmlReviewOpen ? 'Review items before final download' : 'Final verification before delivery'}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      <div className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(stats.valid + stats.caution) > 0 ? 'bg-[#2457b8]' : 'bg-slate-300'}`}>{(stats.valid + stats.caution) > 0 && <Check className="w-2.5 h-2.5 text-white" />}</div><span className={`text-sm ${(stats.valid + stats.caution) > 0 ? 'text-[#2457b8] font-medium' : 'text-slate-500'}`}>Rows available to export</span></div>
-                      <div className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${!!outputFormat ? 'bg-[#2457b8]' : 'bg-slate-300'}`}>{!!outputFormat && <Check className="w-2.5 h-2.5 text-white" />}</div><span className={`text-sm ${!!outputFormat ? 'text-[#2457b8] font-medium' : 'text-slate-500'}`}>Output format selected</span></div>
-                      <div className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${!!exportMode ? 'bg-[#2457b8]' : 'bg-slate-300'}`}>{!!exportMode && <Check className="w-2.5 h-2.5 text-white" />}</div><span className={`text-sm ${!!exportMode ? 'text-[#2457b8] font-medium' : 'text-slate-500'}`}>Package mode selected</span></div>
+                      <div className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(stats.valid + stats.caution) > 0 ? 'bg-[#111827]' : 'bg-muted'}`}>{(stats.valid + stats.caution) > 0 && <Check className="w-2.5 h-2.5 text-primary-foreground" />}</div><span className={`text-sm ${(stats.valid + stats.caution) > 0 ? 'text-[#111827] font-medium' : 'text-muted-foreground'}`}>Rows available to export</span></div>
+                      <div className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${!!outputFormat ? 'bg-[#111827]' : 'bg-muted'}`}>{!!outputFormat && <Check className="w-2.5 h-2.5 text-primary-foreground" />}</div><span className={`text-sm ${!!outputFormat ? 'text-[#111827] font-medium' : 'text-muted-foreground'}`}>Output format selected</span></div>
+                      <div className="flex items-center gap-2.5"><div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${!!exportMode ? 'bg-[#111827]' : 'bg-muted'}`}>{!!exportMode && <Check className="w-2.5 h-2.5 text-primary-foreground" />}</div><span className={`text-sm ${!!exportMode ? 'text-[#111827] font-medium' : 'text-muted-foreground'}`}>Package mode selected</span></div>
                       {isXmlReviewOpen && (
-                        <div className="flex items-center gap-2.5"><div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-[#2457b8]"><Check className="w-2.5 h-2.5 text-white" /></div><span className="text-sm text-[#2457b8] font-medium">{generatedXmlItems.length} XML items generated</span></div>
+                        <div className="flex items-center gap-2.5"><div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-[#111827]"><Check className="w-2.5 h-2.5 text-primary-foreground" /></div><span className="text-sm text-[#111827] font-medium">{generatedXmlItems.length} XML items generated</span></div>
                       )}
                     </CardContent>
                   </Card>
 
-                  <Card className="border-slate-200 shadow-sm">
+                  <Card className="border-border shadow-sm">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-900">Package Summary</CardTitle>
+                      <CardTitle className="text-sm font-semibold text-foreground">Package Summary</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-1.5 text-xs text-slate-600">
-                      <p><span className="font-semibold text-slate-900">Questions:</span> {stats.valid + stats.caution}</p>
-                      <p><span className="font-semibold text-slate-900">Rejected:</span> {stats.rejected}</p>
-                      <p><span className="font-semibold text-slate-900">Format:</span> {outputFormat || 'Not selected'}</p>
-                      <p><span className="font-semibold text-slate-900">Package:</span> {exportMode || 'Not selected'}</p>
+                    <CardContent className="space-y-1.5 text-xs text-muted-foreground">
+                      <p><span className="font-semibold text-foreground">Questions:</span> {stats.valid + stats.caution}</p>
+                      <p><span className="font-semibold text-foreground">Rejected:</span> {stats.rejected}</p>
+                      <p><span className="font-semibold text-foreground">Format:</span> {outputFormat || 'Not selected'}</p>
+                      <p><span className="font-semibold text-foreground">Package:</span> {exportMode || 'Not selected'}</p>
                     </CardContent>
                   </Card>
                 </div>
+                )}
               </div>
             </div>
 
             <footer
-              className="fixed bottom-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
+              className="fixed bottom-0 right-0 bg-card/90 backdrop-blur-md border-t border-border px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
               style={{ left: sidebarWidth }}
             >
               <button
                 type="button"
-                onClick={() => setCurrentStep('configure')}
-                className="px-6 py-2.5 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors rounded-xl"
+                onClick={() => handleStepperJump('configure')}
+                className="px-6 py-2.5 text-xs font-semibold text-muted-foreground border border-border/60 hover:bg-muted transition-colors transition-colors rounded-xl"
               >
                 Back to Configure
               </button>
@@ -7235,7 +10311,7 @@ Thank you.`;
                     type="button"
                     onClick={handleDownloadReviewedXml}
                     disabled={isExporting || generatedXmlItems.length === 0}
-                    className="group px-8 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors flex items-center gap-2"
+                    className="group px-8 py-2.5 text-xs font-semibold text-primary-foreground bg-[#111827] hover:bg-[#1f2937] rounded-md shadow-sm transition-colors flex items-center gap-2"
                   >
                     {isExporting ? <><Loader2 className="w-4 h-4 animate-spin" /> Downloading...</> : <>Download Reviewed XML <ChevronRight className="w-4 h-4" /></>}
                   </Button>
@@ -7254,6 +10330,8 @@ Thank you.`;
                       setContainsImages('');
                       setContainsMath('');
                       setMathFormat('');
+                      setMathDetection(null);
+                      setMathAutoApplied(false);
                       setHasTemplateXml('');
                       setTemplateXmlFile(null);
                       setConfigurationValidationError('');
@@ -7265,7 +10343,7 @@ Thank you.`;
                       setAutoMappedImageRows(0);
                       setMediaUploadError('');
                     }}
-                    className="group px-8 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors flex items-center gap-2"
+                    className="group px-8 py-2.5 text-xs font-semibold text-primary-foreground bg-[#111827] hover:bg-[#1f2937] rounded-md shadow-sm transition-colors flex items-center gap-2"
                   >
                     Start Over
                   </Button>
@@ -7278,7 +10356,7 @@ Thank you.`;
     );
   }
 
-  if (currentStep === 'clean-fix') {
+  if (useLegacyStageScreens && currentStep === 'clean-fix') {
     const fixableRows: { rowKey: string; rowNum: number; issueType: string; fixType: 'auto' | 'manual'; confidence: number; questionText: string }[] = [];
     // Build fixable rows from pass3 suggestions
     if (pass3Suggestions.length > 0) {
@@ -7320,10 +10398,10 @@ Thank you.`;
       Array.from(validationResults.values()).some(vr => vr.issues?.some(i => i.severity === 'block'));
 
     return (
-      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-slate-900 antialiased flex overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-[#f0f4f8] text-foreground antialiased flex overflow-hidden">
         {/* Sidebar */}
         <aside
-          className="h-screen flex-shrink-0 bg-white flex flex-col border-r border-slate-200 transition-[width] duration-300"
+          className="h-screen flex-shrink-0 bg-card flex flex-col border-r border-border transition-[width] duration-300"
           style={{ width: sidebarWidth }}
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
@@ -7331,27 +10409,27 @@ Thank you.`;
           <div className={`mb-4 ${isSidebarHovered ? 'p-8' : 'p-4 flex justify-center'}`}>
             {isSidebarHovered ? (
               <>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">AssessmentCore</h1>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Workflow Wizard</p>
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground leading-none">AssessmentCore</h1>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50 mt-1">Workflow Wizard</p>
               </>
             ) : (
               <div className="w-9 h-9 rounded-lg bg-[#0052CC]/10 text-[#0052CC] font-black flex items-center justify-center">A</div>
             )}
           </div>
           <nav className="flex-1 px-4 space-y-1">
-            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
-            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
+            <button type="button" onClick={() => navigate('/')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}><Home className="w-5 h-5" /> {isSidebarHovered && <span>Home</span>}</button>
+            <button type="button" onClick={() => toast.info('XML Previewer will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Code className="w-5 h-5" /> {isSidebarHovered && <span>XML Previewer</span>}
             </button>
             <button type="button" className={`w-full flex items-center py-3 bg-[#0052CC]/5 text-[#0052CC] font-semibold rounded-lg text-sm ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Upload className="w-5 h-5" /> {isSidebarHovered && <span>Batch Creator</span>}
             </button>
-            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
+            <button type="button" onClick={() => toast.info('LMS Export will be available soon')} className={`w-full flex items-center py-3 text-muted-foreground hover:bg-muted/50 transition-colors hover:text-foreground transition-colors rounded-lg transition-all text-sm font-medium ${isSidebarHovered ? 'gap-3 px-4 justify-start' : 'px-0 justify-center'}`}>
               <Download className="w-5 h-5" /> {isSidebarHovered && <span>LMS Export</span>}
             </button>
           </nav>
           <div className="p-6 mt-auto">
-            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}>
+            <button type="button" onClick={() => toast.info('Draft saved locally')} className={`w-full py-2.5 bg-card border border-border text-foreground rounded-lg text-sm font-semibold hover:bg-muted/50 transition-colors hover:border-border transition-colors transition-all shadow-sm flex items-center ${isSidebarHovered ? 'justify-center gap-2' : 'justify-center'}`}>
               <FileText className="w-4 h-4" />
               {isSidebarHovered && <span>Save Draft</span>}
             </button>
@@ -7361,19 +10439,19 @@ Thank you.`;
         {/* Main Stage */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Stepper Header */}
-          <header className="w-full bg-white border-b border-slate-200 pt-4 pb-5 px-12 flex flex-col shrink-0">
+          <header className="w-full bg-card border-b border-border pt-4 pb-5 px-12 flex flex-col shrink-0">
             <div className="flex justify-between items-center mb-6">
               <nav className="flex items-center gap-2 text-xs font-medium">
-                <span className="text-slate-400">Batches</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className="text-muted-foreground/50">Batches</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
                 <span className="text-[#0052CC] font-semibold">{fileData?.fileName || 'New Assessment Batch'}</span>
               </nav>
               <div className="flex items-center gap-6" ref={profileMenuRef}>
-                <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
-                  <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
-                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-slate-400 hover:text-slate-600 transition-colors relative" title="Notifications">
+                <div className="flex items-center gap-4 border-r border-border pr-6">
+                  <button type="button" className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title="Help"><CircleHelp className="w-5 h-5" /></button>
+                  <button type="button" onClick={() => toast.info('No new notifications')} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors relative" title="Notifications">
                     <Bell className="w-5 h-5" />
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full border-2 border-white" />
                   </button>
                 </div>
                 <div className="relative">
@@ -7384,15 +10462,15 @@ Thank you.`;
                     aria-expanded={isProfileMenuOpen}
                   >
                     <div className="text-right">
-                      <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                      <p className="text-xs font-bold text-foreground leading-none">{user?.email?.split('@')[0] || 'User'}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest">Admin Tier</p>
                     </div>
-                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#f1f5f9] text-[#0052CC] flex items-center justify-center">
                       <UserRound className="w-4 h-4" />
                     </div>
                   </button>
 
-                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
+                  <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-[#e2e8f0] bg-card shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200 ${
                     isProfileMenuOpen
                       ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                       : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
@@ -7403,7 +10481,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         toast.info('Profile page will be available soon');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Profile
                     </button>
@@ -7414,7 +10492,7 @@ Thank you.`;
                         setIsProfileMenuOpen(false);
                         navigate('/workspace/dashboard');
                       }}
-                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                      className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                     >
                       Dashboard
                     </button>
@@ -7423,7 +10501,7 @@ Thank you.`;
               </div>
             </div>
             <div className="max-w-5xl mx-auto w-full relative px-8">
-              <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-200" />
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-muted" />
               <div className="flex items-center justify-between relative z-10">
                 {stepOrder.map((step, idx) => {
                   const isCurrent = idx === currentStepIndex;
@@ -7431,9 +10509,9 @@ Thank you.`;
                   return (
                     <button key={`fix-stepper-${step}`} type="button" onClick={() => handleStepperJump(step)} disabled={!canNavigateToStep(step)} className="flex items-center justify-center disabled:cursor-not-allowed">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
-                        isDone ? 'bg-emerald-600 text-white ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20'
-                        : isCurrent ? 'bg-[#0052CC] text-white ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
-                        : 'bg-white border-2 border-slate-200 text-slate-400'
+                        isDone ? 'bg-emerald-600 text-primary-foreground ring-4 ring-emerald-600/10 shadow-lg shadow-emerald-600/20'
+                        : isCurrent ? 'bg-[#0052CC] text-primary-foreground ring-4 ring-[#0052CC]/10 shadow-lg shadow-[#0052CC]/20'
+                        : 'bg-card border-2 border-border text-muted-foreground/50'
                       }`}>
                         {getStepperIcon(step)}
                       </div>
@@ -7446,21 +10524,19 @@ Thank you.`;
 
           {/* Content */}
           <main className="flex-1 overflow-hidden flex">
-            <div className="flex-1 flex flex-col p-8 pb-32 min-w-0 space-y-6 overflow-y-auto bg-slate-50/50">
-              <section className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="flex-1 flex flex-col p-8 pb-32 min-w-0 space-y-6 overflow-y-auto bg-muted/50">
+              <section className="bg-card border border-border rounded-xl p-5 shadow-sm">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-[#0052CC]" />
                       Automate Fix
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Apply high-confidence automatic fixes, then re-run validation to compare updated outcomes.
                     </p>
                     <p className="text-xs font-semibold text-[#0052CC] mt-2">
-                      {autoFixComparison?.applied
-                        ? `${availableAutoFixCount} high-confidence fixes applied`
-                        : 'Click Fix now to analyze and apply automatic fixes'}
+                      {availableAutoFixCount} high-confidence fixes available
                     </p>
                   </div>
 
@@ -7468,8 +10544,8 @@ Thank you.`;
                     <Button
                       type="button"
                       onClick={handleApplyAutomatedFixes}
-                      disabled={isApplyingAutoFixes || editedRows.length === 0 || autoFixComparison?.applied}
-                      className="px-5 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors"
+                      disabled={isApplyingAutoFixes || availableAutoFixCount === 0}
+                      className="px-5 py-2.5 text-xs font-semibold text-primary-foreground bg-[#111827] hover:bg-[#1f2937] rounded-md shadow-sm transition-colors"
                     >
                       {isApplyingAutoFixes ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Applying...</>
@@ -7482,7 +10558,7 @@ Thank you.`;
                       type="button"
                       onClick={handleReRunValidationAfterAutoFix}
                       disabled={!autoFixComparison?.applied || isValidating}
-                      className="px-5 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors"
+                      className="px-5 py-2.5 text-xs font-semibold text-primary-foreground bg-[#18794e] hover:bg-[#136541] rounded-md shadow-sm transition-colors"
                     >
                       {isValidating ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Re-running...</>
@@ -7495,37 +10571,37 @@ Thank you.`;
               </section>
 
               {!isFixingWorkspaceOpen && (
-                <section className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-                  <h3 className="text-base font-bold text-slate-900">Fixing Workspace</h3>
+                <section className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+                  <h3 className="text-base font-bold text-foreground">Fixing Workspace</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className={`flex flex-col items-start p-4 rounded-xl border-l-4 border-rose-600 transition-all ${
-                      manualFixCount > 0 ? 'bg-rose-50 shadow-md ring-2 ring-rose-500 ring-inset' : 'bg-white shadow-sm'
+                      manualFixCount > 0 ? 'bg-rose-50 shadow-md ring-2 ring-rose-500 ring-inset' : 'bg-card shadow-sm'
                     }`}>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Manual Fix Required</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Manual Fix Required</span>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-slate-900 font-mono">{manualFixCount.toLocaleString()}</span>
+                        <span className="text-3xl font-black text-foreground font-mono">{manualFixCount.toLocaleString()}</span>
                         <span className="text-rose-600 font-bold text-xs">Questions</span>
                       </div>
                     </div>
 
-                    <div className={`flex flex-col items-start p-4 rounded-xl border-l-4 border-indigo-500 transition-all ${
-                      availableAutoFixCount > 0 ? 'bg-indigo-50 shadow-md ring-2 ring-indigo-500 ring-inset' : 'bg-white shadow-sm'
+                    <div className={`flex flex-col items-start p-4 rounded-xl border-l-4 border-border transition-all ${
+                      availableAutoFixCount > 0 ? 'bg-muted shadow-md ring-2 ring-slate-300 ring-inset' : 'bg-card shadow-sm'
                     }`}>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Automated Fixed</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Automated Fixed</span>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-slate-900 font-mono">{availableAutoFixCount.toLocaleString()}</span>
-                        <span className="text-indigo-600 font-bold text-xs">Questions</span>
+                        <span className="text-3xl font-black text-foreground font-mono">{availableAutoFixCount.toLocaleString()}</span>
+                        <span className="text-foreground font-bold text-xs">Questions</span>
                       </div>
                     </div>
 
                     <div className={`flex flex-col items-start p-4 rounded-xl border-l-4 border-amber-500 transition-all ${
-                      reviewRequiredCount > 0 ? 'bg-amber-50 shadow-md ring-2 ring-amber-500 ring-inset' : 'bg-white shadow-sm'
+                      reviewRequiredCount > 0 ? 'bg-warning-light shadow-md ring-2 ring-amber-500 ring-inset' : 'bg-card shadow-sm'
                     }`}>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Requires Review</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Requires Review</span>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-slate-900 font-mono">{reviewRequiredCount.toLocaleString()}</span>
-                        <span className="text-amber-600 font-bold text-xs">Questions</span>
+                        <span className="text-3xl font-black text-foreground font-mono">{reviewRequiredCount.toLocaleString()}</span>
+                        <span className="text-warning font-bold text-xs">Questions</span>
                       </div>
                     </div>
                   </div>
@@ -7535,7 +10611,7 @@ Thank you.`;
                       type="button"
                       onClick={handleDeduplicate}
                       disabled={stats.duplicates === 0}
-                      className="px-5 py-2.5 text-xs font-semibold text-white bg-[#8f4600] hover:bg-[#7a3b00] rounded-md shadow-sm transition-colors"
+                      className="px-5 py-2.5 text-xs font-semibold text-primary-foreground bg-[#8f4600] hover:bg-[#7a3b00] rounded-md shadow-sm transition-colors"
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />De Duplicate
                     </Button>
@@ -7544,7 +10620,7 @@ Thank you.`;
                       type="button"
                       onClick={() => setIsFixingWorkspaceOpen(true)}
                       disabled={!hasWorkspaceItems}
-                      className="px-5 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors"
+                      className="px-5 py-2.5 text-xs font-semibold text-primary-foreground bg-[#111827] hover:bg-[#1f2937] rounded-md shadow-sm transition-colors"
                     >
                       Open Fixing Workspace
                     </Button>
@@ -7559,8 +10635,11 @@ Thank you.`;
                     rows={editedRows}
                     columns={fileData?.columns || []}
                     validationResults={(() => {
-                      if (manualFixResults.size === 0) return validationResults;
-                      const merged = new Map(validationResults);
+                      const base = viewMode === 'clean' && cleanValidationResults
+                        ? new Map(Object.entries(cleanValidationResults))
+                        : validationResults;
+                      if (manualFixResults.size === 0) return base;
+                      const merged = new Map(base);
                       manualFixResults.forEach((vr, key) => merged.set(key, vr));
                       return merged;
                     })()}
@@ -7579,10 +10658,10 @@ Thank you.`;
                     onRequestMinimize={() => setIsFixingWorkspaceOpen(false)}
                   />
                 ) : (
-                  <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-                    <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-emerald-500 opacity-80" />
-                    <h3 className="text-lg font-bold text-slate-900">All clear!</h3>
-                    <p className="text-slate-500">No action required issues remaining.</p>
+                  <div className="text-center py-12 bg-card rounded-xl border border-border">
+                    <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-success opacity-80" />
+                    <h3 className="text-lg font-bold text-foreground">All clear!</h3>
+                    <p className="text-muted-foreground">No action required issues remaining.</p>
                   </div>
                 )
               )}
@@ -7592,23 +10671,30 @@ Thank you.`;
 
           {/* Sticky Footer */}
           <footer
-            className="fixed bottom-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
+            className="fixed bottom-0 right-0 bg-card/90 backdrop-blur-md border-t border-border px-8 py-4 z-40 flex items-center justify-between transition-[left] duration-300"
             style={{ left: sidebarWidth }}
           >
             <button
               type="button"
               onClick={() => setCurrentStep('validating')}
-              className="px-6 py-2.5 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors rounded-xl"
+              className="px-6 py-2.5 text-xs font-semibold text-muted-foreground border border-border/60 hover:bg-muted transition-colors transition-colors rounded-xl"
             >
               Back to Validation Stage
             </button>
 
             <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                <span className="text-xs font-semibold text-muted-foreground">AI Audit Stage</span>
+                <Switch
+                  checked={aiAuditStageEnabled}
+                  onCheckedChange={setAiAuditStageEnabled}
+                />
+              </div>
               <Button
-                onClick={() => setCurrentStep('ai-audit')}
-                className="group px-8 py-2.5 text-xs font-semibold text-white bg-[#2457b8] hover:bg-[#1f4aa0] rounded-md shadow-sm transition-colors flex items-center gap-2"
+                onClick={handleProceedAfterCleanFix}
+                className="group px-8 py-2.5 text-xs font-semibold text-primary-foreground bg-[#111827] hover:bg-[#1f2937] rounded-md shadow-sm transition-colors flex items-center gap-2"
               >
-                Proceed to AI Audit
+                {aiAuditStageEnabled ? 'Proceed to AI Audit' : 'Proceed to Configure'}
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
@@ -7619,17 +10705,67 @@ Thank you.`;
   }
 
   return (
-    <div className="h-full bg-[#f9f9ff]">
+    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a]">
+      <aside
+        className="fixed inset-y-0 left-0 z-50 border-r border-[#e2e8f0] bg-card flex flex-col transition-[width] duration-300 overflow-hidden"
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        style={{ width: sidebarWidth }}
+      >
+        <div className={`h-14 px-3 border-b border-[#e2e8f0] flex items-center gap-2 ${!isSidebarHovered ? 'justify-center' : ''}`}>
+          {isSidebarHovered && (
+            <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 text-[#0f172a] hover:text-[#334155]">
+              <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+              <span className="text-sm font-semibold">AssessmentCore</span>
+            </button>
+          )}
+          {!isSidebarHovered && <button type="button" onClick={() => navigate('/workspace/dashboard')} className="flex items-center justify-center text-[#475569] hover:text-[#111827]">
+            <Home className="w-4 h-4" />
+          </button>}
+        </div>
+
+        <nav className="flex-1 px-2 py-3 overflow-auto">
+          {stepOrder.map((step, idx) => {
+            const isActive = idx === currentStepIndex;
+            const isDone = idx < currentStepIndex;
+            const enabled = canNavigateToStep(step);
+            return (
+              <button
+                key={`fixed-shell-step-${step}`}
+                type="button"
+                onClick={() => enabled && handleStepperJump(step)}
+                disabled={!enabled}
+                className={`w-full flex items-center rounded-md py-2 mb-1 text-xs text-left transition-colors ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'} ${
+                  isActive ? 'bg-[#e2e8f0] text-[#111827] font-semibold' : 'text-[#475569] hover:bg-[#f1f5f9]'
+                } ${!enabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                <span className={`h-5 w-5 rounded flex items-center justify-center text-xs border ${
+                  isActive ? 'bg-[#111827] text-primary-foreground border-[#111827]' : isDone ? 'bg-[#f1f5f9] text-[#1f2937] border-[#cbd5e1]' : 'bg-card text-[#64748b] border-[#dbe1e8]'
+                }`}>
+                  {isDone ? <Check className="w-3 h-3" /> : (isSidebarHovered ? idx + 1 : getSidebarStepIcon(step))}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="px-2 py-3 border-t border-[#e2e8f0]">
+          <button type="button" className={`w-full flex items-center rounded-md py-2 text-xs text-[#475569] hover:bg-[#f1f5f9] ${isSidebarHovered ? 'gap-2 px-2 justify-start' : 'gap-0 px-0 justify-center'}`}>
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
+      </aside>
+
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-28 -left-20 h-72 w-72 rounded-full bg-[#dbe1ff]/30 blur-3xl" />
         <div className="absolute top-24 right-[-100px] h-80 w-80 rounded-full bg-[#ffdcc6]/25 blur-3xl" />
-        <div className="absolute bottom-[-120px] left-1/3 h-80 w-80 rounded-full bg-[#d8e3fb]/25 blur-3xl" />
+        <div className="absolute bottom-[-120px] left-1/3 h-80 w-80 rounded-full bg-[#e2e8f0]/25 blur-3xl" />
         <div className="absolute bottom-14 right-10 h-56 w-56 rounded-full bg-[#dee0ff]/25 blur-3xl" />
       </div>
 
       {/* Template Mapping UI Modal */}
       {showTemplateMappingUI && templateXmlFile && uploadedFiles[0] && templateXmlContent && (
-          <div className="fixed inset-0 bg-[#f9f9ff]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-[#f8fafc]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-4xl my-auto cursor-default">
             <TemplateMappingUI
               templateXml={templateXmlContent}
@@ -7653,33 +10789,15 @@ Thank you.`;
       )}
 
       {/* Top App Bar */}
-      <header
-        className="fixed top-0 right-0 z-40 bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-[#c5c5d4]/30 px-6 py-3 transition-[left] duration-300"
-        style={{ left: 'var(--workspace-sidebar-width, 16rem)' }}
-      >
+      <header className="fixed top-0 right-0 z-40 border-b border-[#e2e8f0] bg-card px-4 py-1.5 transition-[left] duration-300" style={{ left: sidebarWidth }}>
         <div className="flex items-center justify-between gap-6">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#003a9f]">Batch Creator</p>
-            <h1 className="truncate text-lg font-extrabold text-[#111c2d]">Step {currentStepIndex + 1}: {stepLabels[currentStep]}</h1>
+            <h1 className="truncate text-lg font-semibold tracking-tight text-[#0f172a]">{stepLabels[currentStep]}</h1>
           </div>
-          <nav className="hidden xl:flex items-center gap-5">
-            {stageTabLabels.map((tab, idx) => (
-              <span
-                key={`stage-tab-${tab}`}
-                className={`text-[11px] font-bold uppercase tracking-[0.16em] ${
-                  idx === currentStepIndex
-                    ? 'text-[#003a9f] border-b-2 border-[#003a9f] pb-1'
-                    : 'text-[#454652]'
-                }`}
-              >
-                {tab}
-              </span>
-            ))}
-          </nav>
           <div className="flex items-center gap-4" ref={profileMenuRef}>
             <button
               type="button"
-              className="text-[#454652] hover:text-[#003a9f] transition-colors"
+              className="text-[#475569] hover:text-[#111827] transition-colors"
               title="Help"
               aria-label="Help"
             >
@@ -7689,7 +10807,7 @@ Thank you.`;
             <button
               type="button"
               onClick={() => toast.info('No new notifications')}
-              className="text-[#454652] hover:text-[#003a9f] transition-colors"
+              className="text-[#475569] hover:text-[#111827] transition-colors"
               title="Notifications"
               aria-label="Notifications"
             >
@@ -7700,7 +10818,7 @@ Thank you.`;
               <button
                 type="button"
                 onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                className="w-8 h-8 rounded-full border border-[#c5c5d4] bg-[#e7eeff] text-[#003a9f] flex items-center justify-center hover:bg-[#d8e3fb] transition-colors"
+                className="w-8 h-8 rounded-full border border-[#e2e8f0] bg-[#f1f5f9] text-[#111827] flex items-center justify-center hover:bg-[#e2e8f0] transition-colors"
                 title="Profile menu"
                 aria-label="Profile menu"
                 aria-expanded={isProfileMenuOpen}
@@ -7708,14 +10826,14 @@ Thank you.`;
                 <UserRound className="w-4 h-4" />
               </button>
 
-              <div className={`absolute right-0 mt-2 w-72 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-3 origin-top-right transition-all duration-200 ${
+              <div className={`absolute right-0 mt-2 w-72 rounded-xl border border-[#e2e8f0] bg-card shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-3 origin-top-right transition-all duration-200 ${
                 isProfileMenuOpen
                   ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                   : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
               }`}>
                 <div className="px-2 pb-2 border-b border-[#f0f3ff] mb-2">
-                  <p className="text-sm font-semibold text-[#111c2d] truncate">{user?.email || 'User'}</p>
-                  <p className="text-xs text-[#454652]">Account menu</p>
+                  <p className="text-sm font-semibold text-[#0f172a] truncate">{user?.email || 'User'}</p>
+                  <p className="text-xs text-[#475569]">Account menu</p>
                 </div>
 
                 <button
@@ -7724,7 +10842,7 @@ Thank you.`;
                     setIsProfileMenuOpen(false);
                     toast.info('Profile page will be available soon');
                   }}
-                  className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                  className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                 >
                   Profile
                 </button>
@@ -7735,20 +10853,20 @@ Thank you.`;
                     setIsProfileMenuOpen(false);
                     navigate('/workspace/dashboard');
                   }}
-                  className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
+                  className="w-full text-left px-2 py-2 rounded-md text-sm text-[#0f172a] hover:bg-[#f8fafc]"
                 >
                   Dashboard
                 </button>
 
-                <div className="mt-2 rounded-lg bg-[#f9f9ff] border border-[#c5c5d4] p-2.5">
+                <div className="mt-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] p-2.5">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-[#111c2d]">Usage</span>
-                    <span className="text-xs font-semibold text-[#003a9f]">{Math.round(quotaUsedPercent)}%</span>
+                    <span className="text-xs font-semibold text-[#0f172a]">Usage</span>
+                    <span className="text-xs font-semibold text-[#111827]">{Math.round(quotaUsedPercent)}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-[#c5c5d4] overflow-hidden">
-                    <div className="h-full bg-[#003a9f] transition-all duration-300" style={{ width: `${quotaUsedPercent}%` }} />
+                  <div className="h-1.5 rounded-full bg-[#e2e8f0] overflow-hidden">
+                    <div className="h-full bg-[#111827] transition-all duration-300" style={{ width: `${quotaUsedPercent}%` }} />
                   </div>
-                  <p className="text-[11px] text-[#454652] mt-1">{quotaSummary}</p>
+                  <p className="text-xs text-[#475569] mt-1">{quotaSummary}</p>
                 </div>
               </div>
             </div>
@@ -7757,14 +10875,14 @@ Thank you.`;
       </header>
 
       {/* Content */}
-      <div className="p-6 pt-20">
-        <div className="max-w-[1400px] mx-auto mb-6 rounded-xl border border-[#c5c5d4]/40 bg-white px-5 py-4">
+      <div className="p-6 pt-20 transition-[margin-left] duration-300" style={{ marginLeft: sidebarWidth }}>
+        <div className="max-w-[1400px] mx-auto mb-6 rounded-xl border border-[#e2e8f0]/40 bg-card px-5 py-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#111c2d]">Step {currentStepIndex + 1} of {stepOrder.length}: {stepLabels[currentStep]}</h2>
-            <span className="text-xs font-medium text-[#003a9f]">{Math.round(stepProgressPercent)}%</span>
+            <h2 className="text-sm font-semibold text-[#0f172a]">Step {currentStepIndex + 1} of {stepOrder.length}: {stepLabels[currentStep]}</h2>
+            <span className="text-xs font-medium text-[#111827]">{Math.round(stepProgressPercent)}%</span>
           </div>
-          <div className="relative h-2 rounded-full bg-[#c5c5d4] overflow-hidden">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#003a9f] via-[#004fd2] to-[#004fd2] transition-all duration-500" style={{ width: `${stepProgressPercent}%` }} />
+          <div className="relative h-2 rounded-full bg-[#e2e8f0] overflow-hidden">
+            <div className="absolute inset-y-0 left-0 rounded-full bg-[#111827] transition-all duration-500" style={{ width: `${stepProgressPercent}%` }} />
           </div>
           <div className="mt-3 grid grid-cols-3 md:grid-cols-6 gap-2">
             {stepOrder.map((step, idx) => {
@@ -7776,12 +10894,12 @@ Thank you.`;
                   type="button"
                   onClick={() => handleStepperJump(step)}
                   disabled={!canNavigateToStep(step)}
-                  className={`text-[11px] rounded-md px-2 py-1.5 border transition-colors ${
+                  className={`text-xs rounded-md px-2 py-1.5 border transition-colors ${
                     isCurrent
-                      ? 'bg-[#d8e3fb] border-[#dbe1ff] text-[#003a9f] font-semibold'
+                      ? 'bg-[#e2e8f0] border-[#dbe1ff] text-[#111827] font-semibold'
                       : isDone
-                      ? 'bg-[#e7eeff] border-[#b4c5ff] text-[#004fd2]'
-                      : 'bg-white border-[#c5c5d4] text-[#454652]'
+                      ? 'bg-[#f1f5f9] border-[#b4c5ff] text-[#1f2937]'
+                      : 'bg-card border-[#e2e8f0] text-[#475569]'
                   } ${canNavigateToStep(step) ? 'hover:border-[#dbe1ff]' : 'opacity-60 cursor-not-allowed'}`}
                 >
                   {stepLabels[step]}
@@ -7793,34 +10911,34 @@ Thank you.`;
         {/* Step 3: Clean & Fix — handled by early return above */}
         {false as boolean && (
           <div className="max-w-7xl mx-auto space-y-6">
-            <div className="rounded-xl border border-[#c5c5d4]/40 bg-white px-5 py-4">
-              <h2 className="text-xl font-extrabold text-[#111c2d] tracking-tight">Clean &amp; Fix Workspace</h2>
-              <p className="text-sm text-[#454652]">Review automated cleaning impact, resolve flagged rows, and prepare final export-ready data.</p>
+            <div className="rounded-xl border border-[#e2e8f0]/40 bg-card px-5 py-4">
+              <h2 className="text-xl font-extrabold text-[#0f172a] tracking-tight">Clean &amp; Fix Workspace</h2>
+              <p className="text-sm text-[#475569]">Review automated cleaning impact, resolve flagged rows, and prepare final export-ready data.</p>
             </div>
             {/* Pipeline Progress Header */}
             {/* 1. Dataset Health */}
             <div className="mb-8">
-              <h2 className="text-lg font-bold text-[#111c2d] mb-4">1. Dataset Health</h2>
-              <div className="flex items-center justify-between bg-white border border-[#c5c5d4] p-4 rounded-xl shadow-sm mb-4">
+              <h2 className="text-lg font-bold text-[#0f172a] mb-4">1. Dataset Health</h2>
+              <div className="flex items-center justify-between bg-card border border-[#e2e8f0] p-4 rounded-xl shadow-sm mb-4">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <span className="text-[#454652]">Upload</span>
-                  <ChevronRight className="w-4 h-4 text-[#c5c5d4]" />
-                  <span className="text-[#003a9f] font-semibold flex items-center gap-1.5 bg-[#e7eeff] px-2 py-1 rounded">
+                  <span className="text-[#475569]">Upload</span>
+                  <ChevronRight className="w-4 h-4 text-[#e2e8f0]" />
+                  <span className="text-[#111827] font-semibold flex items-center gap-1.5 bg-[#f1f5f9] px-2 py-1 rounded">
                     <Sparkles className="w-3.5 h-3.5" /> Clean & Fix
                   </span>
-                  <ChevronRight className="w-4 h-4 text-[#c5c5d4]" />
-                  <span className="text-[#454652]">Validate</span>
+                  <ChevronRight className="w-4 h-4 text-[#e2e8f0]" />
+                  <span className="text-[#475569]">Validate</span>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
                   <div className="flex flex-col">
-                    <span className="text-xs text-[#454652]">Data Integrity</span>
-                    <span className="font-semibold text-[#111c2d]">
+                    <span className="text-xs text-[#475569]">Data Integrity</span>
+                    <span className="font-semibold text-[#0f172a]">
                       {stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}% Valid
                     </span>
                   </div>
-                  <div className="w-32 h-2.5 bg-[#f0f3ff] rounded-full overflow-hidden border border-[#c5c5d4]">
+                  <div className="w-32 h-2.5 bg-[#f0f3ff] rounded-full overflow-hidden border border-[#e2e8f0]">
                     <div 
-                      className="h-full bg-[#004fd2] rounded-full transition-all duration-500"
+                      className="h-full bg-[#1f2937] rounded-full transition-all duration-500"
                       style={{ width: `${stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}%` }}
                     />
                   </div>
@@ -7832,25 +10950,25 @@ Thank you.`;
                 <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <p className="text-[#454652] text-sm mb-1">Total Questions</p>
-                    <p className="text-3xl font-bold text-[#111c2d]">{stats.total}</p>
+                    <p className="text-[#475569] text-sm mb-1">Total Questions</p>
+                    <p className="text-3xl font-bold text-[#0f172a]">{stats.total}</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <p className="text-[#454652] text-sm mb-1 flex items-center justify-center gap-1">
-                      <CheckCircle2 className="w-4 h-4 text-[#004fd2]" />Valid
+                    <p className="text-[#475569] text-sm mb-1 flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-4 h-4 text-[#1f2937]" />Valid
                     </p>
-                    <p className="text-3xl font-bold text-[#004fd2]">{stats.valid}</p>
+                    <p className="text-3xl font-bold text-[#1f2937]">{stats.valid}</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <p className="text-[#454652] text-sm mb-1 flex items-center justify-center gap-1">
+                    <p className="text-[#475569] text-sm mb-1 flex items-center justify-center gap-1">
                       <AlertCircle className="w-4 h-4 text-[#8f4600]" />Caution
                     </p>
                     <p className="text-3xl font-bold text-[#8f4600]">{stats.caution}</p>
@@ -7860,7 +10978,7 @@ Thank you.`;
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <p className="text-[#454652] text-sm mb-1 flex items-center justify-center gap-1">
+                    <p className="text-[#475569] text-sm mb-1 flex items-center justify-center gap-1">
                       <XCircle className="w-4 h-4 text-[#ba1a1a]" />Rejected
                     </p>
                     <p className="text-3xl font-bold text-[#ba1a1a]">{stats.rejected}</p>
@@ -7870,7 +10988,7 @@ Thank you.`;
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <p className="text-[#454652] text-sm mb-1 flex items-center justify-center gap-1">
+                    <p className="text-[#475569] text-sm mb-1 flex items-center justify-center gap-1">
                       <Copy className="w-4 h-4 text-[#8f4600]" />Duplicates
                     </p>
                     <p className="text-3xl font-bold text-[#8f4600]">{stats.duplicates}</p>
@@ -7883,35 +11001,54 @@ Thank you.`;
             {/* 2. Cleaning Impact */}
             {cleaningMetrics && (
               <div className="mb-8">
-                <h2 className="text-lg font-bold text-[#111c2d] mb-4">2. Automated Cleaning Impact</h2>
-                <Card className="border border-[#c5c5d4] bg-gradient-to-r from-[#e7eeff] to-[#e7eeff]">
+                <h2 className="text-lg font-bold text-[#0f172a] mb-4">2. Automated Cleaning Impact</h2>
+                <Card className="border border-[#e2e8f0] bg-[#f1f5f9]">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#111c2d]">
-                    <Sparkles className="w-4 h-4 text-[#004fd2]" />
-                    Automated Cleaning Impact
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#0f172a]">
+                      <Sparkles className="w-4 h-4 text-[#1f2937]" />
+                      Automated Cleaning Impact
+                    </CardTitle>
+                    {cleanValidationResults && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-[#475569]">View:</span>
+                        <button
+                          onClick={() => setViewMode('raw')}
+                          className={`px-2 py-1 text-xs rounded ${viewMode === 'raw' ? 'bg-[#0f172a] text-primary-foreground' : 'bg-card text-[#475569] border border-[#e2e8f0] hover:bg-[#f8fafc]'}`}
+                        >
+                          Original
+                        </button>
+                        <button
+                          onClick={() => setViewMode('clean')}
+                          className={`px-2 py-1 text-xs rounded ${viewMode === 'clean' ? 'bg-[#1f2937] text-primary-foreground' : 'bg-card text-[#475569] border border-[#e2e8f0] hover:bg-[#f8fafc]'}`}
+                        >
+                          After Cleaning
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {/* Tile 1: Total Issues — Before -> After */}
-                    <div className="text-center p-3 bg-white rounded-lg border border-[#c5c5d4] flex flex-col justify-center">
-                      <p className="text-xs text-[#454652] mb-1">Total Issues</p>
+                    <div className="text-center p-3 bg-card rounded-lg border border-[#e2e8f0] flex flex-col justify-center">
+                      <p className="text-xs text-[#475569] mb-1">Total Issues</p>
                       <div className="flex items-center justify-center gap-2 text-lg font-bold">
-                        <span className="text-[#757684] line-through decoration-red-400">{cleaningMetrics.totalIssuesBefore}</span>
-                        <ChevronRight className="w-4 h-4 text-[#c5c5d4]" />
-                        <span className="text-[#111c2d]">{cleaningMetrics.totalIssuesAfter}</span>
+                        <span className="text-[#64748b] line-through decoration-red-400">{cleaningMetrics.totalIssuesBefore}</span>
+                        <ChevronRight className="w-4 h-4 text-[#e2e8f0]" />
+                        <span className="text-[#0f172a]">{cleaningMetrics.totalIssuesAfter}</span>
                       </div>
                     </div>
                     {/* Tile 2: Issue Impact */}
-                    <div className="text-center p-3 bg-white rounded-lg border border-[#c5c5d4] flex flex-col justify-center">
-                      <p className="text-xs text-[#454652] mb-1">Issue Impact</p>
+                    <div className="text-center p-3 bg-card rounded-lg border border-[#e2e8f0] flex flex-col justify-center">
+                      <p className="text-xs text-[#475569] mb-1">Issue Impact</p>
                       <div className="flex items-center justify-center gap-2">
-                        <span className="text-xl font-bold text-[#004fd2]" title="Issues Resolved">
+                        <span className="text-xl font-bold text-[#1f2937]" title="Issues Resolved">
                           +{cleaningMetrics.issuesResolved}
                         </span>
                         {cleaningMetrics.issuesRevealed > 0 && (
                           <>
-                            <span className="text-sm text-[#c5c5d4]">|</span>
+                            <span className="text-sm text-[#e2e8f0]">|</span>
                             <span className="text-xl font-bold text-[#8f4600]" title="Issues Revealed">
                               -{cleaningMetrics.issuesRevealed}
                             </span>
@@ -7920,13 +11057,13 @@ Thank you.`;
                       </div>
                     </div>
                     {/* Tile 3: Rows Improved */}
-                    <div className="text-center p-3 bg-white rounded-lg border border-[#c5c5d4]">
-                      <p className="text-xs text-[#454652] mb-1">Rows Improved</p>
-                      <p className="text-xl font-bold text-[#003a9f]">{cleaningMetrics.rowsImproved}</p>
+                    <div className="text-center p-3 bg-card rounded-lg border border-[#e2e8f0]">
+                      <p className="text-xs text-[#475569] mb-1">Rows Improved</p>
+                      <p className="text-xl font-bold text-[#111827]">{cleaningMetrics.rowsImproved}</p>
                     </div>
                     {/* Tile 4: Effectiveness */}
-                    <div className="text-center p-3 bg-white rounded-lg border border-[#c5c5d4]">
-                      <p className="text-xs text-[#454652] mb-1">Effectiveness</p>
+                    <div className="text-center p-3 bg-card rounded-lg border border-[#e2e8f0]">
+                      <p className="text-xs text-[#475569] mb-1">Effectiveness</p>
                       <p className={`text-xl font-bold ${
                         cleaningMetrics.cleaningEffectiveness !== null && cleaningMetrics.cleaningEffectiveness >= 0
                           ? 'text-[#7C3AED]'
@@ -7939,8 +11076,8 @@ Thank you.`;
                     </div>
                   </div>
                   {cleaningLogs.length > 0 && (
-                    <p className="text-xs text-[#454652] mt-3">
-                      Automated cleaning resolved <strong className="text-[#004fd2]">{cleaningMetrics.issuesResolved}</strong> issues
+                    <p className="text-xs text-[#475569] mt-3">
+                      Automated cleaning resolved <strong className="text-[#1f2937]">{cleaningMetrics.issuesResolved}</strong> issues
                       {cleaningMetrics.issuesRevealed > 0 && <span> and revealed <strong className="text-[#8f4600]">{cleaningMetrics.issuesRevealed}</strong> hidden issues</span>}. 
                       Net improvement: <strong>{cleaningMetrics.rowsImproved}</strong> rows. ({cleaningLogs.length} field operations).
                     </p>
@@ -7952,18 +11089,18 @@ Thank you.`;
 
             {/* 3. Guided Fixing Workspace */}
             <div className="mb-8">
-              <h2 className="text-lg font-bold text-[#111c2d] mb-4">3. Guided Fixing Workspace</h2>
+              <h2 className="text-lg font-bold text-[#0f172a] mb-4">3. Guided Fixing Workspace</h2>
               
               {/* PASS 3: Summary Bars */}
               {(pass3ExecutionMetrics?.suggestionsApplied || manualMetrics.manualFixesApplied > 0) && (
                 <div className="space-y-3 mb-6">
-                  <div className="bg-[#e7eeff] border border-[#d8e3fb] rounded-xl p-4 shadow-sm flex items-start gap-4">
-                    <div className="bg-[#004fd2] rounded-full p-2 shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-5 h-5 text-white" />
+                  <div className="bg-[#f1f5f9] border border-[#e2e8f0] rounded-xl p-4 shadow-sm flex items-start gap-4">
+                    <div className="bg-[#1f2937] rounded-full p-2 shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-5 h-5 text-primary-foreground" />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-[#14532D] mb-1">Fixes Applied Successfully</h3>
-                      <div className="text-sm text-[#004fd2] space-y-1.5">
+                      <div className="text-sm text-[#1f2937] space-y-1.5">
                         {pass3ExecutionMetrics && pass3ExecutionMetrics.suggestionsApplied > 0 && (
                           <p className="flex items-center gap-2">
                             <span className="font-semibold">{pass3ExecutionMetrics.suggestionsApplied} issues auto-fixed</span>
@@ -7995,9 +11132,12 @@ Thank you.`;
                   rows={editedRows}
                   columns={fileData?.columns || []}
                   validationResults={(() => {
+                    const base = viewMode === 'clean' && cleanValidationResults
+                      ? new Map(Object.entries(cleanValidationResults))
+                      : validationResults;
                     // Overlay manual fix results so the UI reflects applied fixes
-                    if (manualFixResults.size === 0) return validationResults;
-                    const merged = new Map(validationResults);
+                    if (manualFixResults.size === 0) return base;
+                    const merged = new Map(base);
                     manualFixResults.forEach((vr, key) => merged.set(key, vr));
                     return merged;
                   })()}
@@ -8012,17 +11152,17 @@ Thank you.`;
                   selectedRowKey={selectedRowKey}
                 />
               ) : (
-                <div className="text-center py-12 bg-white rounded-xl border border-[#c5c5d4]">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-[#004fd2] opacity-80" />
-                  <h3 className="text-lg font-bold text-[#111c2d]">All clear!</h3>
-                  <p className="text-[#454652]">No action required issues remaining.</p>
+                <div className="text-center py-12 bg-card rounded-xl border border-[#e2e8f0]">
+                  <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-[#1f2937] opacity-80" />
+                  <h3 className="text-lg font-bold text-[#0f172a]">All clear!</h3>
+                  <p className="text-[#475569]">No action required issues remaining.</p>
                 </div>
               )}
             </div>
 
             {/* 4. Data Table & Export */}
             <div className="mb-8">
-              <h2 className="text-lg font-bold text-[#111c2d] mb-4">4. Data Table & Export</h2>
+              <h2 className="text-lg font-bold text-[#0f172a] mb-4">4. Data Table & Export</h2>
               <div className="flex justify-between items-start gap-4 mb-4">
                 <Card className="flex-1">
                 <CardHeader>
@@ -8034,24 +11174,24 @@ Thank you.`;
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-[#454652]">File Name</p>
-                      <p className="font-medium text-[#111c2d]">{fileData?.fileName}</p>
+                      <p className="text-sm text-[#475569]">File Name</p>
+                      <p className="font-medium text-[#0f172a]">{fileData?.fileName}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#454652]">Total Rows</p>
-                      <p className="font-medium text-[#111c2d]">{fileData?.rows.length || 0}</p>
+                      <p className="text-sm text-[#475569]">Total Rows</p>
+                      <p className="font-medium text-[#0f172a]">{fileData?.rows.length || 0}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#454652]">Columns Detected</p>
-                      <p className="font-medium text-[#111c2d]">{fileData?.columns.length || 0}</p>
+                      <p className="text-sm text-[#475569]">Columns Detected</p>
+                      <p className="font-medium text-[#0f172a]">{fileData?.columns.length || 0}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#454652]">Can Process</p>
-                      <p className="font-medium text-[#004fd2]">{stats.valid + stats.caution}</p>
+                      <p className="text-sm text-[#475569]">Can Process</p>
+                      <p className="font-medium text-[#1f2937]">{stats.valid + stats.caution}</p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm text-[#454652] mb-1">Dataset Name (for PDF report)</p>
+                    <p className="text-sm text-[#475569] mb-1">Dataset Name (for PDF report)</p>
                     <Input
                       value={reportDatasetName}
                       onChange={(event) => setReportDatasetName(event.target.value)}
@@ -8065,7 +11205,7 @@ Thank you.`;
                 <Button
                   onClick={handleDownloadValidationReport}
                   variant="outline"
-                  className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
+                  className="font-semibold border border-[#111827] text-[#111827] hover:bg-[#f1f5f9] rounded-md"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download PDF Report
@@ -8073,7 +11213,7 @@ Thank you.`;
                 <Button
                   onClick={handleDownloadRowLevelReport}
                   variant="outline"
-                  className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
+                  className="font-semibold border border-[#111827] text-[#111827] hover:bg-[#f1f5f9] rounded-md"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   Download Row Analysis
@@ -8081,7 +11221,7 @@ Thank you.`;
                 <Button
                   onClick={handleDownloadAnnotatedSheet}
                   variant="outline"
-                  className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
+                  className="font-semibold border border-[#111827] text-[#111827] hover:bg-[#f1f5f9] rounded-md"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download Annotated Sheet
@@ -8090,8 +11230,8 @@ Thank you.`;
                   onClick={() => setShowValidationReport(!showValidationReport)}
                   variant={showValidationReport ? "default" : "outline"}
                   className={showValidationReport
-                    ? "font-semibold bg-[#2457b8] hover:bg-[#1f4aa0] active:bg-[#2457b8] text-white rounded-md"
-                    : "font-semibold border border-[#111c2d] text-[#111c2d] hover:bg-[#f0f3ff] rounded-md"
+                    ? "font-semibold bg-[#111827] hover:bg-[#1f2937] active:bg-[#111827] text-primary-foreground rounded-md"
+                    : "font-semibold border border-[#0f172a] text-[#0f172a] hover:bg-[#f0f3ff] rounded-md"
                   }
                 >
                   {showValidationReport ? (
@@ -8104,7 +11244,7 @@ Thank you.`;
                   <Button
                     onClick={handleDeduplicate}
                     variant="outline"
-                    className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
+                    className="font-semibold border border-[#8f4600] text-[#8f4600] hover:bg-[#ffdcc6] rounded-md"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Remove Duplicates ({stats.duplicates})
@@ -8114,31 +11254,44 @@ Thank you.`;
             </div>
 
             {/* Validation Report */}
-            {showValidationReport && fileData && (
-              editedRows.length > 1000 ? (
+            {showValidationReport && fileData && (() => {
+              // When viewMode is 'clean' and clean results exist, show the
+              // post-cleaning validation results in the detail table.
+              const activeResults: Map<string, ValidationResult> =
+                viewMode === 'clean' && cleanValidationResults
+                  ? new Map(Object.entries(cleanValidationResults))
+                  : validationResults;
+              // In clean view, rows come from the cleaned dataset (cleanedRows).
+              // The ValidationReport is read-only in this mode (onDataChange is a no-op)
+              // to avoid mixing edited-raw rows with cleaned results.
+              const activeRows =
+                viewMode === 'clean' && cleanValidationResults
+                  ? editedRows  // cleaned rows aren't stored separately; use editedRows for display
+                  : editedRows;
+              return editedRows.length > 1000 ? (
                 <ValidationReportOptimized
                   columns={fileData.columns}
-                  rows={editedRows}
-                  validationResults={validationResults}
+                  rows={activeRows}
+                  validationResults={activeResults}
                   auditResults={auditResults}
-                  onDataChange={handleDataChange}
+                  onDataChange={viewMode === 'clean' ? () => {} : handleDataChange}
                 />
               ) : (
                 <ValidationReport
                   columns={fileData.columns}
-                  rows={editedRows}
-                  validationResults={validationResults}
-                  onDataChange={handleDataChange}
+                  rows={activeRows}
+                  validationResults={activeResults}
+                  onDataChange={viewMode === 'clean' ? () => {} : handleDataChange}
                 />
-              )
-            )}
+              );
+            })()}
           </div>
 
           {/* Gate 2: AI Audit */}
-          <Card className="border border-[#c5c5d4] bg-white">
+          <Card className="border border-[#e2e8f0] bg-card">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="w-4 h-4 text-[#003a9f]" />
+                <Sparkles className="w-4 h-4 text-[#111827]" />
                 Gate 2 — AI Semantic Audit
               </CardTitle>
               <CardDescription>
@@ -8148,18 +11301,18 @@ Thank you.`;
             </CardHeader>
             <CardContent>
               <Button
-                onClick={() => setCurrentStep('ai-audit')}
+                onClick={handleOpenAiAuditStage}
                 disabled={(stats.valid + stats.caution) === 0}
-                className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-semibold"
+                className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground font-semibold"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                Run AI Audit ({stats.valid + stats.caution} rows)
+                Open AI Audit Stage ({stats.valid + stats.caution} rows)
               </Button>
             </CardContent>
           </Card>
 
           {/* Persistent Action Bar */}
-          <div className="sticky bottom-0 bg-white border-t border-[#c5c5d4] p-4 -mx-6 -mb-6 mt-6 flex justify-between items-center rounded-b-xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+          <div className="sticky bottom-0 bg-card border-t border-[#e2e8f0] p-4 -mx-6 -mb-6 mt-6 flex justify-between items-center rounded-b-xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => {
@@ -8171,14 +11324,14 @@ Thank you.`;
                   setShowValidationReport(false);
                 }}
                 variant="outline"
-                className="font-semibold border border-[#111c2d] text-[#111c2d] hover:bg-[#f0f3ff] rounded-md"
+                className="font-semibold border border-[#0f172a] text-[#0f172a] hover:bg-[#f0f3ff] rounded-md"
               >
                 ← Back
               </Button>
               <Button
                 onClick={revalidateAll}
                 disabled={isValidating}
-                className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-semibold rounded-md shadow-sm"
+                className="bg-[#8f4600] hover:bg-[#8f4600] text-primary-foreground font-semibold rounded-md shadow-sm"
               >
                 {isValidating ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Re-running...</>
@@ -8191,14 +11344,14 @@ Thank you.`;
               <Button
                 onClick={handleDownloadValidationReport}
                 variant="outline"
-                className="font-semibold border border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff] rounded-md"
+                className="font-semibold border border-[#111827] text-[#111827] hover:bg-[#f1f5f9] rounded-md"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download Report
               </Button>
               <Button
-                onClick={() => setCurrentStep('configure')}
-                className="bg-[#2457b8] hover:bg-[#1f4aa0] active:bg-[#2457b8] text-white font-semibold rounded-md px-6 shadow-sm"
+                onClick={() => handleStepperJump('configure')}
+                className="bg-[#111827] hover:bg-[#1f2937] active:bg-[#111827] text-primary-foreground font-semibold rounded-md px-6 shadow-sm"
               >
                 Proceed to Configure →
               </Button>
@@ -8210,19 +11363,19 @@ Thank you.`;
         {/* Step 5: Transform */}
         {currentStep === 'transform' && (
           <div className="max-w-7xl mx-auto space-y-6">
-            <section className="bg-white rounded-xl border border-[#c5c5d4]/40 p-8">
+            <section className="bg-card rounded-xl border border-[#e2e8f0]/40 p-8">
               <div className="flex items-center justify-between gap-6">
                 <div>
-                  <h2 className="text-3xl font-extrabold text-[#111c2d] tracking-tight">Step 6: Export</h2>
-                  <p className="text-sm text-[#454652] mt-1">Package generation and final delivery options.</p>
+                  <h2 className="text-3xl font-extrabold text-[#0f172a] tracking-tight">Step 6: Export</h2>
+                  <p className="text-sm text-[#475569] mt-1">Package generation and final delivery options.</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#003a9f]">Process</p>
-                  <p className="text-2xl font-black text-[#003a9f]">100%</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#111827]">Process</p>
+                  <p className="text-2xl font-black text-[#111827]">100%</p>
                 </div>
               </div>
-              <div className="mt-4 h-2 w-full bg-[#e7eeff] rounded-full overflow-hidden">
-                <div className="h-full w-full bg-gradient-to-r from-[#003a9f] to-[#004fd2]" />
+              <div className="mt-4 h-2 w-full bg-[#f1f5f9] rounded-full overflow-hidden">
+                <div className="h-full w-full bg-[#111827]" />
               </div>
             </section>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -8250,17 +11403,17 @@ Thank you.`;
                     progress={aiValidationPhase === 'running' ? aiValidationProgress : undefined}
                   />
                 ) : (
-                  <Card className="border border-[#003a9f] bg-[#f9f9ff]">
+                  <Card className="border border-[#111827] bg-[#f8fafc]">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Sparkles className="w-5 h-5 text-[#003a9f]" />
+                    <Sparkles className="w-5 h-5 text-[#111827]" />
                     {transformDone && !isExporting ? 'Transform Complete' : isExporting ? 'Transforming...' : 'Ready to Transform'}
                   </CardTitle>
                   {getAvailableProviders().length > 0 && (
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#c5c5d4]">
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#e2e8f0]">
                       <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-[#003a9f]" />
-                        <span className="text-sm font-medium text-[#111c2d]">
+                        <Shield className="w-4 h-4 text-[#111827]" />
+                        <span className="text-sm font-medium text-[#0f172a]">
                           AI Validation{!canUseAIValidation && " (Unlimited plan only)"}
                         </span>
                       </div>
@@ -8284,26 +11437,26 @@ Thank you.`;
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {transformDone && !isExporting ? (
-                    <Alert className="bg-[#e7eeff] border-[#004fd2]">
-                      <CheckCircle2 className="h-4 w-4 text-[#004fd2]" />
-                      <AlertTitle className="text-[#004fd2]">Download Started</AlertTitle>
-                      <AlertDescription className="text-[#004fd2] text-sm">
+                    <Alert className="bg-[#f1f5f9] border-[#1f2937]">
+                      <CheckCircle2 className="h-4 w-4 text-[#1f2937]" />
+                      <AlertTitle className="text-[#1f2937]">Download Started</AlertTitle>
+                      <AlertDescription className="text-[#1f2937] text-sm">
                         Your file has been exported and the download has started.
                       </AlertDescription>
                     </Alert>
                   ) : (
-                    <Alert className="bg-[#FFFFFF] border-[#c5c5d4]">
-                      <FileJson className="h-4 w-4 text-[#003a9f]" />
-                      <AlertTitle className="text-[#111c2d]">Ready to Export</AlertTitle>
-                      <AlertDescription className="text-[#454652] text-sm">
-                        <span className="font-semibold text-[#004fd2]">{stats.valid + stats.caution} questions</span> ready to export ({stats.valid} valid, {stats.caution} with warnings) • <span className="font-semibold text-[#ba1a1a]">{stats.rejected} rejected</span>
+                    <Alert className="bg-[#FFFFFF] border-[#e2e8f0]">
+                      <FileJson className="h-4 w-4 text-[#111827]" />
+                      <AlertTitle className="text-[#0f172a]">Ready to Export</AlertTitle>
+                      <AlertDescription className="text-[#475569] text-sm">
+                        <span className="font-semibold text-[#1f2937]">{stats.valid + stats.caution} questions</span> ready to export ({stats.valid} valid, {stats.caution} with warnings) • <span className="font-semibold text-[#ba1a1a]">{stats.rejected} rejected</span>
                       </AlertDescription>
                     </Alert>
                   )}
 
                   {isExporting && (
-                    <div className="flex items-center gap-2 text-sm text-[#454652]">
-                      <Loader2 className="w-4 h-4 animate-spin text-[#003a9f]" />
+                    <div className="flex items-center gap-2 text-sm text-[#475569]">
+                      <Loader2 className="w-4 h-4 animate-spin text-[#111827]" />
                       Generating and packaging your files...
                     </div>
                   )}
@@ -8312,7 +11465,7 @@ Thank you.`;
                     <Button
                       onClick={exportMode === 'qti-package' ? exportToQTI : exportXmlMediaFolder}
                       disabled={isExporting || (stats.valid + stats.caution) === 0}
-                      className="font-semibold px-6 rounded-md bg-[#2457b8] hover:bg-[#1f4aa0] active:bg-[#2457b8] text-white"
+                      className="font-semibold px-6 rounded-md bg-[#111827] hover:bg-[#1f2937] active:bg-[#111827] text-primary-foreground"
                       size="lg"
                     >
                       {isExporting ? (
@@ -8328,7 +11481,7 @@ Thank you.`;
                       onClick={exportToJSON}
                       disabled={isExporting || (stats.valid + stats.caution) === 0}
                       variant="outline"
-                      className="font-semibold px-6 rounded-md border border-[#111c2d] text-[#111c2d] hover:bg-[#f0f3ff]"
+                      className="font-semibold px-6 rounded-md border border-[#0f172a] text-[#0f172a] hover:bg-[#f0f3ff]"
                       size="lg"
                     >
                       {isExporting ? (
@@ -8339,9 +11492,9 @@ Thank you.`;
                     </Button>
 
                     <Button
-                      onClick={() => setCurrentStep('configure')}
+                      onClick={() => handleStepperJump('configure')}
                       variant="outline"
-                      className="font-semibold px-6 border border-[#111c2d] text-[#111c2d] hover:bg-[#f0f3ff] rounded-md"
+                      className="font-semibold px-6 border border-[#0f172a] text-[#0f172a] hover:bg-[#f0f3ff] rounded-md"
                       size="lg"
                     >
                       ← Back to Configure
@@ -8360,6 +11513,8 @@ Thank you.`;
                         setContainsImages("");
                         setContainsMath("");
                         setMathFormat("");
+                        setMathDetection(null);
+                        setMathAutoApplied(false);
                         setHasTemplateXml("");
                         setTemplateXmlFile(null);
                         setConfigurationValidationError("");
@@ -8372,7 +11527,7 @@ Thank you.`;
                         setMediaUploadError("");
                       }}
                       variant="ghost"
-                      className="font-semibold px-6 text-[#003a9f] hover:bg-[#e7eeff] rounded-md"
+                      className="font-semibold px-6 text-[#111827] hover:bg-[#f1f5f9] rounded-md"
                       size="lg"
                     >
                       Start Over
@@ -8384,20 +11539,20 @@ Thank you.`;
               </div>
 
               <aside className="lg:col-span-4">
-                <div className="rounded-xl border border-[#c5c5d4]/40 bg-white p-6 sticky top-24">
-                  <h3 className="text-lg font-extrabold text-[#111c2d] mb-4">Next Steps Guide</h3>
-                  <ol className="space-y-4 text-sm text-[#454652]">
-                    <li><span className="font-bold text-[#003a9f]">1.</span> Download the generated package ZIP.</li>
-                    <li><span className="font-bold text-[#003a9f]">2.</span> Import into your LMS as a QTI package.</li>
-                    <li><span className="font-bold text-[#003a9f]">3.</span> Verify question bank integrity post-import.</li>
+                <div className="rounded-xl border border-[#e2e8f0]/40 bg-card p-6 sticky top-24">
+                  <h3 className="text-lg font-extrabold text-[#0f172a] mb-4">Next Steps Guide</h3>
+                  <ol className="space-y-4 text-sm text-[#475569]">
+                    <li><span className="font-bold text-[#111827]">1.</span> Download the generated package ZIP.</li>
+                    <li><span className="font-bold text-[#111827]">2.</span> Import into your LMS as a QTI package.</li>
+                    <li><span className="font-bold text-[#111827]">3.</span> Verify question bank integrity post-import.</li>
                   </ol>
                   <div className="mt-6 pt-4 border-t border-[#f0f3ff]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#454652] mb-2">Package Summary</p>
-                    <div className="space-y-1.5 text-xs text-[#454652]">
-                      <p><span className="font-semibold text-[#111c2d]">Questions:</span> {stats.valid + stats.caution}</p>
-                      <p><span className="font-semibold text-[#111c2d]">Rejected:</span> {stats.rejected}</p>
-                      <p><span className="font-semibold text-[#111c2d]">Format:</span> {outputFormat || 'Not selected'}</p>
-                      <p><span className="font-semibold text-[#111c2d]">Package:</span> {exportMode || 'Not selected'}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#475569] mb-2">Package Summary</p>
+                    <div className="space-y-1.5 text-xs text-[#475569]">
+                      <p><span className="font-semibold text-[#0f172a]">Questions:</span> {stats.valid + stats.caution}</p>
+                      <p><span className="font-semibold text-[#0f172a]">Rejected:</span> {stats.rejected}</p>
+                      <p><span className="font-semibold text-[#0f172a]">Format:</span> {outputFormat || 'Not selected'}</p>
+                      <p><span className="font-semibold text-[#0f172a]">Package:</span> {exportMode || 'Not selected'}</p>
                     </div>
                   </div>
                 </div>
@@ -8409,3 +11564,6 @@ Thank you.`;
     </div>
   );
 }
+
+
+

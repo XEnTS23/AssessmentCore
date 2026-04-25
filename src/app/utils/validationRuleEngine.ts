@@ -106,9 +106,10 @@ export interface ValidationRule {
   validate: (context: RuleContext) => RuleValidationResult;
 }
 
-function normalizeWhitespace(text: string): string {
+function normalizeWhitespace(text: string | null | undefined): string {
   // Normalize ALL whitespace: spaces, tabs, newlines, carriage returns, non-breaking spaces, etc.
-  return text.trim().toLowerCase().replace(/[\s\u00A0]+/gu, ' ');
+  if (text == null) return '';
+  return String(text).trim().toLowerCase().replace(/[\s\u00A0]+/gu, ' ');
 }
 
 const normalizedOptionTextCache = new WeakMap<RuleContext, Map<string, string[]>>();
@@ -1133,50 +1134,23 @@ export const MSQ_CORRECT_ANSWERS_IN_OPTIONS_RULE: ValidationRule = {
       return { skip: true, skipType: 'RULE_CONDITION', passed: false } as any;
     }
 
-    const validationMode = determineValidationMode(choices);
     const matchMode = getIdentifierMatchMode(context);
 
-    if (validationMode === 'identifier') {
-      const unmatched = correctIds.filter(
-        (answer) => !choices.some((choice) => matchIdentifier(choice.identifier, answer, matchMode))
-      );
+    const unmatched = correctIds.filter(
+      (answer) => !choices.some((choice) => matchIdentifier(choice.identifier, answer, matchMode))
+    );
 
-      if (unmatched.length > 0) {
-        return {
-          passed: false,
-          issue: {
-            code: 'ANSWER_NOT_IN_OPTIONS',
-            category: 'content_quality',
-            field: 'Answer',
-            message: `Answer not found in options: ${unmatched.join(', ')}`,
-            severity: 'block',
-          },
-        };
-      }
-    } else {
-      const textToMatch = new Map<string, boolean>();
-      choices.forEach((choice) => {
-        const normalized = normalizeWhitespace(choice.text ?? '');
-        if (normalized) textToMatch.set(normalized, true);
-      });
-
-      const unmatched = correctIds.filter((answer) => {
-        const normalized = normalizeWhitespace(answer);
-        return !textToMatch.has(normalized);
-      });
-
-      if (unmatched.length > 0) {
-        return {
-          passed: false,
-          issue: {
-            code: 'ANSWER_NOT_IN_OPTIONS',
-            category: 'content_quality',
-            field: 'Answer',
-            message: `Answer not found in options: ${unmatched.join(', ')}`,
-            severity: 'block',
-          },
-        };
-      }
+    if (unmatched.length > 0) {
+      return {
+        passed: false,
+        issue: {
+          code: 'ANSWER_NOT_IN_OPTIONS',
+          category: 'content_quality',
+          field: 'Answer',
+          message: `Answer not found in options: ${unmatched.join(', ')}`,
+          severity: 'block',
+        },
+      };
     }
 
     return { passed: true };
@@ -1225,9 +1199,45 @@ export const MSQ_ANSWER_TEXT_MATCH_RULE: ValidationRule = {
   severity: 'high',
   priority: 82,
   weight: 2,
-  shouldRun: (context) => false,
+  shouldRun: (context) => context.type === 'MSQ',
   validate: (context) => {
-    return { skip: true, skipType: 'RULE_CONDITION', passed: false, severity: 'high' } as any;
+    if (!hasIdentifierMismatch(context)) {
+      return { passed: true, severity: 'high' };
+    }
+    const choices = context.choices;
+    if (!choices || choices.length === 0) {
+      return { skip: true, skipType: 'DATA_MISSING', passed: false, severity: 'high' } as any;
+    }
+    const correctIds = context.correctResponseIdentifiers || [];
+    if (correctIds.length === 0) {
+      return { skip: true, skipType: 'RULE_CONDITION', passed: false, severity: 'high' } as any;
+    }
+
+    const textToMatch = new Map<string, boolean>();
+    choices.forEach((choice) => {
+      const normalized = normalizeWhitespace(choice.text ?? '');
+      if (normalized) textToMatch.set(normalized, true);
+    });
+
+    const unmatched = correctIds.filter((answer) => {
+      const normalized = normalizeWhitespace(answer);
+      return !textToMatch.has(normalized);
+    });
+
+    if (unmatched.length > 0) {
+      return {
+        passed: false,
+        issue: {
+          code: 'ANSWER_TEXT_NOT_IN_OPTIONS',
+          category: 'content_quality',
+          field: 'Answer',
+          message: `Answer text not found in options: ${unmatched.join(', ')}`,
+          severity: 'block',
+        },
+        severity: 'high',
+      };
+    }
+    return { passed: true, severity: 'high' };
   },
 };
 
@@ -1497,20 +1507,7 @@ export const MCQ_HAS_CORRECT_ANSWER_RULE: ValidationRule = {
   },
 };
 
-function determineValidationMode(choices: Array<{ identifier: string; text: string }>): 'identifier' | 'text' {
-  if (!choices || choices.length === 0) return 'text';
 
-  const hasRealIdentifiers = choices.some((choice) => {
-    const id = String(choice.identifier ?? '').trim();
-    if (id.length === 0) return false;
-    if (/^CHOICE_\d+$/i.test(id)) return true;
-    if (/^[A-Za-z]$/.test(id)) return false;
-    if (/^\d+$/.test(id)) return false;
-    return true;
-  });
-
-  return hasRealIdentifiers ? 'identifier' : 'text';
-}
 
 export const MCQ_ANSWER_IN_OPTIONS_RULE: ValidationRule = {
   id: 'MCQ_ANSWER_IN_OPTIONS',
@@ -1529,50 +1526,23 @@ export const MCQ_ANSWER_IN_OPTIONS_RULE: ValidationRule = {
       return { skip: true, skipType: 'RULE_CONDITION', passed: false } as any;
     }
 
-    const validationMode = determineValidationMode(choices);
     const matchMode = getIdentifierMatchMode(context);
 
-    if (validationMode === 'identifier') {
-      const unmatched = correctIds.filter(
-        (answer) => !choices.some((choice) => matchIdentifier(choice.identifier, answer, matchMode))
-      );
+    const unmatched = correctIds.filter(
+      (answer) => !choices.some((choice) => matchIdentifier(choice.identifier, answer, matchMode))
+    );
 
-      if (unmatched.length > 0) {
-        return {
-          passed: false,
-          issue: {
-            code: 'ANSWER_NOT_IN_OPTIONS',
-            category: 'content_quality',
-            field: 'Answer',
-            message: `Answer not found in options: ${unmatched.join(', ')}`,
-            severity: 'block',
-          },
-        };
-      }
-    } else {
-      const textToMatch = new Map<string, boolean>();
-      choices.forEach((choice) => {
-        const normalized = normalizeWhitespace(choice.text ?? '');
-        if (normalized) textToMatch.set(normalized, true);
-      });
-
-      const unmatched = correctIds.filter((answer) => {
-        const normalized = normalizeWhitespace(answer);
-        return !textToMatch.has(normalized);
-      });
-
-      if (unmatched.length > 0) {
-        return {
-          passed: false,
-          issue: {
-            code: 'ANSWER_NOT_IN_OPTIONS',
-            category: 'content_quality',
-            field: 'Answer',
-            message: `Answer not found in options: ${unmatched.join(', ')}`,
-            severity: 'block',
-          },
-        };
-      }
+    if (unmatched.length > 0) {
+      return {
+        passed: false,
+        issue: {
+          code: 'ANSWER_NOT_IN_OPTIONS',
+          category: 'content_quality',
+          field: 'Answer',
+          message: `Answer not found in options: ${unmatched.join(', ')}`,
+          severity: 'block',
+        },
+      };
     }
 
     return { passed: true };
@@ -1585,9 +1555,44 @@ export const MCQ_ANSWER_TEXT_MATCH_RULE: ValidationRule = {
   severity: 'high',
   priority: 80,
   weight: 2,
-  shouldRun: (context) => false,
+  shouldRun: (context) => context.type === 'MCQ',
   validate: (context) => {
-    return { skip: true, skipType: 'RULE_CONDITION', passed: false } as any;
+    if (!hasIdentifierMismatch(context)) {
+      return { passed: true };
+    }
+    const choices = context.choices;
+    if (!choices || choices.length === 0) {
+      return { skip: true, skipType: 'DATA_MISSING', passed: false } as any;
+    }
+    const correctIds = context.correctResponseIdentifiers || [];
+    if (correctIds.length === 0) {
+      return { skip: true, skipType: 'RULE_CONDITION', passed: false } as any;
+    }
+    
+    const textToMatch = new Map<string, boolean>();
+    choices.forEach((choice) => {
+      const normalized = normalizeWhitespace(choice.text ?? '');
+      if (normalized) textToMatch.set(normalized, true);
+    });
+
+    const unmatched = correctIds.filter((answer) => {
+      const normalized = normalizeWhitespace(answer);
+      return !textToMatch.has(normalized);
+    });
+
+    if (unmatched.length > 0) {
+      return {
+        passed: false,
+        issue: {
+          code: 'ANSWER_TEXT_NOT_IN_OPTIONS',
+          category: 'content_quality',
+          field: 'Answer',
+          message: `Answer text not found in options: ${unmatched.join(', ')}`,
+          severity: 'block',
+        },
+      };
+    }
+    return { passed: true };
   },
 };
 

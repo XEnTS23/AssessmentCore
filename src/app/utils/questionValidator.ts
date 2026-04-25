@@ -475,6 +475,18 @@ function getOptionValues(row: NormalizedRow, columnMapping: any): Array<{ col: s
 }
 
 function detectTypeFromStructure(row: NormalizedRow, columnMapping: any): TypeResolution {
+  // ── Strict mode: if no type column is mapped in the sheet, we refuse to
+  // guess the question type from structure (option count, answer format, etc.).
+  // Every row will be classified as 'unknown' so the UI can surface the issue.
+  if (!columnMapping?.typeCol) {
+    return {
+      type: 'unknown',
+      detectedType: 'unknown',
+      confidence: 'none',
+      source: 'unknown',
+    };
+  }
+
   const explicitRaw = getExplicitType(row, columnMapping);
   if (explicitRaw) {
     const alias = TYPE_ALIASES[normalizeTypeToken(explicitRaw)];
@@ -496,45 +508,14 @@ function detectTypeFromStructure(row: NormalizedRow, columnMapping: any): TypeRe
     };
   }
 
-  const optionValues = getOptionValues(row, columnMapping).map((v) => normalizeTextFingerprint(v.text));
-  const answerText = toStableString(columnMapping?.answerCol ? row.normalizedRow[columnMapping.answerCol] : '');
-  let answerTokens = tokenize(answerText);
-  
-  if (getOptionValues(row, columnMapping).some(opt => normalizeChoiceMatchValue(opt.text) === normalizeChoiceMatchValue(answerText))) {
-    answerTokens = [answerText];
-  }
-
-  if (columnMapping?.orderCol && hasValue(row.normalizedRow[columnMapping.orderCol])) {
-    return { type: 'order', detectedType: 'order', confidence: 'high', source: 'detected' };
-  }
-
-  if (optionValues.length >= 2) {
-    if (
-      optionValues.length === 2 &&
-      optionValues.includes('true') &&
-      optionValues.includes('false')
-    ) {
-      return { type: 'true_false', detectedType: 'true_false', confidence: 'high', source: 'detected' };
-    }
-
-    if (answerTokens.length > 1) {
-      return { type: 'multi_select', detectedType: 'multi_select', confidence: 'medium', source: 'detected' };
-    }
-
-    return { type: 'single_choice', detectedType: 'single_choice', confidence: 'medium', source: 'detected' };
-  }
-
-  // FIX: If the template maps option columns but the row is completely blank, it's an invalid MCQ, not a Text Entry.
-  if (optionValues.length === 0 && Array.isArray(columnMapping?.optionCols) && columnMapping.optionCols.length > 0) {
-    return { type: 'unknown', detectedType: 'unknown', confidence: 'none', source: 'detected' };
-  }
-
-  const numericCandidate = parseNumber(answerText);
-  if (numericCandidate !== null) {
-    return { type: 'numeric', detectedType: 'numeric', confidence: 'medium', source: 'detected' };
-  }
-
-  return { type: 'text_entry', detectedType: 'text_entry', confidence: 'low', source: 'detected' };
+  // typeCol is mapped but the cell is blank for this row — unknown, not a guess.
+  return {
+    type: 'unknown',
+    detectedType: 'unknown',
+    confidence: 'none',
+    source: 'explicit',
+    explicitTypeRaw: '',
+  };
 }
 
 function toLegacyDetectedType(type: CanonicalQuestionType): string {

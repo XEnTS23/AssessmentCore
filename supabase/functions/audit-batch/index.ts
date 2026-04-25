@@ -2,10 +2,20 @@
 // Audits a batch of assessment question rows in a single OpenRouter API call.
 // Accepts up to 50 rows per request. OPENROUTER_API_KEY read from server-side secrets.
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = [
+  'https://assessmentcore.vercel.app',
+  ...(Deno.env.get('ALLOWED_ORIGIN') ? [Deno.env.get('ALLOWED_ORIGIN')!] : []),
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') ?? '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Vary': 'Origin',
+  };
+}
 
 interface BatchRow {
   rowKey: string;
@@ -174,8 +184,10 @@ function isGenericStemHallucination(issues: AuditIssue[]): boolean {
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS });
+    return new Response('ok', { headers: CORS });
   }
 
   let inputRows: BatchRow[] = [];
@@ -187,7 +199,7 @@ Deno.serve(async (req: Request) => {
     if (!Array.isArray(inputRows) || inputRows.length === 0) {
       return new Response(
         JSON.stringify({ error: 'rows array is required and must not be empty' }),
-        { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -276,7 +288,7 @@ Rules:
     });
 
     return new Response(JSON.stringify({ results: finalResults }), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
@@ -294,7 +306,7 @@ Rules:
       error: message,
     }));
     return new Response(JSON.stringify({ results: fallback }), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

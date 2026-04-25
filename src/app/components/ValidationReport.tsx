@@ -208,7 +208,7 @@ export function ValidationReport({
       case 'caution':
         return 'bg-yellow-50 border-yellow-200';
       case 'rejected':
-        return 'bg-red-50 border-red-200';
+        return 'bg-destructive-light border-destructive';
       default:
         return 'bg-gray-50 border-gray-200';
     }
@@ -232,7 +232,7 @@ export function ValidationReport({
         );
       case 'rejected':
         return (
-          <Badge className="bg-red-100 text-red-800 gap-1">
+          <Badge className="bg-destructive-light text-red-800 gap-1">
             <XCircle className="w-3 h-3" />
             Rejected
           </Badge>
@@ -275,7 +275,7 @@ export function ValidationReport({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-red-600 hover:bg-red-700 text-primary-foreground"
             onClick={() => {
               if (pendingDeleteColumn) deleteCustomColumn(pendingDeleteColumn);
               setPendingDeleteColumn(null);
@@ -309,7 +309,7 @@ export function ValidationReport({
                   <Badge className="bg-yellow-100 text-yellow-800">
                     {Array.from(validationResults.values()).filter(r => r.status === 'caution').length} Caution
                   </Badge>
-                  <Badge className="bg-red-100 text-red-800">
+                  <Badge className="bg-destructive-light text-red-800">
                     {Array.from(validationResults.values()).filter(r => r.status === 'rejected').length} Rejected
                   </Badge>
                 </>
@@ -358,7 +358,7 @@ export function ValidationReport({
                                 e.stopPropagation();
                                 saveHeaderEdit();
                               }}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-bold px-2"
+                              className="text-primary hover:text-blue-800 text-sm font-bold px-2"
                               title="Save (Enter)"
                             >
                               ✓
@@ -368,7 +368,7 @@ export function ValidationReport({
                                 e.stopPropagation();
                                 cancelHeaderEdit();
                               }}
-                              className="text-red-600 hover:text-red-800 text-sm font-bold px-2"
+                              className="text-destructive hover:text-red-800 text-sm font-bold px-2"
                               title="Cancel (Esc)"
                             >
                               ✕
@@ -376,7 +376,7 @@ export function ValidationReport({
                           </div>
                         ) : (
                           <div className="flex items-center justify-between group">
-                            <span className={isCustomColumn ? 'cursor-pointer hover:text-blue-600 hover:underline flex-1' : 'flex-1'}>
+                            <span className={isCustomColumn ? 'cursor-pointer hover:text-primary hover:underline flex-1' : 'flex-1'}>
                               {col}
                             </span>
                             {isCustomColumn && (
@@ -385,7 +385,7 @@ export function ValidationReport({
                                   e.stopPropagation();
                                   setPendingDeleteColumn(col);
                                 }}
-                                className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0"
+                                className="text-red-400 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0"
                                 title="Delete column"
                                 aria-label={`Delete column ${col}`}
                               >
@@ -400,7 +400,7 @@ export function ValidationReport({
                   <th className="border-r border-gray-300 px-3 py-2 text-center font-semibold bg-gray-50 w-10">
                     <button
                       onClick={addCustomColumn}
-                      className="text-blue-600 hover:text-blue-800 transition-colors inline-flex items-center justify-center"
+                      className="text-primary hover:text-blue-800 transition-colors inline-flex items-center justify-center"
                       title="Add custom column"
                     >
                       <Plus className="w-5 h-5" />
@@ -422,12 +422,12 @@ export function ValidationReport({
                   const validation = validationResults.get(rowKey);
                   const isExpanded = expandedRows.has(rowKey);
                   const isSelected = selectedRowKey === rowKey;
-                  const statusColor = validation ? getStatusColor(validation.status) : 'bg-white';
+                  const statusColor = validation ? getStatusColor(validation.status) : 'bg-card';
 
                   return (
                     <tr
                       key={rowKey}
-                      className={isSelected ? `border-b-2 border-blue-500 bg-blue-50 transition-colors` : `border-b border-gray-200 ${statusColor} transition-colors`}
+                      className={isSelected ? `border-b-2 border-blue-500 bg-primary-light transition-colors` : `border-b border-gray-200 ${statusColor} transition-colors`}
                     >
                       {/* Row Number and Expand Button */}
                       <td className="border-r border-gray-300 px-3 py-2 text-center bg-gray-50 font-medium">
@@ -457,7 +457,7 @@ export function ValidationReport({
                         return (
                           <td
                             key={`${rowKey}-${col}`}
-                            className={`border-r border-gray-300 px-3 py-2 cursor-pointer hover:bg-blue-50 max-w-xs ${hasErrorMsg ? 'bg-red-50' : ''}`}
+                            className={`border-r border-gray-300 px-3 py-2 cursor-pointer hover:bg-primary-light max-w-xs ${hasErrorMsg ? 'bg-destructive-light' : ''}`}
                             onClick={() => {
                               if (onRowClick) onRowClick(rowKey);
                               if (!isEditing) {
@@ -509,7 +509,7 @@ export function ValidationReport({
                                 <span className={`truncate ${hasErrorMsg ? 'text-red-900 font-medium' : 'text-gray-900'}`} title={hasErrorMsg || ''}>
                                   {cellValue?.toString() || '-'}
                                 </span>
-                                {hasErrorMsg && <AlertCircle className="w-3 h-3 text-red-500 ml-1 shrink-0" />}
+                                {hasErrorMsg && <AlertCircle className="w-3 h-3 text-destructive ml-1 shrink-0" />}
                                 <Edit2 className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 ml-2 flex-shrink-0" />
                               </div>
                             )}
@@ -533,7 +533,7 @@ export function ValidationReport({
                       <td className="px-3 py-2">
                         <button
                           onClick={() => toggleRowExpanded(rowKey)}
-                          className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                          className="text-primary hover:text-blue-900 text-sm font-medium"
                         >
                           {isExpanded ? 'Hide' : 'Show'}
                         </button>
@@ -565,7 +565,7 @@ export function ValidationReport({
 
                   <div className="space-y-3">
                     {/* Question Text */}
-                    <div className="bg-white p-3 rounded border border-gray-200">
+                    <div className="bg-card p-3 rounded border border-gray-200">
                       <p className="text-xs text-gray-600 font-semibold mb-1">Question Text:</p>
                       <div className="text-sm text-gray-900">
                         <MathMLRenderer 
@@ -577,13 +577,13 @@ export function ValidationReport({
 
                     {/* Validation Issues */}
                     {(validation.criticalErrors.length > 0 || validation.warnings.length > 0) && (
-                      <div className="bg-white p-3 rounded border border-gray-200">
+                      <div className="bg-card p-3 rounded border border-gray-200">
                         {validation.criticalErrors.length > 0 && (
                           <>
                             <p className="text-xs text-gray-600 font-semibold mb-2">Critical Errors:</p>
                             <ul className="space-y-1 mb-3">
                               {validation.criticalErrors.map((error: ValidationError, idx: number) => (
-                                <li key={`error-${idx}`} className="text-sm text-red-600 flex gap-2">
+                                <li key={`error-${idx}`} className="text-sm text-destructive flex gap-2">
                                   <span className="text-red-400">•</span>
                                   <span><strong>{error.field}:</strong> {error.message}</span>
                                 </li>
@@ -608,7 +608,7 @@ export function ValidationReport({
                     )}
 
                     {/* All Row Data */}
-                    <div className="bg-white p-3 rounded border border-gray-200">
+                    <div className="bg-card p-3 rounded border border-gray-200">
                       <p className="text-xs text-gray-600 font-semibold mb-2">All Fields:</p>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         {Object.entries(row).map(([key, value]) => (

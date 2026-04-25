@@ -125,7 +125,7 @@ export function LMSExportPage() {
   const [expandedPreviewRows, setExpandedPreviewRows] = useState<Set<string>>(new Set());
   const zipInputRef = useRef<HTMLInputElement>(null);
 
-  const isPaidUser = Boolean(userUsage?.is_unlimited);
+  const isPaidUser = Boolean(userUsage?.is_premium);
 
   const selectedPlatformMeta = useMemo(
     () => LMS_PLATFORMS.find((platform) => platform.id === selectedPlatform) || LMS_PLATFORMS[0],
@@ -280,18 +280,18 @@ export function LMSExportPage() {
   if (!loading && !isAuthenticated) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md w-full border-[#E2E8F0]">
+        <Card className="max-w-md w-full border-border">
           <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <div className="w-14 h-14 bg-[#FEF3C7] rounded-full flex items-center justify-center mx-auto">
-              <LogIn className="w-7 h-7 text-[#D97706]" />
+            <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto">
+              <LogIn className="w-7 h-7 text-muted-foreground" />
             </div>
-            <h2 className="text-xl font-bold text-[#111827]">Sign In Required</h2>
-            <p className="text-sm text-[#475569]">
+            <h2 className="text-xl font-bold text-foreground">Sign In Required</h2>
+            <p className="text-sm text-muted-foreground">
               Please sign in to access the LMS Export feature.
             </p>
             <Button
               onClick={() => navigate("/auth/login")}
-              className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold"
+              className="bg-primary hover:bg-primary/90 transition-colors text-primary-foreground"
             >
               <LogIn className="w-4 h-4 mr-2" /> Sign In
             </Button>
@@ -304,21 +304,21 @@ export function LMSExportPage() {
   if (!loading && isAuthenticated && !isPaidUser) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md w-full border-[#E2E8F0]">
+        <Card className="max-w-md w-full border-border">
           <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <div className="w-14 h-14 bg-[#DBEAFE] rounded-full flex items-center justify-center mx-auto">
-              <Lock className="w-7 h-7 text-[#0F6CBD]" />
+            <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto">
+              <Lock className="w-7 h-7 text-muted-foreground" />
             </div>
             <div className="flex items-center justify-center gap-2">
-              <h2 className="text-xl font-bold text-[#111827]">Pro Feature</h2>
-              <Badge className="bg-[#2457b8] text-white text-xs">
+              <h2 className="text-xl font-bold text-foreground">Pro Feature</h2>
+              <Badge className="bg-primary text-primary-foreground text-xs">
                 PRO
               </Badge>
             </div>
-            <p className="text-sm text-[#475569]">
+            <p className="text-sm text-muted-foreground">
               LMS package export is available for Pro users. Upgrade your plan to upload a QTI ZIP, configure a target LMS, and download a platform-adapted package.
             </p>
-            <Button disabled className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold opacity-80">
+            <Button disabled className="bg-primary hover:bg-primary transition-colors text-primary-foreground opacity-80">
               <Lock className="w-4 h-4 mr-2" /> Upgrade to Pro
             </Button>
           </CardContent>
@@ -328,7 +328,7 @@ export function LMSExportPage() {
   }
 
   return (
-    <div className="p-8 space-y-8 bg-[radial-gradient(circle_at_top_left,_rgba(36,87,184,0.14),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.1),_transparent_30%),linear-gradient(180deg,_#f8fbff_0%,_#f3faf7_100%)] min-h-full">
+    <div className="p-8 space-y-8 bg-muted min-h-full">
       <input
         ref={zipInputRef}
         type="file"
@@ -338,13 +338,13 @@ export function LMSExportPage() {
       />
 
       <div className="space-y-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#bfd6ff] bg-[linear-gradient(135deg,_#eef4ff_0%,_#e9fbf3_100%)] px-3 py-1 text-xs font-medium text-[#2457b8]">
+        <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-foreground">
           <Package className="h-3.5 w-3.5" />
           LMS Package Conversion
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-[#111827]">Export to LMS</h1>
-          <p className="mt-2 max-w-3xl text-[#475569]">
+          <h1 className="text-3xl font-bold text-foreground">Export to LMS</h1>
+          <p className="mt-2 max-w-3xl text-muted-foreground">
             Upload a QTI ZIP package containing imsmanifest.xml, inspect the package, choose your target LMS,
             and export a converted package tailored to that platform's XML and manifest requirements.
           </p>
@@ -352,16 +352,16 @@ export function LMSExportPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "upload" | "configure")}>
-        <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/85 border border-[#d7e5ff] shadow-sm">
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-card border border-border shadow-sm">
           <TabsTrigger value="upload">1. Upload Package</TabsTrigger>
           <TabsTrigger value="configure" disabled={!uploadedZipFile}>2. Configure Export</TabsTrigger>
         </TabsList>
 
         <TabsContent value="upload" className="space-y-6 pt-4">
-          <Card className="border-[#d7e5ff] shadow-sm bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)]">
+          <Card className="border-border shadow-sm bg-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#111827]">
-                <Upload className="w-5 h-5 text-[#0F6CBD]" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Upload className="w-5 h-5 text-foreground" />
                 Upload QTI ZIP Package
               </CardTitle>
               <CardDescription>
@@ -372,24 +372,24 @@ export function LMSExportPage() {
               <button
                 type="button"
                 onClick={() => zipInputRef.current?.click()}
-                className="group flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-[#9cc2ff] bg-[#f8fbff] px-6 py-12 text-center transition hover:border-[#2457b8] hover:bg-[#eef4ff]"
+                className="group flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted px-6 py-12 text-center transition hover:border-border hover:bg-muted transition-colors"
               >
-                <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm border border-[#DBEAFE]">
-                  <FileArchive className="h-10 w-10 text-[#0F6CBD]" />
+                <div className="mb-4 rounded-2xl bg-card p-4 shadow-sm border border-border">
+                  <FileArchive className="h-10 w-10 text-foreground" />
                 </div>
-                <p className="text-base font-semibold text-[#0F172A]">
+                <p className="text-base font-semibold text-foreground">
                   {isInspectingZip ? "Inspecting uploaded package..." : "Choose ZIP file"}
                 </p>
-                <p className="mt-2 text-sm text-[#64748B]">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Manifest is required. We will inspect XML count, media count, and package readiness before export.
                 </p>
               </button>
 
               {uploadError && (
                 <Alert className="bg-[#FEF2F2] border-red-500">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <AlertCircle className="h-4 w-4 text-destructive" />
                   <AlertTitle className="text-red-900">Upload Failed</AlertTitle>
-                  <AlertDescription className="text-red-700 text-sm">
+                  <AlertDescription className="text-destructive text-sm">
                     {uploadError}
                   </AlertDescription>
                 </Alert>
@@ -432,7 +432,7 @@ export function LMSExportPage() {
                   type="button"
                   onClick={() => setActiveTab("configure")}
                   disabled={!uploadedZipFile}
-                  className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white text-xs font-semibold"
+                  className="bg-primary hover:bg-primary/90 transition-colors text-primary-foreground"
                 >
                   Continue to Configuration
                 </Button>
@@ -473,8 +473,8 @@ export function LMSExportPage() {
                           onClick={() => setSelectedPlatform(platform.id)}
                           className={`rounded-2xl border p-4 text-left transition ${
                             isSelected
-                              ? "border-[#2457b8] bg-[#eef4ff] shadow-sm"
-                              : "border-[#d7e5ff] bg-white hover:border-[#93C5FD]"
+                              ? "border-[#2457b8] bg-[linear-gradient(140deg,_#eff6ff_0%,_#e8f8f0_100%)] shadow-sm"
+                              : "border-[#d7e5ff] bg-card hover:border-[#93C5FD]"
                           } ${!platform.available ? "opacity-70" : ""}`}
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -571,7 +571,7 @@ export function LMSExportPage() {
                       !selectedPlatformMeta.available ||
                       (selectedPlatform === "canvas" && !canvasPreview)
                     }
-                    className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white"
+                    className="w-full bg-[linear-gradient(120deg,_#2457b8_0%,_#5b3bb6_100%)] hover:brightness-95 text-primary-foreground"
                   >
                     {isExporting ? (
                       <>
@@ -659,7 +659,7 @@ export function LMSExportPage() {
                             const expanded = expandedPreviewRows.has(item.id);
                             return (
                               <React.Fragment key={item.id}>
-                                <tr className="odd:bg-white even:bg-[#FCFDFF] hover:bg-[#F0F4F8]">
+                                <tr className="odd:bg-card even:bg-[#FCFDFF] hover:bg-[#F0F4F8]">
                                   <td className="px-3 py-2 border-b border-[#F1F5F9]">
                                     <input
                                       type="checkbox"

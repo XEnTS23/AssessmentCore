@@ -20,25 +20,25 @@ import type { ValidationResult } from '../utils/questionValidator';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const ISSUE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  grammar: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+  grammar: { bg: 'bg-muted', text: 'text-foreground', border: 'border-border' },
   logic:   { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-  clarity: { bg: 'bg-sky-50',    text: 'text-sky-700',    border: 'border-sky-200'    },
+  clarity: { bg: 'bg-muted',    text: 'text-foreground',    border: 'border-border'    },
   factual: { bg: 'bg-rose-50',   text: 'text-rose-700',   border: 'border-rose-200'   },
 };
 
 function AiStatusIcon({ result, loading }: { result: RowAuditResult | undefined; loading: boolean }) {
-  if (loading) return <Loader2 className="w-4 h-4 animate-spin text-[#003a9f]" />;
-  if (!result)  return <Clock className="w-4 h-4 text-slate-400" />;
-  if (result.status === 'ai_certified') return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
-  return <XCircle className="w-4 h-4 text-red-500" />;
+  if (loading) return <Loader2 className="w-4 h-4 animate-spin text-[#111827]" />;
+  if (!result)  return <Clock className="w-4 h-4 text-muted-foreground/50" />;
+  if (result.status === 'ai_certified') return <CheckCircle2 className="w-4 h-4 text-success" />;
+  return <XCircle className="w-4 h-4 text-destructive" />;
 }
 
 function Gate1Pill({ status }: { status: string }) {
   if (status === 'valid')
-    return <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-archivo">valid</span>;
+    return <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-success-light text-success font-archivo">valid</span>;
   if (status === 'caution')
-    return <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-archivo">caution</span>;
-  return <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-archivo">rejected</span>;
+    return <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warning-light text-warning font-archivo">caution</span>;
+  return <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-destructive-light text-destructive font-archivo">rejected</span>;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -146,11 +146,11 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-[#111c2d] flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#003a9f]" />
+          <h2 className="text-lg font-semibold text-[#0f172a] flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#111827]" />
             AI Semantic Audit
           </h2>
-          <p className="text-sm text-[#454652] mt-0.5">
+          <p className="text-sm text-[#475569] mt-0.5">
             Gate 2 — Groq reviews grammar, logic, clarity &amp; factual accuracy
           </p>
         </div>
@@ -158,13 +158,13 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
         <div className="flex items-center gap-3">
           {/* Stats */}
           <div className="flex items-center gap-4 text-sm mr-2">
-            <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+            <span className="flex items-center gap-1.5 text-success font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" />{certified} certified
             </span>
-            <span className="flex items-center gap-1.5 text-red-600 font-medium">
+            <span className="flex items-center gap-1.5 text-destructive font-medium">
               <XCircle className="w-3.5 h-3.5" />{rejected} rejected
             </span>
-            <span className="flex items-center gap-1.5 text-slate-500">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="w-3.5 h-3.5" />{pending} pending
             </span>
           </div>
@@ -172,25 +172,25 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
           <Button
             variant="outline"
             onClick={onSkip}
-            className="border-[#c5c5d4] text-[#454652] hover:bg-[#f9f9ff] font-archivo text-sm"
+            className="border-[#e2e8f0] text-[#475569] hover:bg-[#f8fafc] font-archivo text-sm"
           >
             Skip
           </Button>
           {batchProgress ? (
             <div className="flex items-center gap-3 min-w-[220px]">
               <div className="flex-1">
-                <div className="flex justify-between text-xs text-[#454652] mb-1">
+                <div className="flex justify-between text-xs text-[#475569] mb-1">
                   <span className="flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Auditing via Gemini…
                   </span>
-                  <span className="font-semibold text-[#003a9f]">
+                  <span className="font-semibold text-[#111827]">
                     {batchProgress.done} / {batchProgress.total}
                   </span>
                 </div>
                 <Progress
                   value={(batchProgress.done / batchProgress.total) * 100}
-                  className="h-1.5 bg-[#c5c5d4] [&_[data-slot=progress-indicator]]:bg-[#003a9f]"
+                  className="h-1.5 bg-[#e2e8f0] [&_[data-slot=progress-indicator]]:bg-[#111827]"
                 />
               </div>
             </div>
@@ -198,14 +198,14 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
             <Button
               onClick={handleAuditAll}
               disabled={isAuditingAll || loadingRows.size > 0}
-              className="bg-[#003a9f] hover:bg-[#004fd2] text-white font-archivo text-sm"
+              className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground font-archivo text-sm"
             >
               <Sparkles className="w-4 h-4 mr-1.5" />Audit All
             </Button>
           )}
           <Button
             onClick={onProceed}
-            className="bg-[#003a9f] hover:bg-[#004fd2] text-white font-archivo text-sm"
+            className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground font-archivo text-sm"
           >
             Proceed to Configure →
           </Button>
@@ -216,9 +216,9 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
       <div className="flex gap-4 flex-1 min-h-0" style={{ height: 'calc(100vh - 280px)' }}>
 
         {/* Left: question list */}
-        <div className="w-80 flex-shrink-0 bg-white rounded-xl border border-[#c5c5d4] flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#c5c5d4] bg-[#f9f9ff]">
-            <p className="text-xs font-semibold text-[#454652] uppercase tracking-wider">
+        <div className="w-80 flex-shrink-0 bg-card rounded-xl border border-[#e2e8f0] flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#e2e8f0] bg-[#f8fafc]">
+            <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider">
               {results.length} Questions
             </p>
           </div>
@@ -237,8 +237,8 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                     onClick={() => setSelectedKey(rowKey)}
                     className={`w-full text-left px-4 py-3 transition-colors flex items-start gap-3 ${
                       isSelected
-                        ? 'bg-[#e7eeff] border-l-2 border-[#003a9f]'
-                        : 'hover:bg-[#f9f9ff] border-l-2 border-transparent'
+                        ? 'bg-[#f1f5f9] border-l-2 border-[#111827]'
+                        : 'hover:bg-[#f8fafc] border-l-2 border-transparent'
                     }`}
                   >
                     {/* Status icon */}
@@ -249,13 +249,13 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[11px] font-semibold text-[#757684]">#{rowNumber}</span>
+                        <span className="text-[11px] font-semibold text-[#64748b]">#{rowNumber}</span>
                         <Gate1Pill status={status} />
-                        <span className="text-[10px] text-[#757684] capitalize">
+                        <span className="text-[10px] text-[#64748b] capitalize">
                           {canonicalItem.canonicalType.replace('_', ' ')}
                         </span>
                       </div>
-                      <p className="text-xs text-[#111c2d] line-clamp-2 leading-relaxed font-data">
+                      <p className="text-xs text-[#0f172a] line-clamp-2 leading-relaxed font-data">
                         {editedStems.get(rowKey) ?? canonicalItem.stem ?? '(no stem)'}
                       </p>
                     </div>
@@ -266,8 +266,8 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                       disabled={loading || isAuditingAll}
                       className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded transition-colors ${
                         loading || isAuditingAll
-                          ? 'opacity-40 cursor-not-allowed bg-[#f0f3ff] text-[#757684]'
-                          : 'bg-[#e7eeff] text-[#003a9f] hover:bg-[#d8e3fb]'
+                          ? 'opacity-40 cursor-not-allowed bg-[#f0f3ff] text-[#64748b]'
+                          : 'bg-[#f1f5f9] text-[#111827] hover:bg-[#e2e8f0]'
                       }`}
                     >
                       {loading ? '…' : audit ? 'Re-audit' : 'Audit'}
@@ -280,21 +280,21 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
         </div>
 
         {/* Right: detail panel */}
-        <div className="flex-1 bg-white rounded-xl border border-[#c5c5d4] flex flex-col overflow-hidden">
+        <div className="flex-1 bg-card rounded-xl border border-[#e2e8f0] flex flex-col overflow-hidden">
           {!selectedResult || !selectedResult.canonicalItem ? (
-            <div className="flex-1 flex items-center justify-center text-[#757684] text-sm">
+            <div className="flex-1 flex items-center justify-center text-[#64748b] text-sm">
               Select a question from the list
             </div>
           ) : (
             <>
               {/* Detail header */}
-              <div className="px-6 py-4 border-b border-[#c5c5d4] bg-[#f9f9ff] flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[#454652]">
+                  <span className="text-sm font-semibold text-[#475569]">
                     Question #{selectedResult.rowNumber}
                   </span>
                   <Gate1Pill status={selectedResult.status} />
-                  <Badge variant="outline" className="text-[#454652] border-[#c5c5d4] text-xs font-archivo capitalize">
+                  <Badge variant="outline" className="text-[#475569] border-[#e2e8f0] text-xs font-archivo capitalize">
                     {selectedResult.canonicalItem.canonicalType.replace('_', ' ')}
                   </Badge>
                 </div>
@@ -304,7 +304,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                     <Button
                       size="sm"
                       onClick={() => setModalKey(selectedKey)}
-                      className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 font-archivo text-xs h-7"
+                      className="bg-destructive-light text-destructive border border-destructive hover:bg-destructive-light font-archivo text-xs h-7"
                       variant="outline"
                     >
                       <AlertTriangle className="w-3 h-3 mr-1" />
@@ -315,7 +315,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                     size="sm"
                     onClick={() => selectedResult && runAudit(selectedResult)}
                     disabled={selectedLoading || isAuditingAll}
-                    className="bg-[#003a9f] text-white hover:bg-[#004fd2] font-archivo text-xs h-7"
+                    className="bg-[#111827] text-primary-foreground hover:bg-[#1f2937] font-archivo text-xs h-7"
                   >
                     {selectedLoading
                       ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Auditing…</>
@@ -329,21 +329,21 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
 
                   {/* Stem */}
                   <div>
-                    <p className="text-[11px] font-semibold text-[#757684] uppercase tracking-wider mb-1.5">
+                    <p className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider mb-1.5">
                       Question Stem
                     </p>
-                    <p className="text-sm text-[#111c2d] leading-relaxed font-data">
+                    <p className="text-sm text-[#0f172a] leading-relaxed font-data">
                       {editedStems.get(selectedResult.rowKey) ?? selectedResult.canonicalItem.stem ?? '(no stem)'}
                     </p>
                     {editedStems.has(selectedResult.rowKey) && (
-                      <span className="text-[10px] text-[#003a9f] mt-1 block">edited</span>
+                      <span className="text-[10px] text-[#111827] mt-1 block">edited</span>
                     )}
                   </div>
 
                   {/* Options */}
                   {selectedResult.canonicalItem.choices.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-[#757684] uppercase tracking-wider mb-1.5">
+                      <p className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider mb-1.5">
                         Options
                       </p>
                       <div className="space-y-1.5">
@@ -355,14 +355,14 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                               key={c.identifier}
                               className={`flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm ${
                                 isCorrect
-                                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                                  : 'bg-[#f9f9ff] border border-[#c5c5d4] text-[#111c2d]'
+                                  ? 'bg-success-light border border-success text-emerald-800'
+                                  : 'bg-[#f8fafc] border border-[#e2e8f0] text-[#0f172a]'
                               }`}
                             >
                               <span className="font-semibold flex-shrink-0">{alpha}.</span>
                               <span className="font-data">{(c as any).text ?? c.identifier}</span>
                               {isCorrect && (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 ml-auto flex-shrink-0 mt-0.5" />
+                                <CheckCircle2 className="w-3.5 h-3.5 text-success ml-auto flex-shrink-0 mt-0.5" />
                               )}
                             </div>
                           );
@@ -374,13 +374,13 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                   {/* Order items */}
                   {selectedResult.canonicalItem.orderItems.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-[#757684] uppercase tracking-wider mb-1.5">
+                      <p className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider mb-1.5">
                         Order Items
                       </p>
                       <div className="space-y-1.5">
                         {selectedResult.canonicalItem.orderItems.map((item, i) => (
-                          <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#f9f9ff] border border-[#c5c5d4] text-sm text-[#111c2d]">
-                            <span className="font-semibold text-[#757684]">{i + 1}.</span>
+                          <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] text-sm text-[#0f172a]">
+                            <span className="font-semibold text-[#64748b]">{i + 1}.</span>
                             <span>{item}</span>
                           </div>
                         ))}
@@ -392,13 +392,13 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                   {selectedAudit && (
                     <div className={`rounded-lg border p-4 ${
                       selectedAudit.status === 'ai_certified'
-                        ? 'bg-emerald-50 border-emerald-200'
-                        : 'bg-red-50 border-red-200'
+                        ? 'bg-success-light border-success'
+                        : 'bg-destructive-light border-destructive'
                     }`}>
                       <div className="flex items-center gap-2">
                         {selectedAudit.status === 'ai_certified'
-                          ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          : <XCircle className="w-4 h-4 text-red-600" />}
+                          ? <CheckCircle2 className="w-4 h-4 text-success" />
+                          : <XCircle className="w-4 h-4 text-destructive" />}
                         <span className={`text-sm font-semibold ${
                           selectedAudit.status === 'ai_certified' ? 'text-emerald-800' : 'text-red-800'
                         }`}>
@@ -408,7 +408,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                         </span>
                       </div>
                       {selectedAudit.status === 'ai_rejected' && (
-                        <p className="text-xs text-red-700 mt-1">
+                        <p className="text-xs text-destructive mt-1">
                           Click <strong>View Issues &amp; Fix</strong> above to review and fix.
                         </p>
                       )}
@@ -416,8 +416,8 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                   )}
 
                   {!selectedAudit && !selectedLoading && (
-                    <div className="rounded-lg border border-dashed border-[#c5c5d4] p-4 text-center">
-                      <p className="text-sm text-[#757684]">Click <strong>Audit</strong> to analyse this question</p>
+                    <div className="rounded-lg border border-dashed border-[#e2e8f0] p-4 text-center">
+                      <p className="text-sm text-[#64748b]">Click <strong>Audit</strong> to analyse this question</p>
                     </div>
                   )}
                 </div>
@@ -430,9 +430,9 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
       {/* ── Issues & Fix Modal ── */}
       <Dialog open={!!modalKey} onOpenChange={open => !open && setModalKey(null)}>
         <DialogContent className="max-w-2xl font-archivo max-h-[90vh] flex flex-col gap-0 p-0">
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-[#c5c5d4]">
-            <DialogTitle className="flex items-center gap-2 text-[#111c2d]">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
+          <DialogHeader className="px-6 pt-5 pb-4 border-b border-[#e2e8f0]">
+            <DialogTitle className="flex items-center gap-2 text-[#0f172a]">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
               Issues &amp; Fix — Question #{modalResult?.rowNumber}
             </DialogTitle>
           </DialogHeader>
@@ -441,21 +441,21 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
             <div className="flex-1 overflow-y-auto">
 
               {/* ── Question data (read-only) ── */}
-              <div className="px-6 py-4 bg-[#f9f9ff] border-b border-[#c5c5d4] space-y-3">
-                <p className="text-[10px] font-bold text-[#757684] uppercase tracking-wider">Question Data</p>
+              <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#e2e8f0] space-y-3">
+                <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider">Question Data</p>
 
                 {/* Original stem */}
                 <div>
-                  <p className="text-[10px] font-semibold text-[#454652] mb-1">Original Stem</p>
-                  <p className="text-sm text-[#111c2d] leading-relaxed bg-white rounded-lg border border-[#c5c5d4] px-3 py-2">
-                    {modalResult.canonicalItem.stem || <span className="text-[#757684] italic">(no stem)</span>}
+                  <p className="text-[10px] font-semibold text-[#475569] mb-1">Original Stem</p>
+                  <p className="text-sm text-[#0f172a] leading-relaxed bg-card rounded-lg border border-[#e2e8f0] px-3 py-2">
+                    {modalResult.canonicalItem.stem || <span className="text-[#64748b] italic">(no stem)</span>}
                   </p>
                 </div>
 
                 {/* Options */}
                 {modalResult.canonicalItem.choices.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold text-[#454652] mb-1">Options</p>
+                    <p className="text-[10px] font-semibold text-[#475569] mb-1">Options</p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {modalResult.canonicalItem.choices.map((c, i) => {
                         const alpha = 'ABCDEFGHIJ'[i] ?? String(i + 1);
@@ -463,12 +463,12 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                         return (
                           <div key={c.identifier} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs ${
                             isCorrect
-                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800 font-medium'
-                              : 'bg-white border border-[#c5c5d4] text-[#111c2d]'
+                              ? 'bg-success-light border border-success text-emerald-800 font-medium'
+                              : 'bg-card border border-[#e2e8f0] text-[#0f172a]'
                           }`}>
                             <span className="font-bold flex-shrink-0">{alpha}.</span>
                             <span className="truncate">{(c as any).text ?? c.identifier}</span>
-                            {isCorrect && <CheckCircle2 className="w-3 h-3 text-emerald-500 ml-auto flex-shrink-0" />}
+                            {isCorrect && <CheckCircle2 className="w-3 h-3 text-success ml-auto flex-shrink-0" />}
                           </div>
                         );
                       })}
@@ -479,11 +479,11 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                 {/* Order items */}
                 {modalResult.canonicalItem.orderItems.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold text-[#454652] mb-1">Order Items</p>
+                    <p className="text-[10px] font-semibold text-[#475569] mb-1">Order Items</p>
                     <div className="space-y-1">
                       {modalResult.canonicalItem.orderItems.map((item, i) => (
-                        <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs bg-white border border-[#c5c5d4] text-[#111c2d]">
-                          <span className="font-bold text-[#757684]">{i + 1}.</span>
+                        <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs bg-card border border-[#e2e8f0] text-[#0f172a]">
+                          <span className="font-bold text-[#64748b]">{i + 1}.</span>
                           <span>{item}</span>
                         </div>
                       ))}
@@ -497,7 +497,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                 {/* ── Issues ── */}
                 {modalAudit?.issues && modalAudit.issues.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold text-[#757684] uppercase tracking-wider mb-2">
+                    <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider mb-2">
                       {modalAudit.issues.length} Issue{modalAudit.issues.length !== 1 ? 's' : ''} Detected
                     </p>
                     <div className="space-y-2">
@@ -510,7 +510,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                                 <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>
                                   {issue.issue_type}
                                 </span>
-                                <p className="text-sm text-[#111c2d] mt-0.5 leading-relaxed">{issue.description}</p>
+                                <p className="text-sm text-[#0f172a] mt-0.5 leading-relaxed">{issue.description}</p>
                                 <p className={`text-xs mt-1.5 italic ${colors.text}`}>
                                   Suggestion: {issue.suggestion}
                                 </p>
@@ -534,9 +534,9 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                 {/* ── Editable stem ── */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] font-bold text-[#757684] uppercase tracking-wider">
+                    <label className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider">
                       Fixed Stem
-                      <span className="ml-2 text-[10px] font-normal normal-case text-[#454652]">
+                      <span className="ml-2 text-[10px] font-normal normal-case text-[#475569]">
                         — edit manually or use AI Auto-Fix
                       </span>
                     </label>
@@ -560,7 +560,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                         }
                       }}
                       disabled={isAutoFixing || !modalAudit?.issues?.length}
-                      className="bg-[#003a9f] hover:bg-[#004fd2] text-white font-archivo text-xs h-7"
+                      className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground font-archivo text-xs h-7"
                     >
                       {isAutoFixing
                         ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Fixing…</>
@@ -571,7 +571,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                     value={modalStem}
                     onChange={e => modalKey && setEditedStems(prev => new Map(prev).set(modalKey, e.target.value))}
                     rows={3}
-                    className="text-sm text-[#111c2d] border-[#c5c5d4] focus:border-[#003a9f] resize-none font-archivo"
+                    className="text-sm text-[#0f172a] border-[#e2e8f0] focus:border-[#111827] resize-none font-archivo"
                     placeholder="Edit the stem here, or click AI Auto-Fix to let Groq rewrite it…"
                   />
                 </div>
@@ -581,11 +581,11 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
           )}
 
           {/* Modal footer */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-[#c5c5d4] bg-[#f9f9ff]">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#e2e8f0] bg-[#f8fafc]">
             <Button
               variant="outline"
               onClick={() => setModalKey(null)}
-              className="border-[#c5c5d4] text-[#454652] font-archivo text-sm"
+              className="border-[#e2e8f0] text-[#475569] font-archivo text-sm"
             >
               Close
             </Button>
@@ -595,7 +595,7 @@ export function AiAuditReviewer({ results, onProceed, onSkip }: AiAuditReviewerP
                 await runAudit(modalResult, editedStems.get(modalKey ?? ''));
               }}
               disabled={modalLoading || isAutoFixing}
-              className="bg-[#003a9f] hover:bg-[#004fd2] text-white font-archivo text-sm"
+              className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground font-archivo text-sm"
             >
               {modalLoading
                 ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Re-auditing…</>

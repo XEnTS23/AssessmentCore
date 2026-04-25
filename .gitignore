@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 .env
 .env.*
 dist
@@ -10,3 +10,7 @@ logs
 .prompt
 .sample
 .tsc_errors
+scratch/
+.claude/
+.cursor/
+

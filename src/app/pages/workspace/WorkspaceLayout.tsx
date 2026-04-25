@@ -1,35 +1,33 @@
-import { useState, useEffect, useRef } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import {
+  Bell,
+  Book,
+  ChevronDown,
+  CircleHelp,
+  Code,
+  Download,
   Home,
   LayoutDashboard,
-  Code,
-  Bell,
-  CircleHelp,
-  Download,
-  FileText,
-  Upload,
-  UserRound,
   Lock,
+  Moon,
+  Settings,
+  Sparkles,
+  Sun,
+  Upload,
 } from "lucide-react";
-import { cn } from "../../components/ui/utils";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useTheme } from "../../../contexts/ThemeContext";
 import { toast } from "sonner";
 
 export function WorkspaceLayout() {
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const { user, loading, userUsage, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, userUsage } = useAuth();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-
-  // Redirect unauthenticated users to login
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth/login', { replace: true });
-    }
-  }, [user, loading, navigate]);
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -38,50 +36,33 @@ export function WorkspaceLayout() {
         setIsProfileMenuOpen(false);
       }
     };
-
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsProfileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onEscape);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onEscape);
-    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
-  const isActive = (path: string) => {
-    if (path === "/workspace" && location.pathname === "/workspace") return true;
-    if (path !== "/workspace" && location.pathname.includes(path)) return true;
-    return false;
-  };
+  const currentPageLabel = useMemo(() => {
+    if (location.pathname === "/workspace" || location.pathname.includes("/workspace/dashboard")) return "Dashboard";
+    if (location.pathname.includes("/workspace/qti-renderer")) return "QTI Renderer";
+    if (location.pathname.includes("/workspace/lms-export")) return "LMS Export";
+    if (location.pathname.includes("/workspace/validation-dashboard")) return "Validation Dashboard";
+    if (location.pathname.includes("/workspace/batch-creator")) return "Batch Creator";
+    return "Workspace";
+  }, [location.pathname]);
 
-  const isBatchCreatorRoute = location.pathname.includes('/workspace/batch-creator');
-  const sidebarCollapsedWidth = 72;
-  const sidebarExpandedWidth = 256;
-  const sidebarWidth = isSidebarHovered ? sidebarExpandedWidth : sidebarCollapsedWidth;
+  const isBatchCreatorRoute = location.pathname.includes("/workspace/batch-creator");
 
-  const currentPageLabel = (() => {
-    if (location.pathname === '/workspace' || location.pathname.includes('/workspace/dashboard')) return 'Dashboard';
-    if (location.pathname.includes('/workspace/qti-renderer')) return 'QTI Renderer';
-    if (location.pathname.includes('/workspace/lms-export')) return 'LMS Export';
-    if (location.pathname.includes('/workspace/validation-dashboard')) return 'Validation Dashboard';
-    return 'Workspace';
-  })();
-
-  // Show nothing while auth state is resolving (redirect fires in useEffect above)
-  if (loading || !user) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f9f9ff]">
-        <div className="w-8 h-8 border-4 border-[#003a9f] border-t-transparent rounded-full animate-spin" />
+      <div className="grid min-h-screen place-items-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
       </div>
     );
   }
 
-  // Batch Creator already renders its own full shell and should remain untouched.
+  if (!user) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
   if (isBatchCreatorRoute) {
     return (
       <div className="h-screen overflow-hidden">
@@ -90,200 +71,173 @@ export function WorkspaceLayout() {
     );
   }
 
+  const navItems = [
+    { to: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
+    { to: "/workspace/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { to: "/workspace/qti-renderer", label: "QTI Renderer", icon: <Code className="h-4 w-4" /> },
+    { to: "/workspace/batch-creator", label: "Batch Creator", icon: <Upload className="h-4 w-4" /> },
+    { to: "/workspace/lms-export", label: "LMS Export", icon: <Download className="h-4 w-4" /> },
+  ];
+
+  const initials = (user.email || "U").slice(0, 1).toUpperCase();
+
   return (
-    <div className="fixed inset-0 z-40 bg-[radial-gradient(circle_at_top_left,_rgba(36,87,184,0.18),_transparent_36%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.12),_transparent_34%),linear-gradient(180deg,_#f5f8ff_0%,_#eef4f8_100%)] text-slate-900 antialiased flex overflow-hidden">
-      <aside
-        className="h-screen flex-shrink-0 bg-[linear-gradient(200deg,_#ffffff_0%,_#f7faff_52%,_#f2fbf8_100%)] flex flex-col border-r border-[#d5e4ff] transition-[width] duration-300"
-        style={{ width: sidebarWidth }}
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-      >
-        <div className={cn("mb-4", isSidebarHovered ? "p-8" : "p-4 flex justify-center")}>
-          {isSidebarHovered ? (
-            <>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">AssessmentCore</h1>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Workflow Wizard</p>
-            </>
-          ) : (
-            <div className="w-9 h-9 rounded-lg bg-[#0052CC]/12 text-[#0052CC] font-black flex items-center justify-center ring-1 ring-[#0052CC]/15">A</div>
-          )}
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground transition-colors duration-200">
+      <aside className="flex w-[228px] shrink-0 flex-col border-r border-border bg-sidebar transition-colors duration-200">
+        <div className="flex h-14 items-center gap-2 border-b border-border px-4">
+          <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-6 w-6 rounded-md object-contain" />
+          <Link to="/" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
+            AssessmentCore
+          </Link>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
-          <Link
-            to="/"
-            className={cn(
-              "w-full flex items-center py-3 rounded-lg transition-all text-sm font-medium",
-              isSidebarHovered ? "gap-3 px-4 justify-start" : "px-0 justify-center",
-              location.pathname === "/"
-                ? "bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-[#1f4aa0] font-semibold border border-[#bfd6ff] shadow-sm"
-                : "text-slate-600 hover:bg-[linear-gradient(135deg,_#eef4ff_0%,_#ecfaf4_100%)] hover:text-[#1f4aa0]"
-            )}
-          >
-            <Home className="w-5 h-5" />
-            {isSidebarHovered && <span>Home</span>}
-          </Link>
+        <div className="border-b border-border px-4 py-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Current plan</div>
+          <p className="mt-1 text-xs text-foreground">{userUsage?.is_premium ? "Premium" : "Free"} workspace</p>
+          <p className="text-[11px] text-muted-foreground">{userUsage?.total_questions_converted || 0} questions converted</p>
+        </div>
 
-          <Link
-            to="/workspace/dashboard"
-            className={cn(
-              "w-full flex items-center py-3 rounded-lg transition-all text-sm font-medium",
-              isSidebarHovered ? "gap-3 px-4 justify-start" : "px-0 justify-center",
-              isActive("/workspace/dashboard") || location.pathname === "/workspace"
-                ? "bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-[#1f4aa0] font-semibold border border-[#bfd6ff] shadow-sm"
-                : "text-slate-600 hover:bg-[linear-gradient(135deg,_#eef4ff_0%,_#ecfaf4_100%)] hover:text-[#1f4aa0]"
-            )}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            {isSidebarHovered && <span>Dashboard</span>}
-          </Link>
-
-          <Link
-            to="/workspace/qti-renderer"
-            className={cn(
-              "w-full flex items-center py-3 rounded-lg transition-all text-sm font-medium",
-              isSidebarHovered ? "gap-3 px-4 justify-start" : "px-0 justify-center",
-              isActive("/workspace/qti-renderer")
-                ? "bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-[#1f4aa0] font-semibold border border-[#bfd6ff] shadow-sm"
-                : "text-slate-600 hover:bg-[linear-gradient(135deg,_#eef4ff_0%,_#ecfaf4_100%)] hover:text-[#1f4aa0]"
-            )}
-          >
-            <Code className="w-5 h-5" />
-            {isSidebarHovered && <span>QTI Renderer</span>}
-          </Link>
-
-          <Link
-            to="/workspace/qti-renderer"
-            className={cn(
-              "hidden"
-            )}
-          >
-            <Code className="w-5 h-5 flex-shrink-0" />
-          </Link>
-
-          <Link
-            to="/workspace/batch-creator"
-            className={cn(
-              "w-full flex items-center py-3 rounded-lg transition-all text-sm font-medium",
-              isSidebarHovered ? "gap-3 px-4 justify-start" : "px-0 justify-center",
-              isActive("/workspace/batch-creator")
-                ? "bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-[#1f4aa0] font-semibold border border-[#bfd6ff] shadow-sm"
-                : "text-slate-600 hover:bg-[linear-gradient(135deg,_#eef4ff_0%,_#ecfaf4_100%)] hover:text-[#1f4aa0]"
-            )}
-          >
-            <Upload className="w-5 h-5 flex-shrink-0" />
-            {isSidebarHovered && (
-              <>
-                <span className="flex-1">Batch QTI Creator</span>
-                {!userUsage?.batch_creator_access && (
-                  <Lock className="w-3 h-3 opacity-50 flex-shrink-0" />
-                )}
-              </>
-            )}
-          </Link>
-
-          <Link
-            to="/workspace/lms-export"
-            className={cn(
-              "w-full flex items-center py-3 rounded-lg transition-all text-sm font-medium",
-              isSidebarHovered ? "gap-3 px-4 justify-start" : "px-0 justify-center",
-              isActive("/workspace/lms-export")
-                ? "bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-[#1f4aa0] font-semibold border border-[#bfd6ff] shadow-sm"
-                : "text-slate-600 hover:bg-[linear-gradient(135deg,_#eef4ff_0%,_#ecfaf4_100%)] hover:text-[#1f4aa0]"
-            )}
-          >
-            <Download className="w-5 h-5 flex-shrink-0" />
-            {isSidebarHovered && <span>LMS Export</span>}
-          </Link>
-
+        <nav className="flex-1 space-y-1 px-2 py-3">
+          {navItems.map((item) => {
+            const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs ${
+                  active
+                    ? "border border-border bg-accent font-semibold text-accent-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {item.icon}
+                <span className="flex-1">{item.label}</span>
+                {/* Removed item.locked as it's not relevant */}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="p-6 mt-auto">
+        <div className="space-y-1 border-t border-border px-2 py-3">
+          <Link
+            to="/documentation"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <Book className="h-4 w-4" />
+            Docs
+          </Link>
           <button
             type="button"
-            className={cn(
-              "w-full py-2.5 bg-[linear-gradient(120deg,_#2457b8_0%,_#2f7ecf_52%,_#1f9d86_100%)] border border-transparent text-white rounded-lg text-sm font-semibold hover:brightness-95 transition-all shadow-sm flex items-center",
-              isSidebarHovered ? "justify-center gap-2" : "justify-center"
-            )}
+            onClick={() => setIsSettingsOpen((prev) => !prev)}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-expanded={isSettingsOpen}
           >
-            <FileText className="w-4 h-4" />
-            {isSidebarHovered && <span>Save Draft</span>}
+            <Settings className="h-4 w-4" />
+            Settings
+            <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform ${isSettingsOpen ? "rotate-180" : ""}`} />
           </button>
+
+          {isSettingsOpen && (
+            <div className="mx-2 mt-1 rounded-md border border-border bg-muted/50 p-2.5">
+              <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Appearance</div>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex w-full items-center justify-between rounded-md border border-border bg-background px-2.5 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                  Theme
+                </span>
+                <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold">
+                  {isDark ? "Dark" : "Light"}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="w-full bg-[linear-gradient(180deg,_#ffffff_0%,_#f6fbff_52%,_#f2fbf8_100%)] border-b border-[#d5e4ff] pt-4 pb-5 px-12 flex items-center justify-between shrink-0">
-          <nav className="flex items-center gap-2 text-xs font-medium">
-            <span className="text-slate-400">Workspace</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-[#1f4aa0] font-semibold bg-[#e8f0ff] border border-[#bfd6ff] px-2.5 py-1 rounded-full">{currentPageLabel}</span>
-          </nav>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-6 transition-colors duration-200">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Workspace</span>
+            <span>/</span>
+            <span className="rounded-full border border-border bg-muted px-2 py-0.5 font-medium text-foreground">{currentPageLabel}</span>
+          </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
-              <button type="button" className="text-slate-400 hover:text-[#1f4aa0] transition-colors" title="Help">
-                <CircleHelp className="w-5 h-5" />
-              </button>
-              <button type="button" className="text-slate-400 hover:text-[#1f4aa0] transition-colors relative" title="Notifications">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-              </button>
-            </div>
+          <div className="flex items-center gap-3">
+            <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" title="Help">
+              <CircleHelp className="h-4 w-4" />
+            </button>
+            <button type="button" className="relative text-muted-foreground hover:text-foreground transition-colors" title="Notifications">
+              <Bell className="h-4 w-4" />
+              <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+            </button>
+
             <div className="relative" ref={profileMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                className="flex items-center gap-3"
+                className="flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1 hover:bg-accent transition-colors"
                 aria-expanded={isProfileMenuOpen}
               >
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest">Admin Tier</p>
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground">
+                  {initials}
                 </div>
-                <div className="w-9 h-9 rounded-full ring-2 ring-slate-100 bg-[#e7eeff] text-[#0052CC] flex items-center justify-center">
-                  <UserRound className="w-4 h-4" />
+                <div className="text-left">
+                  <div className="max-w-[150px] truncate text-xs font-medium text-foreground">{user.email}</div>
+                  <div className="text-[10px] text-muted-foreground">{userUsage?.is_premium ? "Premium" : "Free"} tier</div>
                 </div>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </button>
 
-              <div className={cn(
-                "absolute right-0 mt-2 w-56 rounded-xl border border-[#c5c5d4] bg-white shadow-[0_20px_40px_rgba(17,28,45,0.15)] p-2.5 origin-top-right transition-all duration-200",
-                isProfileMenuOpen
-                  ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
-                  : "opacity-0 -translate-y-1 scale-95 pointer-events-none"
-              )}>
+              <div
+                className={`absolute right-0 mt-1.5 w-44 rounded-md border border-border bg-popover p-1 shadow-lg transition ${
+                  isProfileMenuOpen ? "visible opacity-100" : "invisible opacity-0"
+                }`}
+              >
+                <Link
+                  to="/workspace/dashboard"
+                  className="block rounded px-2 py-1.5 text-xs text-popover-foreground hover:bg-muted"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
                 <button
                   type="button"
+                  className="w-full rounded px-2 py-1.5 text-left text-xs text-popover-foreground hover:bg-muted"
                   onClick={() => {
                     setIsProfileMenuOpen(false);
-                    toast.info('Profile page will be available soon');
+                    toast.info("Profile management coming soon");
                   }}
-                  className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
                 >
                   Profile
                 </button>
-
                 <button
                   type="button"
-                  onClick={() => {
+                  className="mt-1 w-full rounded px-2 py-1.5 text-left text-xs text-destructive hover:bg-destructive/10"
+                  onClick={async () => {
                     setIsProfileMenuOpen(false);
-                    navigate('/workspace/dashboard');
+                    const response = await logout();
+                    if (response.success) {
+                      navigate('/auth/login');
+                    } else {
+                      toast.error(response.error || "Failed to log out");
+                    }
                   }}
-                  className="w-full text-left px-2 py-2 rounded-md text-sm text-[#111c2d] hover:bg-[#f9f9ff]"
                 >
-                  Dashboard
+                  Logout
                 </button>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto" id="workspace-scroll-container" data-workspace-scroll="true">
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
     </div>
   );
 }
-
-

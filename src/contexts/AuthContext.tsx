@@ -6,6 +6,24 @@ import { AuthContextType, AuthResponse, UserProfile, UserUsage } from '../types/
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_INIT_TIMEOUT_MS = 15000;
+const PROFILE_FETCH_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,27 +34,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Add timeout to prevent hanging on invalid/missing Supabase config
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 5000)
-        );
-
         const authPromise = (async () => {
           const currentUser = await authService.getCurrentUser();
           setUser(currentUser);
 
           if (currentUser) {
             // Fetch user profile
-            const profile = await authService.getUserProfile(currentUser.id);
+            const [profile, usage] = await Promise.all([
+              authService.getUserProfile(currentUser.id),
+              authService.getUserUsage(currentUser.id),
+            ]);
             setUserProfile(profile);
-
-            // Fetch user usage
-            const usage = await authService.getUserUsage(currentUser.id);
             setUserUsage(usage);
           }
         })();
 
-        await Promise.race([authPromise, timeoutPromise]);
+        await withTimeout(authPromise, AUTH_INIT_TIMEOUT_MS, 'Auth initialization timeout');
       } catch (error) {
         console.error('Error initializing auth:', error);
         // Even on error/timeout, we continue with unauthenticated state
@@ -79,20 +92,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setUser(session.user);
         try {
-          // Add timeout protection for profile and usage fetch
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-          );
-
           const fetchPromise = (async () => {
-            const profile = await authService.getUserProfile(session.user.id);
+            const [profile, usage] = await Promise.all([
+              authService.getUserProfile(session.user.id),
+              authService.getUserUsage(session.user.id),
+            ]);
             setUserProfile(profile);
-
-            const usage = await authService.getUserUsage(session.user.id);
             setUserUsage(usage);
           })();
 
-          await Promise.race([fetchPromise, timeoutPromise]);
+          await withTimeout(fetchPromise, PROFILE_FETCH_TIMEOUT_MS, 'Profile fetch timeout');
         } catch (error) {
           console.error('Error fetching user data:', error);
           // Keep existing profile/usage data instead of nulling on timeout

@@ -4,18 +4,22 @@ import { WorkspaceLayout } from "./pages/workspace/WorkspaceLayout";
 import { QTIRenderer } from "./pages/workspace/QTIRenderer";
 import { BatchCreator } from "./pages/workspace/BatchCreator";
 import { LMSExportPage } from "./pages/workspace/LMSExportPage";
-import { ValidationDashboardPage } from "./pages/workspace/ValidationDashboardPage";
 import { DashboardPage } from "./pages/workspace/DashboardPage";
 import { RegisterPage } from "./pages/auth/RegisterPage";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
 import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
+import { DocumentationPage } from "./pages/DocumentationPage";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: LandingPage,
+  },
+  {
+    path: "/documentation",
+    Component: DocumentationPage,
   },
   {
     path: "/auth",
@@ -66,10 +70,7 @@ export const router = createBrowserRouter([
         path: "lms-export",
         Component: LMSExportPage,
       },
-      {
-        path: "validation-dashboard",
-        Component: ValidationDashboardPage,
-      },
+
     ],
   },
 ]);

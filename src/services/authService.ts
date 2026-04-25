@@ -100,7 +100,7 @@ export const authService = {
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token,
-        type: 'email',
+        type: 'signup',
       });
 
       if (error) {
@@ -238,12 +238,18 @@ export const authService = {
             ])
             .select()
             .single();
-          return newUsage;
+          return {
+            ...newUsage,
+            is_premium: !!(newUsage as any).is_unlimited
+          };
         }
         return null;
       }
 
-      return data;
+      return {
+        ...data,
+        is_premium: !!(data as any).is_unlimited
+      };
     } catch (error) {
       return null;
     }

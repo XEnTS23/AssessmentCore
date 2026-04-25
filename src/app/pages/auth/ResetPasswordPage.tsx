@@ -1,154 +1,117 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { Lock, AlertCircle, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Alert, AlertDescription } from '@/app/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router";
+import { AlertCircle, CheckCircle2, Loader2, Lock } from "lucide-react";
+import { useAuth } from "../../../contexts/AuthContext";
+import { AuthScaffold } from "./AuthScaffold";
+import { validatePasswordStrength, getStrengthColor, getStrengthWidth } from "../../utils/passwordValidator";
 
 export function ResetPasswordPage() {
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const navigate = useNavigate();
-    const { updatePassword } = useAuth();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
+  const { updatePassword } = useAuth();
 
-    const validateForm = () => {
-        if (!password || password.length < 6) {
-            setError('Password must be at least 6 characters');
-            return false;
-        }
-        if (password !== confirmPassword) {
-            setError('Passwords do not match');
-            return false;
-        }
-        return true;
-    };
+  const passwordCheck = useMemo(() => validatePasswordStrength(password), [password]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!passwordCheck.valid) {
+      setError(passwordCheck.error);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
 
-        if (!validateForm()) return;
+    setLoading(true);
+    const response = await updatePassword(password);
+    if (response.success) {
+      setSuccess(true);
+      setTimeout(() => navigate("/auth/login", { replace: true }), 1500);
+    } else {
+      setError(response.error || "Failed to update password. Please try again.");
+    }
+    setLoading(false);
+  };
 
-        setLoading(true);
-
-        const response = await updatePassword(password);
-
-        if (response.success) {
-            setSuccess(true);
-            setTimeout(() => {
-                navigate('/auth/login');
-            }, 3000);
-        } else {
-            setError(response.error || 'Failed to update password. Please try again.');
-        }
-
-        setLoading(false);
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-[#0F6CBD] via-[#1a7ed4] to-[#0d4a94] flex items-center justify-center px-4">
-            <Card className="w-full max-w-md shadow-xl">
-                <CardHeader>
-                    <CardTitle className="text-2xl">Set New Password</CardTitle>
-                    <CardDescription>
-                        Enter your new password below
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-
-                    {success ? (
-                        <Alert className="bg-green-50 border-green-200">
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            <AlertDescription className="text-green-800">
-                                Password updated successfully! Redirecting to login...
-                            </AlertDescription>
-                        </Alert>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* New Password */}
-                            <div className="space-y-2">
-                                <label htmlFor="password" className="text-sm font-medium text-[#1F2937]">
-                                    New Password
-                                </label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-[#94A3B8]" />
-                                    <input
-                                        id="password"
-                                        type={showPassword ? 'text' : 'password'}
-                                        placeholder="••••••••"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-9 pr-10 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F6CBD]"
-                                        disabled={loading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-3 text-[#94A3B8] hover:text-[#475569]"
-                                    >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Confirm Password */}
-                            <div className="space-y-2">
-                                <label htmlFor="confirmPassword" className="text-sm font-medium text-[#1F2937]">
-                                    Confirm New Password
-                                </label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-[#94A3B8]" />
-                                    <input
-                                        id="confirmPassword"
-                                        type={showConfirmPassword ? 'text' : 'password'}
-                                        placeholder="••••••••"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full pl-9 pr-10 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F6CBD]"
-                                        disabled={loading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-3 text-[#94A3B8] hover:text-[#475569]"
-                                    >
-                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <p className="text-xs text-[#64748B]">Password must be at least 6 characters long</p>
-
-                            <Button
-                                type="submit"
-                                className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-medium"
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Updating...
-                                    </>
-                                ) : (
-                                    'Update Password'
-                                )}
-                            </Button>
-                        </form>
-                    )}
-                </CardContent>
-            </Card>
+  return (
+    <AuthScaffold title="Set new password" subtitle="Choose a strong password to secure your account.">
+      {success ? (
+        <div className="flex items-center gap-2 rounded-md border border-success/20 bg-success-light px-3 py-2 text-xs text-success">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Password updated. Redirecting to sign in...
         </div>
-    );
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-4">
+          {error ? (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive-light px-3 py-2 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {error}
+            </div>
+          ) : null}
+
+          <label className="block text-xs font-medium text-muted-foreground">
+            New password
+            <div className="relative mt-1.5">
+              <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-10 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm outline-none transition focus:border-chart-1"
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                disabled={loading}
+              />
+            </div>
+            {password.length > 0 && (
+              <div className="mt-1.5 space-y-1">
+                <div className="h-1 w-full rounded-full bg-muted">
+                  <div className={`h-full rounded-full transition-all duration-300 ${getStrengthColor(passwordCheck.strength)} ${getStrengthWidth(passwordCheck.strength)}`} />
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {passwordCheck.valid ? `Strength: ${passwordCheck.strength}` : passwordCheck.error}
+                </p>
+              </div>
+            )}
+          </label>
+
+          <label className="block text-xs font-medium text-muted-foreground">
+            Confirm password
+            <div className="relative mt-1.5">
+              <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="h-10 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm outline-none transition focus:border-chart-1"
+                placeholder="Confirm password"
+                autoComplete="new-password"
+                disabled={loading}
+              />
+            </div>
+          </label>
+
+          <button
+            type="submit"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground disabled:opacity-60 hover:bg-primary/90 transition-colors"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Updating...
+              </>
+            ) : (
+              "Update password"
+            )}
+          </button>
+        </form>
+      )}
+    </AuthScaffold>
+  );
 }

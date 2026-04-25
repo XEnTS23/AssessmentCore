@@ -103,7 +103,7 @@ function detectQuestionType(row: Record<string, any>): string {
     'question_type',
     'interactionType',
     'interaction_type',
-  ]) || getFirstByKeyPattern(row, /question\s*type|interaction\s*type|^type$/i);
+  ]) || getFirstByKeyPattern(row, /question[_\s-]*type|interaction[_\s-]*type|^type$/i);
 
   if (!explicit) return 'unknown';
   return explicit.toLowerCase();
@@ -155,7 +155,7 @@ function buildStructuralFallbackMessages(row: Record<string, any>): string[] {
       'response',
       'Correct Answer',
       'Answer',
-    ]) || getFirstByKeyPattern(row, /correct\s*answer|^answer$|expected\s*answer|response/i);
+    ]) || getFirstByKeyPattern(row, /correct[_\s-]*answer|^answer$|expected[_\s-]*answer|response/i);
 
   if (!answer) messages.push('Correct answer is missing.');
   return messages;
@@ -208,7 +208,7 @@ export function mapRowToAuditPayload(row: Record<string, any>): AuditRowPayload 
       'response',
       'Correct Answer',
       'Answer',
-    ]) || getFirstByKeyPattern(row, /correct\s*answer|^answer$|expected\s*answer|response/i)
+    ]) || getFirstByKeyPattern(row, /correct[_\s-]*answer|^answer$|expected[_\s-]*answer|response/i)
   ).trim();
 
   const items: string[] = [];

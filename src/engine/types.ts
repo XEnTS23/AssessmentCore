@@ -10,6 +10,7 @@ export interface Question {
   type: 'MCQ' | 'MSQ' | 'ShortAnswer' | 'OrderInteraction';
   options: string[];
   correct_answer: string;
+  explanation?: string;
   validation_status: 'Valid' | 'Caution' | 'Rejected';
   generated_output?: string;
   generation_status?: 'Pending' | 'Success' | 'Failed';

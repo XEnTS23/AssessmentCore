@@ -19,8 +19,7 @@ export interface UserUsage {
   user_id: string;
   exports_count: number;
   total_questions_converted?: number;
-  is_unlimited?: boolean;
-  batch_creator_access?: boolean;
+  is_premium?: boolean;
   created_at: string;
   updated_at?: string;
 }

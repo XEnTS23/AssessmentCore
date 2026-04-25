@@ -135,6 +135,59 @@ export function containsMath(text: string): boolean {
   return regex.test(text);
 }
 
+export interface MathDetectionResult {
+  hasMath: boolean;
+  rowsWithMath: number;
+  totalRows: number;
+  formats: {
+    dollar: boolean;
+    dollarDollar: boolean;
+    paren: boolean;
+    bracket: boolean;
+  };
+}
+
+const DOLLAR_DOLLAR_RE = /\$\$[\s\S]*?\$\$/;
+const BRACKET_RE = /\\\[[\s\S]*?\\\]/;
+const PAREN_RE = /\\\([\s\S]*?\\\)/;
+const DOLLAR_RE = /\$[^$\n]+\$/;
+
+/**
+ * Scans a batch of parsed rows for LaTeX math delimiters across every string cell.
+ * Used to auto-enable math handling without requiring the user to declare it.
+ * Currency-style false positives (e.g. "$5 to $10") are deliberately tolerated here
+ * and resolved during the manual fix stage.
+ */
+export function detectMathInRows(rows: Array<Record<string, unknown>>): MathDetectionResult {
+  const formats = { dollar: false, dollarDollar: false, paren: false, bracket: false };
+  let rowsWithMath = 0;
+
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue;
+    let rowHasMath = false;
+    for (const key of Object.keys(row)) {
+      if (key.startsWith('__')) continue;
+      const value = row[key];
+      if (typeof value !== 'string' || !value) continue;
+
+      if (!formats.dollarDollar && DOLLAR_DOLLAR_RE.test(value)) formats.dollarDollar = true;
+      if (!formats.bracket && BRACKET_RE.test(value)) formats.bracket = true;
+      if (!formats.paren && PAREN_RE.test(value)) formats.paren = true;
+      if (!formats.dollar && DOLLAR_RE.test(value)) formats.dollar = true;
+
+      if (formats.dollarDollar || formats.bracket || formats.paren || formats.dollar) {
+        if (containsMath(value)) {
+          rowHasMath = true;
+        }
+      }
+    }
+    if (rowHasMath) rowsWithMath++;
+  }
+
+  const hasMath = formats.dollar || formats.dollarDollar || formats.paren || formats.bracket;
+  return { hasMath, rowsWithMath, totalRows: rows.length, formats };
+}
+
 /**
  * Converts text containing LaTeX blocks into QTI-safe HTML/MathML.
  * Normal text is XML-escaped. LaTeX blocks are run through KaTeX and sanitized.

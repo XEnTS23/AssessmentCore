@@ -2,14 +2,26 @@
 // Validates a single QTI XML item using Gemini or Groq.
 // API keys are read from server-side secrets — never exposed to the browser.
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = [
+  'https://assessmentcore.vercel.app',
+  ...(Deno.env.get('ALLOWED_ORIGIN') ? [Deno.env.get('ALLOWED_ORIGIN')!] : []),
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') ?? '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Vary': 'Origin',
+  };
+}
 
 Deno.serve(async (req: Request) => {
+  const CORS = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS });
+    return new Response('ok', { headers: CORS });
   }
 
   try {
@@ -18,7 +30,7 @@ Deno.serve(async (req: Request) => {
     if (!xmlContent || !provider || !qtiVersion) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: xmlContent, provider, qtiVersion' }),
-        { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -134,7 +146,7 @@ ${xmlContent}`;
     };
 
     return new Response(JSON.stringify(result), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -148,7 +160,7 @@ ${xmlContent}`;
         issues: [{ severity: 'warning', message: `AI validation could not complete: ${message}` }],
         summary: 'AI validation encountered an error — manual review recommended',
       }),
-      { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+      { headers: { ...CORS, 'Content-Type': 'application/json' } },
     );
   }
 });

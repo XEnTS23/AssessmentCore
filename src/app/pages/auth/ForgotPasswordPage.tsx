@@ -1,133 +1,102 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
-import { Mail, AlertCircle, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Alert, AlertDescription } from '@/app/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState } from "react";
+import { Link } from "react-router";
+import { AlertCircle, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { useAuth } from "../../../contexts/AuthContext";
+import { AuthScaffold } from "./AuthScaffold";
 
 export function ForgotPasswordPage() {
-    const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState(false);
-    const { resetPasswordForEmail } = useAuth();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const { resetPasswordForEmail } = useAuth();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-        if (!email.trim() || !email.includes('@')) {
-            setError('Please enter a valid email address');
-            return;
-        }
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid email address");
+      return;
+    }
 
-        setLoading(true);
+    setLoading(true);
+    const response = await resetPasswordForEmail(email);
+    if (response.success) {
+      setSuccess(true);
+    } else {
+      setError(response.error || "Failed to send reset email. Please try again.");
+    }
+    setLoading(false);
+  };
 
-        const response = await resetPasswordForEmail(email);
-
-        if (response.success) {
-            setSuccess(true);
-        } else {
-            setError(response.error || 'Failed to send reset email. Please try again.');
-        }
-
-        setLoading(false);
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-[#0F6CBD] via-[#1a7ed4] to-[#0d4a94] flex items-center justify-center px-4">
-            <Card className="w-full max-w-md shadow-xl">
-                <CardHeader>
-                    <CardTitle className="text-2xl">Reset Password</CardTitle>
-                    <CardDescription>
-                        Enter your email address and we'll send you a link to reset your password
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-
-                    {success ? (
-                        <div className="space-y-4">
-                            <Alert className="bg-green-50 border-green-200">
-                                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                <AlertDescription className="text-green-800">
-                                    Password reset email sent! Please check your inbox and click the link to reset your password.
-                                </AlertDescription>
-                            </Alert>
-
-                            <p className="text-sm text-[#64748B] text-center">
-                                Didn't receive the email? Check your spam folder or try again.
-                            </p>
-
-                            <Button
-                                variant="outline"
-                                onClick={() => setSuccess(false)}
-                                className="w-full border-[#2457b8] text-[#2457b8] hover:bg-[#eef4ff]"
-                            >
-                                Try Again
-                            </Button>
-
-                            <Link to="/auth/login">
-                                <Button variant="ghost" className="w-full text-[#2457b8] hover:bg-[#eef4ff]">
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back to Login
-                                </Button>
-                            </Link>
-                        </div>
-                    ) : (
-                        <>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="space-y-2">
-                                    <label htmlFor="email" className="text-sm font-medium text-[#1F2937]">
-                                        Email Address
-                                    </label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-3 h-4 w-4 text-[#94A3B8]" />
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            placeholder="you@example.com"
-                                            value={email}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                                            className="pl-9"
-                                            disabled={loading}
-                                        />
-                                    </div>
-                                </div>
-
-                                <Button
-                                    type="submit"
-                                    className="w-full bg-[#2457b8] hover:bg-[#1f4aa0] text-white font-medium"
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        'Send Reset Link'
-                                    )}
-                                </Button>
-                            </form>
-
-                            <div className="text-center">
-                                <Link to="/auth/login" className="text-sm text-[#2457b8] hover:underline font-medium">
-                                    <ArrowLeft className="inline mr-1 h-3 w-3" />
-                                    Back to Login
-                                </Link>
-                            </div>
-                        </>
-                    )}
-                </CardContent>
-            </Card>
+  return (
+    <AuthScaffold
+      title="Reset your password"
+      subtitle="Enter your account email and we will send a password reset link."
+      footer={
+        <>
+          Remembered your password?{" "}
+          <Link to="/auth/login" className="font-medium text-foreground/80 hover:text-foreground">
+            Back to sign in
+          </Link>
+        </>
+      }
+    >
+      {success ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 rounded-md border border-success/20 bg-success-light px-3 py-2 text-xs text-success">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Reset email sent. Please check your inbox.
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccess(false)}
+            className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            Send again
+          </button>
         </div>
-    );
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-4">
+          {error ? (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive-light px-3 py-2 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {error}
+            </div>
+          ) : null}
+
+          <label className="block text-xs font-medium text-muted-foreground">
+            Email
+            <div className="relative mt-1.5">
+              <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@school.edu"
+                autoComplete="email"
+                className="h-10 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm outline-none transition focus:border-chart-1"
+                disabled={loading}
+              />
+            </div>
+          </label>
+
+          <button
+            type="submit"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground disabled:opacity-60 hover:bg-primary/90 transition-colors"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Sending...
+              </>
+            ) : (
+              "Send reset link"
+            )}
+          </button>
+        </form>
+      )}
+    </AuthScaffold>
+  );
 }

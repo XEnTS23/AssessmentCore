@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import DOMPurify from 'dompurify';
 import {
   Upload,
   Play,
@@ -78,9 +79,25 @@ interface QuestionNavigatorItem {
 const serializer = new XMLSerializer();
 
 /**
- * Serialize an XML element's child nodes to an HTML string, preserving
- * markup such as `<math>`, `<p>`, `<span>`, etc.  This is the key fix:
+ * Sanitize an HTML string using DOMPurify.
+ * Allows MathML/SVG elements but strips all dangerous tags and event handlers.
+ * This is the single security gate for all parsed QTI content rendered in the UI.
+ */
+function sanitizeHTML(html: string): string {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { mathMl: true, svg: true, html: true },
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'base', 'link', 'meta'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onkeydown', 'onkeyup', 'onkeypress'],
+  });
+}
+
+/**
+ * Serialize an XML element's child nodes to a SANITIZED HTML string, preserving
+ * safe markup such as `<math>`, `<p>`, `<span>`, etc.
  * `.textContent` strips all tags (including MathML), whereas this keeps them.
+ *
+ * Security: output is sanitized via DOMPurify to prevent XSS from
+ * malicious QTI XML (e.g. `<img onerror="...">`, `<script>`, event handlers).
  */
 function getInnerHTML(el: Element): string {
   let html = '';
@@ -89,9 +106,10 @@ function getInnerHTML(el: Element): string {
   }
   // XMLSerializer adds xmlns declarations on every element; strip them so the
   // HTML output is clean for the browser to render via MathMLRenderer.
-  return html
+  const raw = html
     .replace(/ xmlns="[^"]*"/g, '')
     .trim();
+  return sanitizeHTML(raw);
 }
 
 /**
@@ -431,8 +449,8 @@ function FeedbackBlock({ isCorrect, question }: { isCorrect: boolean; question: 
       className={cn(
         "mt-4 flex items-start gap-2 rounded-xl p-3 transition-all duration-300",
         isCorrect
-          ? "bg-white border-2 border-[#22C55E]"
-          : "bg-white border-2 border-[#EF4444]"
+          ? "bg-card border-2 border-success"
+          : "bg-card border-2 border-destructive"
       )}
     >
       {isCorrect ? (
@@ -441,11 +459,11 @@ function FeedbackBlock({ isCorrect, question }: { isCorrect: boolean; question: 
         <XCircle className="w-5 h-5 text-[#475569] mt-0.5 flex-shrink-0" />
       )}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-[#111827]">
+        <p className="font-semibold text-foreground">
           {isCorrect ? "Correct!" : "Incorrect"}
         </p>
         {!isCorrect && question.type === 'mcq' && question.correctAnswer && (
-          <div className="text-sm mt-1 text-[#111827]">
+          <div className="text-sm mt-1 text-foreground">
             <p>The correct answer is:</p>
             {correctChoice?.content ? (
               <MathMLRenderer content={correctChoice.content} className="mt-1 font-medium" inline />
@@ -455,7 +473,7 @@ function FeedbackBlock({ isCorrect, question }: { isCorrect: boolean; question: 
           </div>
         )}
         {!isCorrect && question.type === 'textentry' && question.correctAnswers && question.correctAnswers.length > 0 && (
-          <p className="text-sm mt-1 text-[#111827]">
+          <p className="text-sm mt-1 text-foreground">
             Expected answer: <strong>{question.correctAnswers.join(' / ')}</strong>
           </p>
         )}
@@ -484,23 +502,23 @@ function FileHeader({ metadata, parsedQuestions }: FileHeaderProps) {
   if (!metadata) return null;
 
   return (
-    <div className="bg-[linear-gradient(180deg,_#ffffff_0%,_#f3f9ff_58%,_#eefbf6_100%)] border-b border-[#d7e5ff] px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
+    <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="w-8 h-8 bg-[linear-gradient(120deg,_#2457b8_0%,_#2f7ecf_55%,_#1f9d86_100%)] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-          <FileCode className="w-4.5 h-4.5 text-white" />
+        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+          <FileCode className="w-4.5 h-4.5 text-primary-foreground" />
         </div>
         <div className="flex items-center gap-2 min-w-0">
-          <h1 className="text-sm font-semibold text-[#111827] truncate">{metadata.fileName}</h1>
-          <span className="text-xs text-[#94A3B8] bg-[#F1F5F9] px-2 py-1 rounded">
+          <h1 className="text-sm font-semibold text-foreground truncate">{metadata.fileName}</h1>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
             {metadata.format.toUpperCase()}
           </span>
-          <span className="text-xs text-[#94A3B8] bg-[#F1F5F9] px-2 py-1 rounded">
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
             {metadata.qtiVersion}
           </span>
         </div>
       </div>
 
-      <Badge variant="secondary" className="bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-[#1f4aa0] hover:bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-xs flex-shrink-0 border border-[#bfd6ff]">
+      <Badge variant="secondary" className="bg-muted text-foreground hover:bg-muted transition-colors text-xs flex-shrink-0 border border-border">
         {parsedQuestions.length} item{parsedQuestions.length !== 1 ? 's' : ''}
       </Badge>
     </div>
@@ -554,22 +572,22 @@ function QuestionNavigator({
   return (
     <div className="h-full flex flex-col min-w-0 overflow-hidden">
       {/* Search */}
-      <div className="flex-shrink-0 px-3 py-3 border-b border-[#d7e5ff] bg-[linear-gradient(180deg,_#fbfdff_0%,_#f5fbf9_100%)]">
+      <div className="flex-shrink-0 px-3 py-3 border-b border-border bg-card">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
           <input
             type="text"
             placeholder="Search questions..."
             value={searchText}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-xs border border-[#d7e5ff] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2457b8] bg-white"
+            className="w-full pl-8 pr-3 py-2 text-xs border border-border/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-card"
           />
         </div>
       </div>
 
       {/* Type Filters */}
       {uniqueTypes.length > 1 && (
-        <div className="flex-shrink-0 px-3 py-2 border-b border-[#d7e5ff] flex gap-2 overflow-x-auto bg-[#fbfdff]">
+        <div className="flex-shrink-0 px-3 py-2 border-b border-border flex gap-2 overflow-x-auto bg-muted">
           {uniqueTypes.map((type) => (
             <button
               key={type}
@@ -585,8 +603,8 @@ function QuestionNavigator({
               className={cn(
                 "px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors",
                 filters.has(type)
-                  ? "bg-[linear-gradient(135deg,_#e8f0ff_0%,_#e7f9f0_100%)] text-[#1f4aa0] border border-[#bfd6ff]"
-                  : "bg-[#f2f6fb] text-[#475569] hover:bg-[#e8f1fb]"
+                  ? "bg-muted text-foreground border border-border/60"
+                  : "bg-card text-muted-foreground border border-border hover:bg-muted transition-colors"
               )}
             >
               {type === 'mcq' ? 'MCQ' : 'Text Entry'}
@@ -598,7 +616,7 @@ function QuestionNavigator({
       {/* Question List */}
       <div className="flex-1 overflow-y-auto min-w-0">
         {filteredQuestions.length === 0 ? (
-          <div className="p-4 text-center text-[#94A3B8] text-xs">
+          <div className="p-4 text-center text-muted-foreground/50 text-xs">
             {searchText || filters.size > 0 ? 'No questions match filter' : 'No questions loaded'}
           </div>
         ) : (
@@ -610,28 +628,28 @@ function QuestionNavigator({
                 className={cn(
                   "w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all duration-200 border",
                   activeIndex === q.index
-                    ? "bg-[#EFF6FF] border-[#0F6CBD] shadow-sm"
-                    : "border-transparent hover:bg-[#F8FAFC]"
+                    ? "bg-muted border-border/60 shadow-sm"
+                    : "border-transparent hover:bg-muted transition-colors"
                 )}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-[#111827]">Q{q.index + 1}</span>
+                  <span className="font-semibold text-foreground">Q{q.index + 1}</span>
                   <Badge
                     variant="outline"
                     className={cn(
                       "text-xs h-5",
                       q.type === 'mcq'
-                        ? "bg-[#E0F2FE] text-[#0F6CBD] border-[#0F6CBD]"
-                        : "bg-[#FEF3C7] text-[#92400E] border-[#92400E]"
+                        ? "bg-muted text-foreground border-border/60"
+                        : "bg-warning-light text-warning border-amber-300"
                     )}
                   >
                     {q.type === 'mcq' ? 'MCQ' : 'Text'}
                   </Badge>
                 </div>
-                <p className="text-[#475569] font-medium line-clamp-1">{q.title}</p>
+                <p className="text-foreground font-medium line-clamp-1">{q.title}</p>
                 <p
-                  className="text-[#94A3B8] line-clamp-2 mt-0.5"
-                  dangerouslySetInnerHTML={{ __html: q.preview }}
+                  className="text-muted-foreground/50 line-clamp-2 mt-0.5"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(q.preview) }}
                 />
               </button>
             ))}
@@ -661,7 +679,7 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
 
   if (!question) {
     return (
-      <div className="h-full flex items-center justify-center text-[#94A3B8] text-sm">
+      <div className="h-full flex items-center justify-center text-muted-foreground/50 text-sm">
         Select a question to view source
       </div>
     );
@@ -814,14 +832,14 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
   };
 
   return (
-    <div className="h-full flex flex-col min-w-0 overflow-hidden bg-[linear-gradient(180deg,_#fbfdff_0%,_#f7fbff_70%,_#f3faf7_100%)]">
+    <div className="h-full flex flex-col min-w-0 overflow-hidden bg-muted">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-[#d7e5ff] flex items-center justify-between gap-2 bg-[linear-gradient(180deg,_#ffffff_0%,_#f5fbff_100%)]">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-card">
         <div className="flex items-center gap-2">
-          <Code className="w-4 h-4 text-[#64748B]" />
-          <span className="text-xs font-semibold text-[#111827]">Source</span>
+          <Code className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">Source</span>
           {isEditing && (
-            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-[#0F6CBD] text-[#0F6CBD]">
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-border/60 text-foreground">
               Editing
             </Badge>
           )}
@@ -832,7 +850,7 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
             onValueChange={(value) => onSourceModeChange(value as 'xml' | 'json')}
             className="w-auto"
           >
-            <TabsList className="grid grid-cols-2 bg-[#e9f0fb] h-7 border border-[#d7e5ff]">
+            <TabsList className="grid grid-cols-2 bg-muted h-7 border border-border">
               <TabsTrigger value="xml" className="text-xs" disabled={isEditing}>XML</TabsTrigger>
               <TabsTrigger value="json" className="text-xs" disabled={isEditing}>JSON</TabsTrigger>
             </TabsList>
@@ -871,7 +889,7 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
                 variant="default"
                 size="sm"
                 onClick={handleSave}
-                className="text-xs h-7 px-2 bg-[#2457b8] hover:bg-[#1f4aa0] text-white gap-1"
+                className="text-xs h-7 px-2 bg-primary hover:bg-primary/90 transition-colors text-primary-foreground gap-1"
                 title="Render pasted source (Ctrl+Enter)"
               >
                 <Play className="w-3.5 h-3.5" />
@@ -907,11 +925,11 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
             }
           }}
           spellCheck={false}
-          className="flex-1 overflow-auto p-4 font-mono text-xs text-[#111827] bg-white resize-none outline-none border-0 focus:ring-2 focus:ring-[#2457b8] focus:ring-inset"
+          className="flex-1 overflow-auto p-4 font-mono text-xs text-foreground bg-card resize-none outline-none border-0 focus:ring-2 focus:ring-slate-400 focus:ring-inset"
           placeholder={sourceMode === 'xml' ? 'Paste or edit QTI XML…' : 'Paste or edit question JSON…'}
         />
       ) : (
-        <pre className="flex-1 overflow-auto p-4 font-mono text-xs text-[#111827] bg-white whitespace-pre-wrap break-words">
+        <pre className="flex-1 overflow-auto p-4 font-mono text-xs text-foreground bg-card whitespace-pre-wrap break-words">
           {sourceContent}
         </pre>
       )}
@@ -922,12 +940,12 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
         </div>
       )}
       {copiedToClipboard && (
-        <div className="flex-shrink-0 px-4 py-2 bg-[#22C55E] text-white text-xs text-center">
+        <div className="flex-shrink-0 px-4 py-2 bg-[#22C55E] text-primary-foreground text-xs text-center">
           Copied to clipboard!
         </div>
       )}
       {savedNotice && (
-        <div className="flex-shrink-0 px-4 py-2 bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] text-white text-xs text-center">
+        <div className="flex-shrink-0 px-4 py-2 bg-primary text-primary-foreground text-xs text-center">
           Changes applied
         </div>
       )}
@@ -995,9 +1013,9 @@ function ControlsBar({
   onToggleSourcePanel,
 }: ControlsBarProps) {
   return (
-    <div className="bg-[linear-gradient(180deg,_#ffffff_0%,_#f5fbff_100%)] border-t border-[#d7e5ff] px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
+    <div className="bg-card border-t border-border px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-[#475569] font-medium">
+        <span className="text-xs text-muted-foreground font-medium">
           {totalQuestions > 0 ? `Question ${currentIndex + 1}` : 'No'} / {totalQuestions}
         </span>
       </div>
@@ -1008,7 +1026,7 @@ function ControlsBar({
           size="sm"
           onClick={onPrevious}
           disabled={currentIndex <= 0}
-          className="h-8 px-3 text-xs border-[#E2E8F0]"
+          className="h-8 px-3 text-xs border-border"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
@@ -1017,12 +1035,12 @@ function ControlsBar({
           size="sm"
           onClick={onNext}
           disabled={currentIndex >= totalQuestions - 1}
-          className="h-8 px-3 text-xs border-[#E2E8F0]"
+          className="h-8 px-3 text-xs border-border"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
 
-        <div className="h-6 w-px bg-[#E2E8F0]" />
+        <div className="h-6 w-px bg-border" />
 
         <Button
           variant={showCorrectAnswer ? 'default' : 'outline'}
@@ -1030,7 +1048,7 @@ function ControlsBar({
           onClick={onToggleCorrectAnswer}
           className={cn(
             "h-8 px-3 text-xs",
-            showCorrectAnswer && "bg-[#2457b8] hover:bg-[#1f4aa0] text-white border-transparent"
+            showCorrectAnswer && "bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-primary-foreground border-transparent"
           )}
           title="Show/Hide correct answers"
         >
@@ -1053,7 +1071,7 @@ function ControlsBar({
           onClick={onToggleSourcePanel}
           className={cn(
             "h-8 px-3 text-xs",
-            showSourcePanel && "bg-[#2457b8] hover:bg-[#1f4aa0] text-white border-transparent"
+            showSourcePanel && "bg-[linear-gradient(120deg,_#2457b8_0%,_#5b3bb6_100%)] hover:brightness-95 text-primary-foreground border-transparent"
           )}
           title="Toggle source panel"
         >
@@ -1094,13 +1112,13 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <span className="inline-block px-2.5 py-0.5 bg-[#E0F2FE] text-[#0F6CBD] rounded-full text-xs font-semibold">
+        <span className="inline-block px-2.5 py-0.5 bg-accent text-accent-foreground rounded-full text-xs font-semibold">
           MCQ
         </span>
-        <span className="text-xs text-[#94A3B8] font-mono">{question.identifier}</span>
+        <span className="text-xs text-muted-foreground font-mono">{question.identifier}</span>
       </div>
 
-      <MathMLRenderer content={question.stem} className="text-base font-normal text-[#111827] mb-4 leading-relaxed" />
+      <MathMLRenderer content={question.stem} className="text-base font-normal text-foreground mb-4 leading-relaxed" />
 
       <div className="space-y-2.5">
         {question.choices?.map((choice, index) => {
@@ -1118,37 +1136,37 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
               disabled={showResult}
               className={cn(
                 "w-full flex items-center gap-3 p-4 border rounded-xl text-left transition-all duration-200",
-                showResult && isCorrectChoice && "border-[#16A34A] bg-[#F0FDF4]",
-                showResult && isSelected && !isCorrectChoice && "border-[#DC2626] bg-[#FEF2F2]",
-                showResult && !isCorrectChoice && !isSelected && "border-[#E2E8F0] opacity-60",
-                !showResult && isSelected && "border-[#0F6CBD] bg-[#EFF6FF] shadow-sm",
-                !showResult && !isSelected && "border-[#E2E8F0] hover:border-[#94A3B8] hover:bg-[#F8FAFC]",
+                showResult && isCorrectChoice && "border-success bg-success-light",
+                showResult && isSelected && !isCorrectChoice && "border-destructive bg-destructive-light",
+                showResult && !isCorrectChoice && !isSelected && "border-border opacity-60",
+                !showResult && isSelected && "border-chart-1 bg-accent shadow-sm",
+                !showResult && !isSelected && "border-border hover:border-muted-foreground hover:bg-background/50",
               )}
             >
               {/* Custom radio circle */}
               <div
                 className={cn(
                   "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200",
-                  showResult && isCorrectChoice && "border-[#16A34A] bg-[#16A34A]",
-                  showResult && isSelected && !isCorrectChoice && "border-[#DC2626] bg-[#DC2626]",
-                  showResult && !isCorrectChoice && !isSelected && "border-[#D1D5DB]",
-                  !showResult && isSelected && "border-[#0F6CBD] bg-[#0F6CBD]",
-                  !showResult && !isSelected && "border-[#CBD5E1]",
+                  showResult && isCorrectChoice && "border-success bg-success",
+                  showResult && isSelected && !isCorrectChoice && "border-destructive bg-destructive",
+                  showResult && !isCorrectChoice && !isSelected && "border-border",
+                  !showResult && isSelected && "border-chart-1 bg-chart-1",
+                  !showResult && !isSelected && "border-muted-foreground/30",
                 )}
               >
                 {showResult && isCorrectChoice && (
-                  <CheckCircle2 className="w-3 h-3 text-white" />
+                  <CheckCircle2 className="w-3 h-3 text-primary-foreground" />
                 )}
                 {showResult && isSelected && !isCorrectChoice && (
-                  <XCircle className="w-3 h-3 text-white" />
+                  <XCircle className="w-3 h-3 text-primary-foreground" />
                 )}
                 {!showResult && isSelected && (
-                  <div className="w-2 h-2 rounded-full bg-white" />
+                  <div className="w-2 h-2 rounded-full bg-card" />
                 )}
               </div>
 
-              <span className="font-medium text-[#64748B] min-w-[20px] text-sm">{choiceLabel}.</span>
-              <MathMLRenderer content={choice.content} className="text-[#111827] flex-1 text-sm" inline />
+              <span className="font-medium text-muted-foreground min-w-[20px] text-sm">{choiceLabel}.</span>
+              <MathMLRenderer content={choice.content} className="text-foreground flex-1 text-sm" inline />
             </button>
           );
         })}
@@ -1158,12 +1176,12 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
         <Button
           onClick={handleCheck}
           disabled={!selectedAnswer || showResult}
-          className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white rounded-lg px-5"
+          className="bg-chart-1 hover:bg-chart-1/90 text-primary-foreground rounded-lg px-5"
         >
           Check Answer
         </Button>
         {showResult && (
-          <Button variant="outline" onClick={handleReset} className="rounded-lg border-[#E2E8F0]">
+          <Button variant="outline" onClick={handleReset} className="rounded-lg border-border">
             Try Again
           </Button>
         )}
@@ -1202,13 +1220,13 @@ function TextEntryRenderer({ question }: { question: ParsedQuestion }) {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <span className="inline-block px-2.5 py-0.5 bg-[#FEF3C7] text-[#92400E] rounded-full text-xs font-semibold">
+        <span className="inline-block px-2.5 py-0.5 bg-warning-light text-warning-foreground rounded-full text-xs font-semibold">
           Text Entry
         </span>
-        <span className="text-xs text-[#94A3B8] font-mono">{question.identifier}</span>
+        <span className="text-xs text-muted-foreground font-mono">{question.identifier}</span>
       </div>
 
-      <MathMLRenderer content={question.stem} className="text-base font-normal text-[#111827] mb-4 leading-relaxed" />
+      <MathMLRenderer content={question.stem} className="text-base font-normal text-foreground mb-4 leading-relaxed" />
 
       <input
         type="text"
@@ -1219,19 +1237,19 @@ function TextEntryRenderer({ question }: { question: ParsedQuestion }) {
         placeholder="Type your answer here..."
         disabled={showResult}
         style={dynamicWidth ? { width: dynamicWidth } : undefined}
-        className="max-w-full px-4 py-3 border border-[#E2E8F0] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0F6CBD] focus:border-transparent text-[#111827] text-sm transition-all duration-200 placeholder:text-[#94A3B8]"
+        className="max-w-full px-4 py-3 border border-border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-chart-1 focus:border-transparent text-foreground text-sm transition-all duration-200 placeholder:text-muted-foreground"
       />
 
       <div className="mt-5 flex gap-2">
         <Button
           onClick={handleCheck}
           disabled={!userAnswer.trim() || showResult}
-          className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white rounded-lg px-5"
+          className="bg-chart-1 hover:bg-chart-1/90 text-primary-foreground rounded-lg px-5"
         >
           Check Answer
         </Button>
         {showResult && (
-          <Button variant="outline" onClick={handleReset} className="rounded-lg border-[#E2E8F0]">
+          <Button variant="outline" onClick={handleReset} className="rounded-lg border-border">
             Try Again
           </Button>
         )}
@@ -1338,7 +1356,7 @@ export function QTIRenderer() {
     return parsedQuestions.map((q, index) => {
       // Extract plain text preview from stem, removing HTML
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = q.stem;
+      tempDiv.innerHTML = sanitizeHTML(q.stem);
       const preview = tempDiv.textContent || q.stem;
       
       return {
@@ -1634,7 +1652,7 @@ export function QTIRenderer() {
             <div className="flex gap-3 justify-center mb-6">
               <Button
                 onClick={() => handleLoadSample('mcq')}
-                className="bg-[#2457b8] hover:bg-[#1f4aa0] text-white rounded-lg"
+                className="bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-primary-foreground rounded-lg"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 MCQ Example
@@ -1693,7 +1711,7 @@ export function QTIRenderer() {
 
               {/* Panel 2: Question Navigator */}
               <Panel defaultSize={22} minSize={18} maxSize={35} className="flex flex-col min-w-0">
-                <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-white/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 mr-0">
+                <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-card/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 mr-0">
                   <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
                     <QuestionNavigator
                       questions={questionNavigatorItems}
@@ -1713,7 +1731,7 @@ export function QTIRenderer() {
 
               {/* Panel 3: Preview */}
               <Panel defaultSize={showSourcePanel ? 40 : 78} minSize={35} className="flex flex-col min-w-0">
-                <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-white/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 ml-0 mr-0">
+                <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-card/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 ml-0 mr-0">
                   <CardContent className="flex-1 flex flex-col overflow-y-auto overflow-x-visible p-6">
                     {questionsToRender.length > 0 && (
                       <div className="space-y-6">
@@ -1736,7 +1754,7 @@ export function QTIRenderer() {
 
                   {/* Panel 4: Source Viewer */}
                   <Panel defaultSize={38} minSize={25} maxSize={50} className="flex flex-col min-w-0">
-                    <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-white/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 ml-0">
+                    <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-card/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 ml-0">
                       <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
                         <SourceViewer
                           question={questionsToRender.length > 0 ? questionsToRender[0] : null}

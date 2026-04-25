@@ -60,18 +60,18 @@ function severityIcon(severity: AIValidationIssue['severity']) {
     case 'warning':
       return <AlertTriangle className="w-3.5 h-3.5 text-[#D97706] flex-shrink-0" />;
     case 'info':
-      return <Info className="w-3.5 h-3.5 text-[#0F6CBD] flex-shrink-0" />;
+      return <Info className="w-3.5 h-3.5 text-[#111827] flex-shrink-0" />;
   }
 }
 
 function severityBg(severity: AIValidationIssue['severity']) {
   switch (severity) {
     case 'error':
-      return 'bg-red-50 border-red-200';
+      return 'bg-destructive-light border-destructive';
     case 'warning':
-      return 'bg-amber-50 border-amber-200';
+      return 'bg-warning-light border-warning';
     case 'info':
-      return 'bg-blue-50 border-blue-200';
+      return 'bg-muted border-border';
   }
 }
 
@@ -123,8 +123,8 @@ function ValidationRow({
       <tr
         className={cn(
           "border-b border-[#E2E8F0] transition-colors",
-          item.isValid ? "hover:bg-green-50/40" : "hover:bg-red-50/40",
-          !item.isValid && "bg-red-50/20",
+          item.isValid ? "hover:bg-green-50/40" : "hover:bg-destructive-light/40",
+          !item.isValid && "bg-destructive-light/20",
         )}
       >
         {/* Item No. */}
@@ -132,7 +132,7 @@ function ValidationRow({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="inline-flex items-center gap-2 hover:text-[#0F6CBD]"
+            className="inline-flex items-center gap-2 hover:text-[#111827]"
           >
             {expanded ? (
               <ChevronDown className="w-4 h-4" />
@@ -146,12 +146,12 @@ function ValidationRow({
         {/* Validated (yes/no) */}
         <td className="px-4 py-3 text-center w-[120px]">
           {item.isValid ? (
-            <Badge className="bg-[#16A34A] text-white text-xs hover:bg-[#16A34A]">
+            <Badge className="bg-[#16A34A] text-primary-foreground text-xs hover:bg-[#16A34A]">
               <CheckCircle2 className="w-3 h-3 mr-1" />
               Yes
             </Badge>
           ) : (
-            <Badge className="bg-[#DC2626] text-white text-xs hover:bg-[#DC2626]">
+            <Badge className="bg-[#DC2626] text-primary-foreground text-xs hover:bg-[#DC2626]">
               <XCircle className="w-3 h-3 mr-1" />
               No
             </Badge>
@@ -190,7 +190,7 @@ function ValidationRow({
                 <p className="text-xs font-semibold text-[#475569] uppercase">Raw XML</p>
                 {!editing ? (
                   <div className="flex items-start gap-2 group">
-                    <div className="flex-1 bg-white border border-[#E2E8F0] rounded p-3 overflow-x-auto">
+                    <div className="flex-1 bg-card border border-[#E2E8F0] rounded p-3 overflow-x-auto">
                       <code className="text-xs text-[#475569] font-mono whitespace-pre-wrap break-all">
                         {item.xmlContent}
                       </code>
@@ -199,16 +199,16 @@ function ValidationRow({
                       <button
                         type="button"
                         onClick={startEdit}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded hover:bg-white"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded hover:bg-card"
                         title="Edit XML"
                       >
-                        <Pencil className="w-4 h-4 text-[#0F6CBD]" />
+                        <Pencil className="w-4 h-4 text-[#111827]" />
                       </button>
                       <button
                         type="button"
                         onClick={onAutoFix}
                         disabled={isFixing}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded bg-[#0F6CBD] hover:bg-[#0B5A9A] text-white text-[10px] font-medium disabled:opacity-70"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-[10px] font-medium disabled:opacity-70"
                         title="Let AI fix XML and MathML issues"
                       >
                         {isFixing ? (
@@ -227,7 +227,7 @@ function ValidationRow({
                     <Textarea
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className="font-mono text-xs min-h-[150px] resize-y border-[#0F6CBD] focus-visible:ring-[#0F6CBD] bg-white"
+                      className="font-mono text-xs min-h-[150px] resize-y border-[#111827] focus-visible:ring-[#111827] bg-card"
                       onKeyDown={(e) => {
                         if (e.key === 'Escape') cancelEdit();
                       }}
@@ -236,7 +236,7 @@ function ValidationRow({
                       <Button
                         size="sm"
                         onClick={saveEdit}
-                        className="h-8 px-3 bg-[#16A34A] hover:bg-[#15803D] text-white text-xs"
+                        className="h-8 px-3 bg-[#16A34A] hover:bg-[#15803D] text-primary-foreground text-xs"
                       >
                         <Check className="w-3 h-3 mr-1" />
                         Save Changes
@@ -319,17 +319,17 @@ function ReadyCard({
   onCancel: () => void;
 }) {
   return (
-    <Card className="border border-[#0F6CBD] bg-[#F0F9FF]">
+    <Card className="border border-[#111827] bg-[#F0F9FF]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-[#0F6CBD]" />
+          <Shield className="w-5 h-5 text-[#111827]" />
           Ready to Validate
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-4 bg-white rounded-lg border border-[#E2E8F0]">
+        <div className="p-4 bg-card rounded-lg border border-[#E2E8F0]">
           <p className="text-sm text-[#475569]">
-            <span className="font-semibold text-[#0F6CBD]">{totalItems} questions</span> will be validated using AI to check for XML schema compliance and educational content quality.
+            <span className="font-semibold text-[#111827]">{totalItems} questions</span> will be validated using AI to check for XML schema compliance and educational content quality.
           </p>
         </div>
 
@@ -357,7 +357,7 @@ function ReadyCard({
         <div className="flex gap-2">
           <Button
             onClick={onStartValidation}
-            className="bg-[#0F6CBD] hover:bg-[#0B5A9A] active:bg-[#094A7F] text-white font-semibold px-6 rounded-md"
+            className="bg-[#111827] hover:bg-[#1f2937] active:bg-[#334155] text-primary-foreground font-semibold px-6 rounded-md"
           >
             <Play className="w-4 h-4 mr-2" />
             Start Validation
@@ -413,10 +413,10 @@ export function AIValidationReport({
 
   // Running or Done state - show results table
   return (
-    <Card className="border border-[#0F6CBD] bg-white">
+    <Card className="border border-[#111827] bg-card">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Shield className="w-5 h-5 text-[#0F6CBD]" />
+          <Shield className="w-5 h-5 text-[#111827]" />
           AI Validation Report
         </CardTitle>
         <p className="text-sm text-[#475569]">Powered by Gemini</p>
@@ -451,7 +451,7 @@ export function AIValidationReport({
             <p className="text-2xl font-bold text-[#16A34A]">{validCount}</p>
             <p className="text-xs text-[#475569]">Valid</p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-red-50 border border-red-200">
+          <div className="text-center p-3 rounded-lg bg-destructive-light border border-destructive">
             <p className="text-2xl font-bold text-[#DC2626]">{invalidCount}</p>
             <p className="text-xs text-[#475569]">Invalid</p>
           </div>
@@ -496,7 +496,7 @@ export function AIValidationReport({
           <Button
             onClick={onDownloadValid}
             disabled={isDownloading || isRevalidating || validCount === 0}
-            className="bg-[#0F6CBD] hover:bg-[#0B5A9A] text-white font-semibold px-6 rounded-md"
+            className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground font-semibold px-6 rounded-md"
           >
             {isDownloading ? (
               <>

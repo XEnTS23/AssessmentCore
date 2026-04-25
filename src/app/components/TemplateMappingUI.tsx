@@ -274,7 +274,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-6 max-h-screen overflow-y-auto">
+      <div className="bg-card rounded-2xl border border-[#E2E8F0] shadow-xl p-6 max-h-screen overflow-y-auto">
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F6CBD]"></div>
@@ -287,15 +287,15 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
 
   if (error) {
     return (
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-6">
-        <div className="flex gap-3 text-red-600">
+      <div className="bg-card rounded-2xl border border-[#E2E8F0] shadow-xl p-6">
+        <div className="flex gap-3 text-destructive">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Error Loading Data</p>
             <p className="text-sm mt-1">{error}</p>
             <button
               onClick={onCancel}
-              className="mt-3 text-sm text-blue-600 hover:underline"
+              className="mt-3 text-sm text-primary hover:underline"
             >
               Back
             </button>
@@ -318,7 +318,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
   const showDetectedVersion = selectedQtiVersion && detectedQtiVersion && selectedQtiVersion !== detectedQtiVersion;
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-6 max-h-screen overflow-y-auto">
+    <div className="bg-card rounded-2xl border border-[#E2E8F0] shadow-xl p-6 max-h-screen overflow-y-auto">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-[#111827]">Map Template Fields to Sheet Columns</h2>
@@ -352,9 +352,9 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-sm font-semibold text-red-700 mb-2">Validation Issues:</p>
-          <ul className="text-sm text-red-600 space-y-1">
+        <div className="bg-destructive-light border border-destructive rounded-lg p-4 mb-6">
+          <p className="text-sm font-semibold text-destructive mb-2">Validation Issues:</p>
+          <ul className="text-sm text-destructive space-y-1">
             {validationErrors.map((error, i) => (
               <li key={i}>• {error}</li>
             ))}
@@ -392,7 +392,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                     onClick={() => handleToggleRequired(field.id)}
                     className={`text-xs font-medium px-2 py-1 rounded border transition-colors ${
                       field.required
-                        ? 'bg-blue-100 border-blue-300 text-blue-700'
+                        ? 'bg-primary-light border-blue-300 text-primary'
                         : 'bg-[#F3F4F6] border-[#E5E7EB] text-[#6B7280]'
                     }`}
                   >
@@ -447,7 +447,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                             key={preset}
                             type="button"
                             onClick={() => handleAddSubsection(field.id, preset)}
-                            className="text-[11px] px-2 py-1 rounded bg-white border border-[#D1D5DB] text-[#334155] hover:bg-[#F1F5F9]"
+                            className="text-[11px] px-2 py-1 rounded bg-card border border-[#D1D5DB] text-[#334155] hover:bg-[#F1F5F9]"
                           >
                             + {preset}
                           </button>
@@ -478,7 +478,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveSubsection(field.id, entry.id)}
-                              className="col-span-1 text-xs text-red-600 hover:text-red-700"
+                              className="col-span-1 text-xs text-destructive hover:text-destructive"
                               title="Remove subsection"
                             >
                               ×
@@ -501,7 +501,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
           <h3 className="text-sm font-semibold text-[#111827] mb-3">Preview (First 5 Rows)</h3>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {preview.map((row) => (
-              <div key={row.rowIndex} className="bg-white p-3 rounded border border-[#E2E8F0] text-xs">
+              <div key={row.rowIndex} className="bg-card p-3 rounded border border-[#E2E8F0] text-xs">
                 <p className="font-semibold text-[#111827] mb-2">Row {row.rowIndex + 1}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(row.templateFieldValues).map(([fieldId, value]) => {
@@ -530,13 +530,13 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
         </button>
         <button
           onClick={handleGeneratePreview}
-          className="px-4 py-2 text-sm font-medium text-white bg-[#0F6CBD] rounded-lg hover:bg-[#0D5AA0] transition-colors"
+          className="px-4 py-2 text-sm font-medium text-primary-foreground bg-[#0F6CBD] rounded-lg hover:bg-[#0D5AA0] transition-colors"
         >
           Preview Mapping
         </button>
         <button
           onClick={handleComplete}
-          className="px-4 py-2 text-sm font-medium text-white bg-[#16A34A] rounded-lg hover:bg-[#15803D] transition-colors flex items-center gap-2"
+          className="px-4 py-2 text-sm font-medium text-primary-foreground bg-[#16A34A] rounded-lg hover:bg-[#15803D] transition-colors flex items-center gap-2"
         >
           <Check className="h-4 w-4" />
           Complete Mapping

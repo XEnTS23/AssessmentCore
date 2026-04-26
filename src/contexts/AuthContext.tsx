@@ -34,22 +34,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const authPromise = (async () => {
-          const currentUser = await authService.getCurrentUser();
-          setUser(currentUser);
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
+        // Expose user to window for debugging
+        (window as any).user = currentUser;
 
-          if (currentUser) {
-            // Fetch user profile
-            const [profile, usage] = await Promise.all([
+        if (currentUser) {
+          const [profile, usage] = await withTimeout(
+            Promise.all([
               authService.getUserProfile(currentUser.id),
               authService.getUserUsage(currentUser.id),
-            ]);
-            setUserProfile(profile);
+            ]),
+            AUTH_INIT_TIMEOUT_MS,
+            'Auth initialization timeout'
+          );
+          
+          setUserProfile(profile);
+          
+          const metadataUnlimited = 
+            currentUser.app_metadata?.is_unlimited === true || 
+            currentUser.app_metadata?.is_unlimited === 'true' ||
+            currentUser.user_metadata?.is_unlimited === true ||
+            currentUser.user_metadata?.is_unlimited === 'true';
+          
+          if (metadataUnlimited && usage) {
+            setUserUsage({ ...usage, is_premium: true });
+          } else {
             setUserUsage(usage);
           }
-        })();
-
-        await withTimeout(authPromise, AUTH_INIT_TIMEOUT_MS, 'Auth initialization timeout');
+        }
       } catch (error) {
         console.error('Error initializing auth:', error);
         // Even on error/timeout, we continue with unauthenticated state
@@ -70,6 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Redirect to reset password page when user clicks the email link
       if (event === 'PASSWORD_RECOVERY') {
         setUser(session?.user || null);
+        // Expose user to window
+        (window as any).user = session?.user || null;
         window.location.href = '/auth/reset-password';
         return;
       }
@@ -80,28 +95,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setUserProfile(null);
         setUserUsage(null);
+        // Clear user from window
+        (window as any).user = null;
         return;
       }
 
       // Token refresh — just update the user object, skip re-fetching profile/usage
       if (event === 'TOKEN_REFRESHED') {
         if (session?.user) setUser(session.user);
+        // Update window user
+        (window as any).user = session?.user || null;
         return;
       }
 
       if (session?.user) {
         setUser(session.user);
+        // Expose user to window
+        (window as any).user = session.user;
         try {
-          const fetchPromise = (async () => {
-            const [profile, usage] = await Promise.all([
+          const [profile, usage] = await withTimeout(
+            Promise.all([
               authService.getUserProfile(session.user.id),
               authService.getUserUsage(session.user.id),
-            ]);
-            setUserProfile(profile);
+            ]),
+            PROFILE_FETCH_TIMEOUT_MS,
+            'Profile fetch timeout'
+          );
+          
+          setUserProfile(profile);
+          
+          const metadataUnlimited = 
+            session.user.app_metadata?.is_unlimited === true || 
+            session.user.app_metadata?.is_unlimited === 'true' ||
+            session.user.user_metadata?.is_unlimited === true ||
+            session.user.user_metadata?.is_unlimited === 'true';
+          
+          if (metadataUnlimited && usage) {
+            setUserUsage({ ...usage, is_premium: true });
+          } else {
             setUserUsage(usage);
-          })();
-
-          await withTimeout(fetchPromise, PROFILE_FETCH_TIMEOUT_MS, 'Profile fetch timeout');
+          }
         } catch (error) {
           console.error('Error fetching user data:', error);
           // Keep existing profile/usage data instead of nulling on timeout
@@ -119,11 +152,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (response.success && response.user) {
       setUser(response.user);
+      // Expose user to window
+      (window as any).user = response.user;
       const profile = await authService.getUserProfile(response.user.id);
       setUserProfile(profile);
 
       const usage = await authService.getUserUsage(response.user.id);
-      setUserUsage(usage);
+      
+      const metadataUnlimited = 
+        response.user.app_metadata?.is_unlimited === true || 
+        response.user.app_metadata?.is_unlimited === 'true' ||
+        response.user.user_metadata?.is_unlimited === true ||
+        response.user.user_metadata?.is_unlimited === 'true';
+
+      if (metadataUnlimited && usage) {
+        setUserUsage({ ...usage, is_premium: true });
+      } else {
+        setUserUsage(usage);
+      }
     }
 
     return response;
@@ -148,6 +194,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setUserProfile(null);
       setUserUsage(null);
+      // Clear user from window
+      (window as any).user = null;
     }
 
     return response;
@@ -171,7 +219,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       await authService.trackExport(user.id);
       const usage = await authService.getUserUsage(user.id);
-      setUserUsage(usage);
+      
+      const metadataUnlimited = 
+        user.app_metadata?.is_unlimited === true || 
+        user.app_metadata?.is_unlimited === 'true' ||
+        user.user_metadata?.is_unlimited === true ||
+        user.user_metadata?.is_unlimited === 'true';
+
+      if (metadataUnlimited && usage) {
+        setUserUsage({ ...usage, is_premium: true });
+      } else {
+        setUserUsage(usage);
+      }
     }
   };
 
@@ -179,14 +238,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       await authService.trackQuestionsConverted(user.id, count);
       const usage = await authService.getUserUsage(user.id);
-      setUserUsage(usage);
+      
+      const metadataUnlimited = 
+        user.app_metadata?.is_unlimited === true || 
+        user.app_metadata?.is_unlimited === 'true' ||
+        user.user_metadata?.is_unlimited === true ||
+        user.user_metadata?.is_unlimited === 'true';
+
+      if (metadataUnlimited && usage) {
+        setUserUsage({ ...usage, is_premium: true });
+      } else {
+        setUserUsage(usage);
+      }
     }
   };
 
   const refreshUsage = async () => {
     if (user) {
       const usage = await authService.getUserUsage(user.id);
-      setUserUsage(usage);
+      
+      const metadataUnlimited = 
+        user.app_metadata?.is_unlimited === true || 
+        user.app_metadata?.is_unlimited === 'true' ||
+        user.user_metadata?.is_unlimited === true ||
+        user.user_metadata?.is_unlimited === 'true';
+
+      if (metadataUnlimited && usage) {
+        setUserUsage({ ...usage, is_premium: true });
+      } else {
+        setUserUsage(usage);
+      }
     }
   };
 

@@ -218,6 +218,9 @@ export const authService = {
       return null;
     }
 
+    // Check for global unlimited environment override first
+    const isGlobalUnlimited = import.meta.env.VITE_IS_UNLIMITED === 'true';
+
     try {
       const { data, error } = await supabase
         .from('user_usage')
@@ -238,17 +241,22 @@ export const authService = {
             ])
             .select()
             .single();
+          
+          const isUnlimited = isGlobalUnlimited || !!(newUsage as any).is_unlimited || (newUsage as any).is_unlimited === 'true';
+
           return {
             ...newUsage,
-            is_premium: !!(newUsage as any).is_unlimited
+            is_premium: isUnlimited
           };
         }
         return null;
       }
 
+      const isUnlimited = isGlobalUnlimited || !!(data as any).is_unlimited || (data as any).is_unlimited === 'true';
+
       return {
         ...data,
-        is_premium: !!(data as any).is_unlimited
+        is_premium: isUnlimited
       };
     } catch (error) {
       return null;

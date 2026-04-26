@@ -539,6 +539,14 @@ export function BatchCreator() {
     return false;
   };
 
+  const hasCleanFixWork = (): boolean => {
+    for (const result of validationResults.values()) {
+      if (result.status === 'caution' || result.status === 'rejected') return true;
+      if ((result.issues || []).some((issue) => issue.category === 'duplicate' || issue.field === 'Duplicate')) return true;
+    }
+    return false;
+  };
+
   const canNavigateToStep = (step: WizardStep): boolean => {
     const targetIndex = stepOrder.indexOf(step);
     if (targetIndex < 0) return false;
@@ -555,6 +563,14 @@ export function BatchCreator() {
 
     // Always allow current or previous stages; future stages unlock strictly one-by-one.
     if (targetIndex <= currentIndex) return true;
+    if (
+      currentStep === 'validating' &&
+      (step === 'ai-audit' || (!aiAuditStageEnabled && step === 'configure')) &&
+      isStepComplete('validating') &&
+      !hasCleanFixWork()
+    ) {
+      return true;
+    }
     if (targetIndex === currentIndex + 1) return isStepComplete(currentStep);
     return false;
   };
@@ -1962,7 +1978,7 @@ export function BatchCreator() {
     }
   };
 
-  const handleTransformClick = async () => {
+  const handleProceedToTransform = () => {
     setShowConfigErrors(true);
     const errors = validateExportConfig();
     if (errors.length > 0) {
@@ -1971,16 +1987,30 @@ export function BatchCreator() {
     }
     setConfigurationValidationError('');
     setTransformDone(false);
+    setIsXmlReviewOpen(false);
+    setGeneratedXmlItems([]);
+    setPendingExportContext(null);
     handleStepperJump('transform');
-    // Export functions manage their own isExporting state
+  };
+
+  const handleStartTransformBuild = async () => {
+    setShowConfigErrors(true);
+    const errors = validateExportConfig();
+    if (errors.length > 0) {
+      setConfigurationValidationError(errors[0]);
+      return;
+    }
+    setConfigurationValidationError('');
+    setTransformDone(false);
+
     if (outputFormat === 'json') {
       await exportToJSON();
+      setTransformDone(true);
     } else if (exportMode === 'qti-package') {
       await exportToQTI();
     } else if (exportMode === 'xml-media-folder') {
       await exportXmlMediaFolder();
     }
-    setTransformDone(true);
   };
 
   const resetBatchWorkflow = () => {
@@ -6359,9 +6389,11 @@ export function BatchCreator() {
                 : <span><span className="font-semibold text-[#1f2937]">All rows are usable</span> · ready for next step</span>}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setCurrentStep('clean-fix')} className="text-xs">
-                {stats.rejected > 0 ? 'Fix Data' : 'Review & Clean Data'}
-              </Button>
+              {(stats.rejected > 0 || stats.caution > 0 || stats.duplicates > 0) && (
+                <Button variant="outline" onClick={() => setCurrentStep('clean-fix')} className="text-xs">
+                  {stats.rejected > 0 ? 'Fix Data' : 'Review & Clean Data'}
+                </Button>
+              )}
               {stats.rejected === 0 && (
                 isPremium ? (
                   <Button onClick={() => handleStepperJump(aiAuditStageEnabled ? 'ai-audit' : 'configure')} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold">
@@ -7945,7 +7977,7 @@ export function BatchCreator() {
 
           <footer className="h-14 px-5 border-t border-[#e2e8f0] bg-card flex items-center justify-between">
             <Button variant="outline" onClick={() => setCurrentStep(previousStepBeforeConfigure)} className="text-xs">Back</Button>
-            <Button onClick={handleTransformClick} disabled={isExporting || !isExportConfigComplete()} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold disabled:bg-[#94a3b8]">
+            <Button onClick={handleProceedToTransform} disabled={isExporting || !isExportConfigComplete()} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-semibold disabled:bg-[#94a3b8]">
               {isExporting ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Exporting...</> : <>Proceed to Transform</>}
             </Button>
           </footer>
@@ -8010,7 +8042,7 @@ export function BatchCreator() {
           </header>
 
           <div className="min-h-0 flex-1 overflow-auto p-4">
-            {!isDone && !isExporting && (
+            {!isDone && !isExporting && !isXmlReviewOpen && (
               <div className="max-w-3xl mx-auto">
                 <Card className="border border-[#e2e8f0] bg-card">
                   <CardHeader>
@@ -8018,7 +8050,7 @@ export function BatchCreator() {
                     <CardDescription>{exportedCount} questions will be built in {outputFormat || 'selected'} format.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex items-center justify-center">
-                    <Button onClick={handleTransformClick} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground">Start Build</Button>
+                    <Button onClick={handleStartTransformBuild} className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground">Start Build</Button>
                   </CardContent>
                 </Card>
               </div>
@@ -8032,6 +8064,37 @@ export function BatchCreator() {
                     <CardDescription>Encoding questions and packaging assets.</CardDescription>
                   </CardHeader>
                   <CardContent><Progress value={70} /></CardContent>
+                </Card>
+              </div>
+            )}
+
+            {isXmlReviewOpen && !isDone && !isExporting && (
+              <div className="max-w-3xl mx-auto">
+                <Card className="border border-[#e2e8f0] bg-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Eye className="w-5 h-5 text-[#1f2937]" />
+                      XML review ready
+                    </CardTitle>
+                    <CardDescription>{generatedXmlItems.length} XML items generated. Download when you are ready.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-3 text-xs text-[#475569] space-y-1">
+                      <p><span className="font-semibold text-[#0f172a]">Format:</span> {outputFormat}</p>
+                      <p><span className="font-semibold text-[#0f172a]">Package:</span> {exportMode}</p>
+                      <p><span className="font-semibold text-[#0f172a]">Generated:</span> {generatedXmlItems.length} XML items</p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        type="button"
+                        onClick={handleDownloadReviewedXml}
+                        disabled={isExporting || generatedXmlItems.length === 0}
+                        className="bg-[#111827] hover:bg-[#1f2937] text-primary-foreground"
+                      >
+                        Download Export
+                      </Button>
+                    </div>
+                  </CardContent>
                 </Card>
               </div>
             )}
@@ -9645,7 +9708,7 @@ export function BatchCreator() {
 
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={handleTransformClick}
+                  onClick={handleProceedToTransform}
                   disabled={isExporting || !isExportConfigComplete()}
                   className={`group px-8 py-2.5 text-xs font-semibold text-primary-foreground rounded-md shadow-sm transition-colors flex items-center gap-2 ${
                     !isExportConfigComplete()
@@ -11564,6 +11627,3 @@ export function BatchCreator() {
     </div>
   );
 }
-
-
-

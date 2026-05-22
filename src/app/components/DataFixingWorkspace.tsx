@@ -1191,7 +1191,7 @@ export function DataFixingWorkspace({
                                 originalValue
                               )
                             }
-                            rows={2}
+                            rows={displayValue.length > 100 ? 5 : displayValue.length > 40 ? 3 : 2}
                             className={`w-full min-h-[2.5rem] max-h-[24rem] text-sm rounded-md px-2.5 py-1.5 bg-card text-[#0f172a] font-data focus:outline-none focus:ring-1 border transition-colors resize-y overflow-auto ${
                               isProblematic
                                 ? 'border-[#ffb786] focus:border-[#8f4600] focus:ring-[#8f4600]'

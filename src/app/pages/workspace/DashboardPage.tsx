@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Activity, ArrowRight, Download, FileJson, Layers, ShieldCheck, Sparkles, Upload } from "lucide-react";
+import { Activity, ArrowRight, Download, FileJson, Layers, ShieldCheck, Sparkles, Upload, ScanText } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
+import { getUserOCRStats } from "../../../services/ocrService";
 
 function StatCard({ label, value, caption }: { label: string; value: string | number; caption: string }) {
   return (
@@ -18,34 +19,70 @@ function ToolCard({
   title,
   description,
   onClick,
+  comingSoon = false,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   onClick: () => void;
+  comingSoon?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 transition-colors duration-200 hover:border-primary/50">
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-        <span className="text-muted-foreground">{icon}</span>
-        {title}
+    <div className="relative rounded-lg border border-border bg-card p-4 transition-colors duration-200">
+      <div className={`${!comingSoon && "hover:border-primary/50"} ${comingSoon ? "blur-sm" : ""}`}>
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <span className="text-muted-foreground">{icon}</span>
+          {title}
+        </div>
+        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{description}</p>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={comingSoon}
+          className={`inline-flex h-8 items-center gap-1 rounded-md px-3 text-xs font-medium transition-colors ${
+            comingSoon
+              ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
+          }`}
+        >
+          Open
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
       </div>
-      <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{description}</p>
-      <button
-        type="button"
-        onClick={onClick}
-        className="inline-flex h-8 items-center gap-1 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-      >
-        Open
-        <ArrowRight className="h-3.5 w-3.5" />
-      </button>
+      {comingSoon && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg">
+          <div className="bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">
+            <span className="text-sm font-semibold text-white">Coming Soon</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { userUsage } = useAuth();
+  const { userUsage, user } = useAuth();
+  const [ocrStats, setOcrStats] = useState({ total_pages: 0, total_questions: 0 });
+  const [isLoadingOcr, setIsLoadingOcr] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchOcrStats = async () => {
+      setIsLoadingOcr(true);
+      try {
+        const stats = await getUserOCRStats(user.id);
+        setOcrStats(stats);
+      } catch (error) {
+        console.error('Failed to fetch OCR stats:', error);
+      } finally {
+        setIsLoadingOcr(false);
+      }
+    };
+
+    fetchOcrStats();
+  }, [user?.id]);
 
   const usageSummary = useMemo(() => {
     const converted = userUsage?.total_questions_converted || 0;
@@ -94,12 +131,32 @@ export function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <StatCard
+          label="OCR Pages Processed"
+          value={isLoadingOcr ? "..." : ocrStats.total_pages}
+          caption="Total pages extracted via OCR."
+        />
+        <StatCard
+          label="Questions Extracted via OCR"
+          value={isLoadingOcr ? "..." : ocrStats.total_questions}
+          caption="Questions generated from OCR extraction."
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <ToolCard
+          icon={<ScanText className="h-4 w-4" />}
+          title="OCR Processor"
+          description="Extract text and images from PDFs and scanned documents."
+          onClick={() => navigate("/ocr")}
+        />
         <ToolCard
           icon={<FileJson className="h-4 w-4" />}
           title="QTI Renderer"
           description="Inspect and validate question XML/JSON quickly."
           onClick={() => navigate("/workspace/qti-renderer")}
+          comingSoon={true}
         />
         <ToolCard
           icon={<Layers className="h-4 w-4" />}
@@ -112,6 +169,7 @@ export function DashboardPage() {
           title="LMS Export"
           description="Prepare and convert packages for Canvas and other LMS targets."
           onClick={() => navigate("/workspace/lms-export")}
+          comingSoon={true}
         />
       </div>
 

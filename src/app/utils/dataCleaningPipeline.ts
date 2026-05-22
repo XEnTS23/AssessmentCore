@@ -1058,40 +1058,13 @@ export function applyPass3Remediation(
     }
 
     // ── RULE 2: Placeholder Answer — detected via PASS 1 null-coercion ─────
-    // Fires when PASS 1 converted a known placeholder string ("N/A", "null",
-    // "undefined") to null.  The suggestion asks the user to confirm intent.
-    const coercedOriginal = placeholderCoercions.get(`${rowIndex}:${answerColName}`);
-    if (answerIsEmpty && coercedOriginal !== undefined) {
-      suggestions.push({
-        rowKey, rowIndex, field: answerColName,
-        type:           'PLACEHOLDER_ANSWER',
-        message:        `Answer was "${coercedOriginal}" — appears to be a placeholder. Confirm intentional blank or replace with a valid answer.`,
-        suggestedValue: '',
-        confidence:     'MEDIUM',
-      });
-      rowsWithSuggestion.add(rowKey);
-      return;
-    }
+    // Removed. Validation already flags this.
 
-    // ── RULE 3: Missing Answer — multiple options (MEDIUM) ─────────────────
-    // Fires when answer is null/empty with 2+ options.  Does not suggest a
-    // value — only flags for human intervention.
-    if (answerIsEmpty && validOptions.length >= 2) {
-      suggestions.push({
-        rowKey, rowIndex, field: answerColName,
-        type:           'MISSING_ANSWER_MULTIPLE_OPTIONS',
-        message:        `Answer is missing. ${validOptions.length} options available — user intervention required to select the correct answer.`,
-        suggestedValue: '',
-        confidence:     'MEDIUM',
-      });
-      rowsWithSuggestion.add(rowKey);
-      return;
-    }
+    // ── RULE 3: Missing Answer — multiple options ─────────────────
+    // Removed. Validation already flags this.
 
-    // ── RULE 4: ORDER_MISMATCH (MEDIUM) ───────────────────────────────────────
-    // Fires when the validation result contains ORDER-specific issue codes.
-    // These rows have structural problems with order items or answer sequence
-    // that no option-based rule can address — exit early after suggesting.
+    // ── RULE 4: ORDER_MISMATCH ───────────────────────────────────────
+    // Removed. Validation already flags this.
     const ORDER_ISSUE_CODES = new Set([
       'INVALID_ORDER_ITEMS',
       'INVALID_ORDER_ANSWER',
@@ -1102,17 +1075,6 @@ export function applyPass3Remediation(
       (i) => ORDER_ISSUE_CODES.has((i as any).code as string),
     );
     if (orderIssues.length > 0) {
-      const orderColName = cm(columnMapping, 'orderCol');
-      const issueCodes   = orderIssues.map((i) => (i as any).code as string).join(', ');
-      suggestions.push({
-        rowKey, rowIndex,
-        field:          orderColName ?? answerColName,
-        type:           'ORDER_MISMATCH',
-        message:        `Order sequence has structural issues (${issueCodes}). Verify that order items are complete and the answer covers every item exactly once.`,
-        suggestedValue: '',
-        confidence:     'MEDIUM',
-      });
-      rowsWithSuggestion.add(rowKey);
       return; // option-based rules are not applicable to ORDER type rows
     }
 
@@ -1174,21 +1136,11 @@ export function applyPass3Remediation(
         return;
       }
 
-      // ── RULE 7: ANSWER_NOT_IN_OPTIONS (MEDIUM — last-resort fallback) ──────
-      // Fires when the answer is non-empty, not a valid label, no case/fuzzy
-      // rule matched, and the answer doesn't correspond to any option.
-      // Does not suggest a replacement — only flags for human review.
-      const hasAnyMatch = validOptions.some((o) => o.norm === answerNorm);
-      if (!hasAnyMatch) {
-        suggestions.push({
-          rowKey, rowIndex, field: answerColName,
-          type:           'ANSWER_NOT_IN_OPTIONS',
-          message:        `Answer "${answerStr}" does not match any available option — manual correction required.`,
-          suggestedValue: '',
-          confidence:     'MEDIUM',
-        });
-        rowsWithSuggestion.add(rowKey);
-      }
+      // ── RULE 7: ANSWER_NOT_IN_OPTIONS (Removed) ──────
+      // This rule previously added a suggestion when the answer was not in options,
+      // but since it has no automated fix and the row is already flagged by validation,
+      // it was removed to avoid cluttering the UI with unactionable suggestions.
+
     }
   });
 

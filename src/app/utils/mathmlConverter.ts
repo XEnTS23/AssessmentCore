@@ -86,11 +86,13 @@ export function sanitizeMathML(mathml: string): string {
   clean = clean.replace(/\sdata-semantic-[a-zA-Z-]+="[^"]*"/g, '');
   
   // Remove other common attributes that break LMS rendering
-  clean = clean.replace(/\s(class|style|id|display|encoding)="[^"]*"/g, '');
-
+    // But preserve display attribute for block math formatting
+    clean = clean.replace(/\s(class|style|id|encoding)="[^"]*"/g, '');
   // 5. Cleanup root <math> tag
   // Remove any existing xmlns or other attributes on <math> and set it strictly
-  clean = clean.replace(/<math[^>]*>/, '<math xmlns="http://www.w3.org/1998/Math/MathML">');
+  // While preserving the display attribute if it exists so block equations render correctly
+  const hasDisplayBlock = clean.includes('display="block"');
+  clean = clean.replace(/<math[^>]*>/, `<math xmlns="http://www.w3.org/1998/Math/MathML"${hasDisplayBlock ? ' display="block"' : ''}>`);
 
   // 6. Final cleanup: empty mrow, whitespace
   clean = clean.replace(/<mrow>\s*<\/mrow>/g, '');
@@ -106,8 +108,12 @@ export function sanitizeMathML(mathml: string): string {
 export function stripMath(text: string): string {
   if (!text) return '';
   
+  // Strip [MEDIA:url] tags and raw image elements
+  let clean = text.replace(/\[MEDIA:[^\]]*\]/gi, '');
+  clean = clean.replace(/<img[^>]*>/gi, '');
+
   // 1. Remove display math $$...$$
-  let clean = text.replace(/\$\$[\s\S]*?\$\$/g, '');
+  clean = clean.replace(/\$\$[\s\S]*?\$\$/g, '');
   
   // 2. Remove escaped display math \[...\]
   clean = clean.replace(/\\\[[\s\S]*?\\\]/g, '');
@@ -194,6 +200,9 @@ export function detectMathInRows(rows: Array<Record<string, unknown>>): MathDete
  */
 export function convertTextWithMath(text: string): string {
   if (!text) return '';
+
+  // Transform [MEDIA:url] tags into clean, self-closing image elements
+  text = String(text).replace(/\[MEDIA:([^\]]+)\]/gi, (_, url) => `<img src="${url.trim()}" />`);
 
   // Match LaTeX blocks:
   // $$ ... $$  (display math)

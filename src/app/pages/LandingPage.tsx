@@ -4,169 +4,108 @@ import {
   ArrowRight,
   BookOpen,
   Check,
-  ChevronRight,
-  Download,
   Facebook,
   Github,
   Linkedin,
   Mail,
   MapPin,
   MessageCircle,
-  Moon,
-  Package,
   Play,
   Phone,
-  ShieldCheck,
   Sparkles,
-  Upload,
-  Sun,
+  ScanText,
   Wand,
   Youtube,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
-
-function Stage({
-  num,
-  title,
-  detail,
-  icon,
-  active,
-}: {
-  num: string;
-  title: string;
-  detail: string;
-  icon: React.ReactNode;
-  active?: boolean;
-}) {
-  return (
-    <div
-      className={`min-w-0 flex-1 rounded-lg border p-4 transition-colors duration-200 ${
-        active ? "bg-card border-primary/50" : "bg-muted border-border"
-      }`}
-    >
-      <div className="mb-2 flex items-center gap-2">
-        <div
-          className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
-            active
-              ? "bg-primary/10 border-primary/30 text-primary"
-              : "bg-background border-border text-muted-foreground"
-          }`}
-        >
-          {icon}
-        </div>
-        <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">GATE {num}</span>
-      </div>
-      <div className="mb-1 text-sm font-semibold text-foreground">{title}</div>
-      <p className="text-xs leading-relaxed text-muted-foreground">{detail}</p>
-    </div>
-  );
-}
+import { Navbar } from "../components/Navbar";
 
 export function LandingPage() {
-  const { isAuthenticated } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
+
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactMessage, setContactMessage] = useState("");
-  const [contactError, setContactError] = useState("");
-  const [contactSuccess, setContactSuccess] = useState("");
+  const [contactStatus, setContactStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleContactSubmit = (e: FormEvent) => {
+  const handleContactSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setContactError("");
-    setContactSuccess("");
+    setContactStatus("idle");
+    setErrorMessage("");
 
     if (!contactName.trim() || !contactEmail.trim() || !contactMessage.trim()) {
-      setContactError("Please fill in your name, email, and message.");
+      setContactStatus("error");
+      setErrorMessage("Please fill in your name, email, and message.");
       return;
     }
 
     if (!/^\S+@\S+\.\S+$/.test(contactEmail)) {
-      setContactError("Please enter a valid email address.");
+      setContactStatus("error");
+      setErrorMessage("Please enter a valid email address.");
       return;
     }
 
-    const subject = `AssessmentCore enquiry from ${contactName.trim()}`;
-    const body = [
-      `Name: ${contactName.trim()}`,
-      `Email: ${contactEmail.trim()}`,
-      "",
-      "Message:",
-      contactMessage.trim(),
-    ].join("\n");
+    setContactStatus("loading");
 
-    window.location.href = `mailto:hello@assessmentcore.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setContactSuccess("Your mail app is opening. Please send the prefilled message to contact us.");
+    try {
+      // TODO: Replace this simulated delay with your actual backend fetch request
+      // Example: 
+      // await fetch('/api/contact', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ name: contactName, email: contactEmail, message: contactMessage })
+      // });
+
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulating network request
+
+      setContactStatus("success");
+      setContactName("");
+      setContactEmail("");
+      setContactMessage("");
+    } catch (error) {
+      setContactStatus("error");
+      setErrorMessage("Something went wrong. Please try again later.");
+    }
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur transition-colors duration-200">
-        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-7 w-7 rounded-md object-contain" />
-            <span className="text-sm font-semibold text-foreground">AssessmentCore</span>
-            <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">v1.0</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="mr-2 flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </button>
-            <Link to="/documentation" className="hidden text-xs text-muted-foreground hover:text-foreground transition-colors sm:inline">
-              Documentation
-            </Link>
-            <Link to="/auth/login" className="rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors">
-              Log in
-            </Link>
-            <Link
-              to={isAuthenticated ? "/workspace/dashboard" : "/auth/register"}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Get started
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
+      {/* Hero Section */}
       <section className="mx-auto w-full max-w-6xl px-6 pb-12 pt-16">
         <div className="mb-4 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-700">
           <Sparkles className="h-3 w-3" />
           QTI 3.0 · Canvas · Moodle · Blackboard
         </div>
 
-        <h1 className="max-w-4xl text-5xl font-semibold tracking-tight">
-          Turn messy question banks into LMS-ready assessments.
+        <h1 className="max-w-4xl text-5xl font-semibold tracking-tight leading-[1.1]">
+          Turn messy PDFs and images into <span className="text-primary">LMS-ready</span> assessments.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">
-          Upload an Excel or CSV, validate structural rules, run a deterministic cleaning pipeline, audit with AI,
-          and export a standards-compliant package ready for LMS import.
+          Digitize 10 years of legacy mock tests. Extract complex physics diagrams, nested LaTeX equations, and bilingual (English/Regional) text into an editable workspace...
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-2">
           <Link
-            to={isAuthenticated ? "/workspace/dashboard" : "/auth/register"}
+            to="/auth/register"
             className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            Start free
+            Sign Up
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            to={isAuthenticated ? "/workspace/dashboard" : "/auth/login"}
+            to="/solutions"
             className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm text-foreground hover:bg-muted transition-colors"
           >
             <Play className="h-3.5 w-3.5" />
-            Open workspace
+            Explore
           </Link>
           <span className="ml-2 text-xs text-muted-foreground">1 free export · no card required</span>
         </div>
 
-        <div className="mt-12 grid grid-cols-2 gap-4 border-t border-slate-200 pt-6 sm:grid-cols-4">
+        <div className="mt-12 grid grid-cols-2 gap-4 pt-6 sm:grid-cols-4">
           {[
             ["25+", "validation rules"],
             ["3-pass", "cleaning pipeline"],
@@ -181,28 +120,67 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="border-y border-border bg-muted/30 px-6 py-10 transition-colors duration-200">
-        <div className="mx-auto w-full max-w-7xl">
-          <div className="mb-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">The pipeline</div>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight">Six deterministic stages, zero manual XML.</h2>
-          </div>
-          <div className="flex items-stretch gap-1 overflow-x-auto pb-2">
-            <Stage num="0" title="Upload" detail="Excel or CSV. Columns auto-mapped from headers." icon={<Upload className="h-3.5 w-3.5" />} active />
-            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
-            <Stage num="1" title="Validate" detail="Duplicate fingerprinting, type inference, and strict rule checks." icon={<ShieldCheck className="h-3.5 w-3.5" />} active />
-            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
-            <Stage num="2" title="Clean" detail="3-pass deterministic fixes for whitespace, delimiters, and answers." icon={<Wand className="h-3.5 w-3.5" />} active />
-            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
-            <Stage num="3" title="AI audit" detail="Grammar, clarity, and factual review where AI actually helps." icon={<Sparkles className="h-3.5 w-3.5" />} />
-            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
-            <Stage num="4" title="Generate" detail="QTI per-item XML, test structure, manifest, and media." icon={<Package className="h-3.5 w-3.5" />} />
-            <div className="flex items-center text-muted-foreground/50"><ChevronRight className="h-4 w-4" /></div>
-            <Stage num="5" title="Export" detail="LMS-specific repackaging and one-click package download." icon={<Download className="h-3.5 w-3.5" />} />
+      {/* OCR Feature Section */}
+      <section className="border-y border-border bg-muted/30 px-6 py-20 transition-colors duration-200">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="grid grid-cols-1 gap-16">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                <ScanText className="h-3 w-3" />
+                OCR Powerhouse
+              </div>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+                A deterministic pipeline to digitize legacy question banks.
+              </h2>
+              <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+                Combine AI-powered LaTeX extraction with human-in-the-loop diagram tagging to guarantee 100% flawless LMS imports, no matter how chaotic the source PDF is.
+              </p>
+
+              <div className="mt-10 space-y-6">
+                {[
+                  {
+                    title: "Advanced OCR Extraction",
+                    desc: "Handle messy legacy scans, complex two-column test papers, and faded printed documents with absolute precision.",
+                    icon: <ScanText className="h-5 w-5" />
+                  },
+                  {
+                    title: "Editable Spreadsheet UI",
+                    desc: "Fix extraction errors or tweak content directly in a familiar grid interface before exporting.",
+                    icon: <Wand className="h-5 w-5" />
+                  },
+                  {
+                    title: "Math & Multi-language",
+                    desc: "Full support for LaTeX equations and seamless processing of Bengali, Hindi, and English text.",
+                    icon: <Sparkles className="h-5 w-5" />
+                  }
+                ].map((feature, idx) => (
+                  <div key={idx} className="flex gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-primary shadow-sm">
+                      {feature.icon}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">{feature.title}</h4>
+                      <p className="mt-1 text-sm text-muted-foreground">{feature.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10">
+                <Link
+                  to="/auth/register"
+                  className="inline-flex h-12 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-[1.02]"
+                >
+                  Try OCR Now
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* Logic/Determinism Section */}
       <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-6 py-14 lg:grid-cols-2">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Why teams use it</div>
@@ -211,12 +189,12 @@ export function LandingPage() {
             Validation and cleaning run on deterministic logic. AI is added only for language and quality review, not for fragile parsing.
           </p>
           <div className="mt-6 flex gap-2">
-            <Link to="/documentation" className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors">
+            <Link to="/resources" className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors">
               <BookOpen className="h-3.5 w-3.5" />
               Read docs
             </Link>
-            <Link to="/workspace/dashboard" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors">
-              Open workspace
+            <Link to="/solutions" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors">
+              Explore solutions
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -224,22 +202,35 @@ export function LandingPage() {
 
         <div className="rounded-lg border border-border bg-card p-5 transition-colors duration-200">
           {[
-            "Dual-fingerprint duplicate detection",
+            {
+              title: "Spatial Diagram Mapping",
+              desc: "Our 2D Proximity Engine automatically binds extracted diagrams to their exact question stems and options, preserving the spatial layout of multi-column test papers.",
+            },
             "Rollback-safe cleaning pipeline",
             "Seven supported question types",
             "LMS-specific export packaging",
             "Server-side API key handling",
           ].map((item) => (
-            <div key={item} className="flex items-start gap-2 border-t border-border/50 py-4 first:border-t-0 first:pt-0 last:pb-0">
+            <div key={typeof item === 'string' ? item : item.title} className="flex items-start gap-2 border-t border-border/50 py-4 first:border-t-0 first:pt-0 last:pb-0">
               <span className="mt-0.5 rounded border border-emerald-500/20 bg-emerald-500/10 p-0.5 text-emerald-500">
                 <Check className="h-3 w-3" />
               </span>
-              <p className="text-sm text-foreground">{item}</p>
+              <div>
+                <p className="text-sm text-foreground">
+                  {typeof item === 'string' ? item : item.title}
+                </p>
+                {typeof item !== 'string' && (
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    {item.desc}
+                  </p>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </section>
 
+      {/* Contact Section */}
       <section className="border-t border-border bg-workspace-bg px-6 py-14 transition-colors duration-200">
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 lg:grid-cols-[1fr_1.2fr]">
           <div>
@@ -262,57 +253,62 @@ export function LandingPage() {
 
           <form onSubmit={handleContactSubmit} className="rounded-lg border border-border bg-card p-5 shadow-sm transition-colors duration-200">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                Name
+              <div className="flex flex-col">
+                <label htmlFor="name" className="text-xs font-medium text-muted-foreground">Name</label>
                 <input
+                  id="name"
                   type="text"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
                   className="mt-1.5 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary"
                   placeholder="Your name"
                 />
-              </label>
-              <label className="text-xs font-medium text-muted-foreground">
-                Email
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</label>
                 <input
+                  id="email"
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
                   className="mt-1.5 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary"
                   placeholder="you@example.com"
                 />
-              </label>
+              </div>
             </div>
 
-            <label className="mt-4 block text-xs font-medium text-muted-foreground">
-              Message
+            <div className="mt-4 flex flex-col">
+              <label htmlFor="message" className="text-xs font-medium text-muted-foreground">Message</label>
               <textarea
+                id="message"
                 value={contactMessage}
                 onChange={(e) => setContactMessage(e.target.value)}
                 rows={5}
                 className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
                 placeholder="Tell us how we can help"
               />
-            </label>
+            </div>
 
-            {contactError ? (
-              <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{contactError}</p>
-            ) : null}
-            {contactSuccess ? (
-              <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{contactSuccess}</p>
-            ) : null}
+            {contactStatus === "error" && (
+              <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{errorMessage}</p>
+            )}
+            {contactStatus === "success" && (
+              <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">Message sent successfully! We will get back to you soon.</p>
+            )}
 
             <button
               type="submit"
-              className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              disabled={contactStatus === "loading"}
+              className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              Send message
+              {contactStatus === "loading" ? "Sending..." : "Send message"}
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>
         </div>
       </section>
 
+      {/* Footer */}
       <footer className="border-t border-border bg-muted/50 px-6 transition-colors duration-200">
         <div className="mx-auto w-full max-w-7xl py-10">
           <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
@@ -347,32 +343,32 @@ export function LandingPage() {
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Connect</h4>
               <div className="mt-3 flex items-center gap-2">
-                <a href="#" aria-label="LinkedIn" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
                   <Linkedin className="h-4 w-4" />
                 </a>
-                <a href="#" aria-label="GitHub" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a href="https://github.com" target="_blank" rel="noreferrer" aria-label="GitHub" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
                   <Github className="h-4 w-4" />
                 </a>
-                <a href="#" aria-label="Facebook" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a href="https://www.facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
                   <Facebook className="h-4 w-4" />
                 </a>
-                <a href="#" aria-label="WhatsApp" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a href="https://wa.me/919382565942" target="_blank" rel="noreferrer" aria-label="WhatsApp" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
                   <MessageCircle className="h-4 w-4" />
                 </a>
-                <a href="#" aria-label="YouTube" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a href="https://www.youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
                   <Youtube className="h-4 w-4" />
                 </a>
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
                 <Link to="/documentation" className="hover:text-foreground transition-colors">Documentation</Link>
-                <a href="#" className="hover:text-foreground transition-colors">Changelog</a>
-                <a href="#" className="hover:text-foreground transition-colors">Status</a>
+                <Link to="/changelog" className="hover:text-foreground transition-colors">Changelog</Link>
+                <Link to="/status" className="hover:text-foreground transition-colors">Status</Link>
               </div>
             </div>
           </div>
 
           <div className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground">
-            AssessmentCore · v1.0 · April 2026
+            AssessmentCore · v1.0 · {new Date().getFullYear()}
           </div>
         </div>
       </footer>

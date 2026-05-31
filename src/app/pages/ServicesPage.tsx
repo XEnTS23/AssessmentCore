@@ -68,7 +68,7 @@ export function ServicesPage() {
             Industrial-grade <span className="text-primary">assessment engineering.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            ...our computational services ensure perfect data integrity from messy legacy PDFs to the final LMS screen.
+            Our computational services ensure perfect data integrity from messy legacy PDFs to the final LMS screen.
           </p>
         </div>
       </section>

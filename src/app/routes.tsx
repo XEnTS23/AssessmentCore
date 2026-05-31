@@ -12,7 +12,7 @@ import { SamplePackagePage } from "./pages/resources/SamplePackagePage";
 import { SourcePdfPage } from "./pages/resources/SourcePdfPage";
 import { WorkspaceLayout } from "./pages/workspace/WorkspaceLayout";
 import { QTIRenderer } from "./pages/workspace/QTIRenderer";
-import { BatchCreator } from "./pages/workspace/BatchCreator";
+
 import { LMSExportPage } from "./pages/workspace/LMSExportPage";
 import { DashboardPage } from "./pages/workspace/DashboardPage";
 import { RegisterPage } from "./pages/auth/RegisterPage";
@@ -23,6 +23,8 @@ import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { DocumentationPage } from "./pages/DocumentationPage";
 import OCRProcessor from "./pages/workspace/OCRProcessor";
 import { ProtectedPremiumRoute } from "./components/ProtectedPremiumRoute";
+import { BatchCreatorWizard } from "./features/batch-creator/components/BatchCreatorWizard";
+import { BatchCreator as LegacyBatchCreator } from "./pages/workspace/BatchCreator";
 
 export const router = createBrowserRouter([
   {
@@ -111,7 +113,15 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/workspace/batch-creator-legacy",
+    Component: LegacyBatchCreator,
+  },
+  {
     path: "/workspace",
+    // We do NOT use WorkspaceLayout as a wrapper for BatchCreatorWizard if we want it completely standalone.
+    // However, the user specifically asked for /workspace/batch-creator. Let's add it to children. 
+    // Wait, BatchCreatorWizard has h-screen, which makes it overflow in WorkspaceLayout.
+    // To make it look right, let's keep it in children, but modify BatchCreatorWizard to `h-full` instead of `h-screen`.
     Component: WorkspaceLayout,
     children: [
       {
@@ -127,12 +137,12 @@ export const router = createBrowserRouter([
         Component: OCRProcessor,
       },
       {
-        path: "qti-renderer",
-        element: <ProtectedPremiumRoute><QTIRenderer /></ProtectedPremiumRoute>,
+        path: "batch-creator",
+        Component: BatchCreatorWizard,
       },
       {
-        path: "batch-creator",
-        element: <ProtectedPremiumRoute><BatchCreator /></ProtectedPremiumRoute>,
+        path: "qti-renderer",
+        element: <ProtectedPremiumRoute><QTIRenderer /></ProtectedPremiumRoute>,
       },
       {
         path: "lms-export",

@@ -60,7 +60,7 @@ export function PricingPage() {
           <div className="flex flex-col rounded-[0.625rem] border border-border bg-card p-8 shadow-sm">
             <h3 className="text-xl font-semibold text-foreground">Developer / Trial</h3>
             <div className="mt-4 flex items-baseline text-5xl font-semibold tracking-tight text-foreground">
-              $0
+              0
               <span className="ml-1 text-base font-medium text-muted-foreground">/mo</span>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">Perfect for testing the deterministic pipeline and validation rules.</p>
@@ -103,7 +103,7 @@ export function PricingPage() {
             </div>
             <h3 className="text-xl font-semibold text-foreground">Premium</h3>
             <div className="mt-4 flex items-baseline text-5xl font-semibold tracking-tight text-foreground">
-              $49
+              ₹1999
               <span className="ml-1 text-base font-medium text-muted-foreground">/mo</span>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">Full access to the deterministic OCR engine for EdTechs and coaching institutes.</p>

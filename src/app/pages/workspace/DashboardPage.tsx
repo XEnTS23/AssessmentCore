@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Activity, ArrowRight, Download, FileJson, Layers, ShieldCheck, Sparkles, Upload, ScanText } from "lucide-react";
+import { Activity, ArrowRight, Download, FileJson, ShieldCheck, Sparkles, Upload, ScanText, Wrench } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getUserOCRStats } from "../../../services/ocrService";
 
@@ -158,12 +158,14 @@ export function DashboardPage() {
           onClick={() => navigate("/workspace/qti-renderer")}
           comingSoon={true}
         />
+
         <ToolCard
-          icon={<Layers className="h-4 w-4" />}
+          icon={<Wrench className="h-4 w-4" />}
           title="Batch Creator"
-          description="Run the full pipeline: upload, validate, clean, audit, export."
+          description="Upload, validate, clean, and fix your QTI assessments."
           onClick={() => navigate("/workspace/batch-creator")}
         />
+
         <ToolCard
           icon={<Download className="h-4 w-4" />}
           title="LMS Export"

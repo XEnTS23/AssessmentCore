@@ -25,6 +25,7 @@ export interface DataFixingWorkspaceProps {
   rows: Record<string, any>[];
   columns: string[];
   validationResults: Map<string, ValidationResult>;
+  onAddCustomColumn?: (colName: string) => void;
   manualFixedRows: Map<string, any>;
   manualFixInputs: Map<string, string>;
   setManualFixInputs: React.Dispatch<React.SetStateAction<Map<string, string>>>;
@@ -223,6 +224,7 @@ export function DataFixingWorkspace({
   rows,
   columns,
   validationResults,
+  onAddCustomColumn,
   manualFixedRows,
   manualFixInputs,
   setManualFixInputs,
@@ -240,6 +242,8 @@ export function DataFixingWorkspace({
   const [ignoredRowKeys, setIgnoredRowKeys] = useState<Set<string>>(new Set());
   const [isFullscreen, setIsFullscreen] = useState(openFullscreen);
   const [isDetailCollapsed, setIsDetailCollapsed] = useState(false);
+  const [isAddingField, setIsAddingField] = useState(false);
+  const [newFieldName, setNewFieldName] = useState('');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [rowCategoryFilters, setRowCategoryFilters] = useState<Set<string>>(new Set());
   const [loadedFilterBatches, setLoadedFilterBatches] = useState(1);
@@ -677,733 +681,248 @@ export function DataFixingWorkspace({
     ].filter(Boolean)).size
     : 0;
 
+
   // ── Render ─────────────────────────────────────────────────────────────
 
-  // Compact view when there are no pending issues left
   if (pendingCount === 0 && !forceExpanded) {
     return (
-      <Card className="border border-border bg-card rounded-xl overflow-hidden shadow-sm transition-all duration-300">
-        <CardHeader className="bg-card border-b border-border py-4 px-5">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2 text-[#0f172a]">
-              <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                <LayoutPanelLeft className="w-4 h-4 text-[#0052CC]" />
-              </span>
-              Fixing Workspace
-            </CardTitle>
-            <Badge className="hover:bg-inherit bg-muted text-foreground border border-border">
-              Ready to export
-            </Badge>
-          </div>
-        </CardHeader>
-        <div className="flex items-center justify-center py-6 bg-card">
-          <div className="text-center">
-            <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-[#1f2937]" />
-            <p className="text-sm font-semibold text-[#1f2937]">
-              {totalActionable > 0 ? 'All issues resolved' : 'No issues found'}
-            </p>
-            {totalActionable > 0 && (
-              <p className="text-xs text-[#475569] mt-1">
-                {userFixedCount} fixed &middot; {ignoredCount} ignored &middot; {autoFixedCount} auto-fixed
-              </p>
-            )}
-          </div>
+      <div className="flex flex-col items-center justify-center p-12 h-full bg-[#f8fafc] rounded-lg border border-[#e2e8f0]">
+        <div className="w-16 h-16 bg-[#eefaf2] rounded-full flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-8 h-8 text-[#059669]" />
         </div>
-      </Card>
+        <h3 className="text-lg font-bold text-[#0f172a] mb-1">All issues resolved!</h3>
+        <p className="text-sm text-[#475569]">
+          You have successfully cleared {userFixedCount} manual fixes and {autoFixedCount} auto-fixes.
+        </p>
+      </div>
     );
   }
 
   return (
-    <Card
-      className={`border border-border bg-card rounded-xl overflow-hidden flex flex-col shadow-sm transition-all duration-300 ${
-        isFullscreen
-          ? 'fixed inset-0 z-50 h-screen w-screen rounded-none border-none'
-          : 'h-[650px]'
-      }`}
-    >
-      <CardHeader className="bg-card border-b border-border py-4 px-5 shrink-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2 text-[#0f172a]">
-            <span className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-              <LayoutPanelLeft className="w-4 h-4 text-[#0052CC]" />
-            </span>
-            Fixing Workspace
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge
-              className="hover:bg-inherit bg-muted text-foreground border border-border"
-            >
-              {pendingCount} issues blocking export
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-[#475569] hover:text-[#0f172a] hover:bg-[#e2e8f0]"
-              onClick={handleToggleWorkspaceView}
-              title={isFullscreen && forceExpanded && onRequestMinimize
-                ? 'Back to Fixing Workspace summary card'
-                : isFullscreen
-                ? 'Exit focus mode (Esc)'
-                : 'Enter focus mode'}
-            >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </Button>
+    <div className={`flex flex-col flex-1 overflow-hidden bg-card transition-all duration-300 ${
+        isFullscreen ? 'fixed inset-0 z-50 h-screen w-screen' : 'h-full'
+    }`}>
+      {/* Header */}
+      <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-md bg-[#f1f5f9] text-[#1f2937] border border-[#e2e8f0] flex items-center justify-center">
+            <Wrench className="w-4 h-4" />
           </div>
+          <h2 className="text-sm font-bold text-[#0f172a]">Data Fixing Workspace</h2>
         </div>
-      </CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-[#475569]">
+            <span className="font-semibold text-[#1f2937]">{userFixedCount}</span> fixed
+            <span>&middot;</span>
+            <span className="font-semibold text-[#ba1a1a]">{pendingCount}</span> remaining
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleToggleWorkspaceView} className="h-8 w-8 p-0 text-[#64748b]">
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
+        </div>
+      </header>
 
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* ─── LEFT PANEL: Unified Issues List ─── */}
-        <div className="w-1/3 border-r border-border flex flex-col min-h-0 bg-card">
-          {/* Progress header */}
-          <div className="p-4 bg-card border-b border-border shrink-0 space-y-3">
-            <div className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-1">
-              Fix Progress
-            </div>
-            <div className="w-full bg-muted rounded-full h-2 mb-2">
-              <div
-                className="bg-[#1f2937] h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-1 text-center">
-              <div className="bg-muted border border-border rounded-lg p-2">
-                <div className="text-sm font-bold text-[#1f2937]">{autoFixedCount}</div>
-                <div className="text-[10px] text-[#475569] leading-tight">Auto-fixed</div>
-              </div>
-              <div className="bg-muted border border-border rounded-lg p-2">
-                <div className="text-sm font-bold text-[#111827]">{userFixedCount}</div>
-                <div className="text-[10px] text-[#475569] leading-tight">You fixed</div>
-              </div>
-              <div className="bg-muted border border-border rounded-lg p-2">
-                <div className="text-sm font-bold text-[#ba1a1a]">{pendingCount}</div>
-                <div className="text-[10px] text-[#475569] leading-tight">Remaining</div>
-              </div>
-            </div>
-            <div className="relative" ref={filterMenuRef}>
-              <div className="mt-2 flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 h-8 text-xs font-semibold border-[#b4c5ff] text-[#111827] bg-[#eef4ff] hover:bg-[#f1f5f9]"
-                  onClick={() => setIsFilterMenuOpen((prev) => !prev)}
-                >
-                  Filter Questions
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0 border-[#b4c5ff] text-[#111827] bg-[#eef4ff] hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={canLoadMoreFilteredRows ? `Load next ${ROW_LIST_BATCH_SIZE} rows` : 'Apply a filter to load additional rows'}
-                  disabled={!canLoadMoreFilteredRows}
-                  onClick={() => setLoadedFilterBatches((prev) => prev + 1)}
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-              {isFilterMenuOpen && (
-                <div className="absolute left-0 right-0 mt-2 z-30 rounded-lg border border-border bg-card shadow-lg p-3 space-y-2">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Filter by Category</p>
-                  <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
-                    {availableRowCategories.map((category) => {
-                      const checked = rowCategoryFilters.has(category);
-                      return (
-                        <label key={`row-filter-${category}`} className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleRowCategoryFilter(category)}
-                            className="w-3.5 h-3.5 rounded border-border/60 text-[#111827] focus:ring-[#111827]"
-                          />
-                          <span>{category}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <div className="pt-1 border-t border-border flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setRowCategoryFilters(new Set())}
-                      className="text-[11px] font-semibold text-[#111827] hover:text-[#1f2937]"
-                    >
-                      Clear all
-                    </button>
-                    <span className="text-[11px] text-muted-foreground">
-                      {rowCategoryFilters.size === 0 ? 'Showing all' : `${rowCategoryFilters.size} selected`}
-                    </span>
-                  </div>
-                </div>
-              )}
+      <div className="flex flex-1 min-h-0">
+        {/* Left Sidebar */}
+        <aside className="w-[320px] flex flex-col border-r border-[#e2e8f0] bg-card min-h-0">
+          <div className="p-3 border-b border-[#e2e8f0] bg-[#f8fafc]">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748b] mb-2">Rows to Review</p>
+            <div className="w-full bg-[#e2e8f0] rounded-full h-1.5 mb-1 overflow-hidden">
+              <div className="bg-[#0f172a] h-1.5 rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
-
-          {/* Scrollable issue list */}
-          <div className="overflow-y-auto flex-1 p-2 space-y-2">
-            <div className="space-y-2">
-              <div className="text-xs font-medium text-[#111827] mb-1 px-1 pt-1">
-                All Question Rows ({visibleRowsStatusFeed.length}/{filteredRowsStatusFeed.length})
-              </div>
-              {visibleRowsStatusFeed.map((row) => (
-                <div
-                  key={row.key}
+          <div className="flex-1 overflow-auto">
+            {visibleRowsStatusFeed.map((row) => {
+              const isActive = activeRowKey === row.key;
+              const isResolved = manualFixedRows.has(row.key) || autoFixedRowKeys.has(row.key) || ignoredRowKeys.has(row.key) || row.label === 'Valid';
+              
+              return (
+                <button
+                  key={`nav-${row.key}`}
                   onClick={() => onRowClick(row.key)}
-                  className={`p-2 rounded-lg border text-sm cursor-pointer transition-all ${row.tone} ${selectedRowKey === row.key ? 'ring-2 ring-[#111827]/25 border-[#111827]' : 'hover:shadow-sm'}`}
+                  className={`w-full text-left px-4 py-3 border-b border-[#f1f5f9] flex flex-col gap-1 transition-colors ${
+                    isActive ? 'bg-[#eef2ff] border-l-2 border-l-[#4f46e5]' : 'hover:bg-[#f8fafc] border-l-2 border-l-transparent'
+                  } ${isResolved ? 'opacity-50' : 'opacity-100'}`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-semibold">Row {row.rowNumber}</span>
-                    <Badge className="text-[10px] px-1.5 py-0 border-none bg-card/70 text-inherit">{row.label}</Badge>
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider">Row {row.rowNumber}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${row.tone}`}>{row.label}</span>
                   </div>
-                  <p className="text-xs line-clamp-1 opacity-90">{row.questionText}</p>
-                </div>
-              ))}
-              {!isRowFilterApplied && filteredRowsStatusFeed.length > ROW_LIST_BATCH_SIZE && (
-                <p className="px-1 text-[11px] text-[#64748b]">
-                  Showing first {ROW_LIST_BATCH_SIZE} rows. Apply a filter to load more in batches.
-                </p>
-              )}
-              {canLoadMoreFilteredRows && (
-                <p className="px-1 text-[11px] text-[#111827]">
-                  More rows available. Use the side arrow to load next {ROW_LIST_BATCH_SIZE}.
-                </p>
-              )}
-            </div>
-
-            <div className="border-t border-[#e2e8f0] mt-3 pt-3" />
-
-            {/* Hard Blocks (raw validation errors without suggestions) */}
-            {pendingItems.filter((i) => i.source === 'validation_error').length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-[#ba1a1a] mb-1 px-1 flex items-center gap-1">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  Hard Blocks ({pendingItems.filter((i) => i.source === 'validation_error').length})
-                </div>
-                {pendingItems
-                  .filter((i) => i.source === 'validation_error')
-                  .map((item) => (
-                    <IssueCard
-                      key={item.rowKey}
-                      item={item}
-                      selected={selectedRowKey === item.rowKey}
-                      badgeLabel="BLOCKED"
-                      badgeClass="bg-[#ffdad6] text-[#ba1a1a]"
-                      cardClass="border-rose-200 bg-rose-50/60 hover:border-rose-300"
-                      selectedClass="border-rose-500 bg-rose-50 ring-2 ring-rose-500/20 shadow-sm"
-                      onSelect={() => onRowClick(item.rowKey)}
-                      onIgnore={(e) => handleIgnore(item.rowKey, e)}
-                    />
-                  ))}
-              </div>
+                  <p className="text-xs text-[#0f172a] truncate font-medium w-full">{row.questionText}</p>
+                </button>
+              );
+            })}
+            {canLoadMoreFilteredRows && (
+              <button onClick={() => setLoadedFilterBatches((prev) => prev + 1)} className="w-full p-3 text-xs text-[#4f46e5] font-semibold hover:bg-[#f8fafc]">
+                Load more...
+              </button>
             )}
-
-            {/* Suggestion-based pending items */}
-            {pendingItems.filter((i) => i.source === 'suggestion').length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-[#8f4600] mb-1 px-1">
-                  Needs User Action (
-                  {pendingItems.filter((i) => i.source === 'suggestion').length})
-                </div>
-                {pendingItems
-                  .filter((i) => i.source === 'suggestion')
-                  .map((item) => (
-                    <IssueCard
-                      key={item.rowKey}
-                      item={item}
-                      selected={selectedRowKey === item.rowKey}
-                      badgeLabel="PENDING"
-                      badgeClass="bg-[#ffdcc6] text-[#8f4600]"
-                      cardClass="border-warning bg-warning-light/50 hover:border-amber-300"
-                      selectedClass="border-amber-500 bg-warning-light ring-2 ring-amber-500/20 shadow-sm"
-                      onSelect={() => onRowClick(item.rowKey)}
-                      onIgnore={(e) => handleIgnore(item.rowKey, e)}
-                    />
-                  ))}
-              </div>
-            )}
-
-            {/* Resolved */}
-            {resolvedItems.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-medium text-[#475569] mb-1 px-1 pt-2 border-t border-[#e2e8f0]">
-                  Recently Resolved
-                </div>
-                {resolvedItems.map((item) => {
-                  const isFixed = manualFixedRows.has(item.rowKey);
-                  return (
-                    <div
-                      key={item.rowKey}
-                      onClick={() => onRowClick(item.rowKey)}
-                      className={`p-2 rounded-lg border text-sm cursor-pointer transition-all ${
-                        selectedRowKey === item.rowKey
-                          ? 'border-[#111827] bg-[#f1f5f9]'
-                          : isFixed
-                          ? 'border-[#e2e8f0] bg-[#f1f5f9]'
-                          : 'border-[#e2e8f0] bg-[#f8fafc]'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-semibold text-[#0f172a]">Row {item.rowIndex}</span>
-                        {isFixed ? (
-                          <Badge className="bg-[#f1f5f9] text-[#1f2937] text-[10px] px-1.5 py-0 border-none">
-                            FIXED
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-[#f0f3ff] text-[#475569] text-[10px] px-1.5 py-0 border-none">
-                            IGNORED
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-[#475569] line-clamp-1">{item.primaryMessage}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Informational / Auto-fixed */}
-            {informationalSuggestions.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-medium text-[#1f2937] mb-1 px-1 pt-2 border-t border-[#e2e8f0]">
-                  Informational / Auto-fixed
-                </div>
-                {informationalSuggestions.map((s) => {
-                  const isAutoHigh = s.confidence === 'HIGH';
-                  return (
-                    <div
-                      key={s.rowKey}
-                      onClick={() => onRowClick(s.rowKey)}
-                      className={`p-2 rounded-lg border text-sm cursor-pointer transition-all ${
-                        selectedRowKey === s.rowKey
-                          ? 'border-[#111827] bg-[#f1f5f9]'
-                          : 'border-[#e2e8f0] bg-[#f8fafc]'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-semibold text-[#0f172a]">Row {s.rowIndex}</span>
-                        {isAutoHigh ? (
-                          <Badge className="bg-[#f1f5f9] text-[#1f2937] text-[10px] px-1.5 py-0 border-none">
-                            AUTO FIXED
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-[#f0f3ff] text-[#475569] text-[10px] px-1.5 py-0 border-none">
-                            INFO
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-[#475569] line-clamp-1">{s.message}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
           </div>
-        </div>
+        </aside>
 
-        {/* ─── RIGHT PANEL: Detail + Editable Grid ─── */}
-        <div className="w-2/3 bg-[#f8fafc] flex flex-col min-h-0">
-          {canEditSelectedRow ? (
-            <div className="flex flex-col h-full overflow-hidden">
-              {/* Header with issue details — collapsible */}
-              <div className="bg-card border-b border-[#e2e8f0] shrink-0 shadow-sm">
-                <div
-                  className="flex items-center justify-between px-4 py-2 cursor-pointer select-none hover:bg-[#f8fafc] transition-colors"
-                  onClick={() => setIsDetailCollapsed((prev) => !prev)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Wrench className={`w-4 h-4 shrink-0 ${isDetailCollapsed ? 'text-[#475569]' : 'text-[#111827]'}`} />
-                    <h3 className="font-semibold text-sm text-[#0f172a]">
-                      Row {selectedItem?.rowIndex ?? selectedRowStatusEntry?.rowNumber ?? '-'}
-                      {selectedItem?.source === 'validation_error' && (
-                        <Badge className="ml-2 bg-[#ffdad6] text-[#ba1a1a] text-[10px] px-1.5 py-0 border-none align-middle">
-                          HARD BLOCK
-                        </Badge>
-                      )}
-                      {!selectedItem && selectedLabel && (
-                        <Badge className="ml-2 bg-[#f0f3ff] text-[#111827] text-[10px] px-1.5 py-0 border-none align-middle">
-                          {selectedLabel.toUpperCase()}
-                        </Badge>
-                      )}
-                    </h3>
+        {/* Right Content */}
+        <section className="flex-1 min-h-0 overflow-auto bg-[#f8fafc] p-6">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {!selectedRowData ? (
+              <div className="h-full flex flex-col items-center justify-center text-[#64748b] py-20">
+                <LayoutPanelLeft className="w-8 h-8 mb-3 opacity-50" />
+                <p className="text-sm font-medium">Select a row from the sidebar to begin.</p>
+              </div>
+            ) : (
+              <>
+                {/* Status Bar */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-sm text-[#475569]">
+                    <span className="font-bold text-[#0f172a]">Row {selectedRowStatusEntry?.rowNumber || 'Unknown'}</span>
+                    <span className="text-[#cbd5e1]">/</span>
+                    <span className="truncate max-w-sm">{selectedRowStatusEntry?.questionText}</span>
                   </div>
-                  <span
-                    className={`text-xs font-semibold ${isDetailCollapsed ? 'text-[#475569]' : 'text-[#111827]'}`}
-                  >
-                    {isDetailCollapsed ? 'Show suggested fix' : 'Hide suggested fix'}
-                  </span>
+                  {manualFixedRows.has(activeRowKey) && (
+                    <span className="px-2 py-1 bg-[#eefaf2] border border-[#b7e2c6] text-[#059669] text-xs font-semibold rounded-md flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Fixed
+                    </span>
+                  )}
                 </div>
 
-                {!isDetailCollapsed && (
-                  <div className="px-4 pb-3">
-                    <div className="p-3 bg-[#f8fafc] rounded border border-[#e2e8f0]">
-                      <h4 className="text-xs font-semibold text-[#0f172a] mb-2 flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5 text-[#111827]" />
-                        Suggested Fix
-                      </h4>
-                      {selectedItem?.source === 'suggestion' && selectedItem.suggestion ? (
-                        <ul className="text-xs text-[#0f172a] list-disc list-inside space-y-1">
-                          <li>Review the suggestion and update the row fields in the editable section below.</li>
-                          {selectedItem.suggestion.suggestedValue !== '' && !manualFixedRows.has(selectedItem.rowKey) && (
-                            <li>
-                              Recommended value: <span className="font-semibold font-data">&quot;{selectedItem.suggestion.suggestedValue}&quot;</span>
-                            </li>
-                          )}
-                        </ul>
-                      ) : (selectedItem?.blockIssues.length ?? 0) > 0 ? (
-                        <ul className="text-xs text-[#0f172a] list-disc list-inside space-y-1">
-                          {selectedItem?.blockIssues.flatMap((issue, idx) =>
-                            getIssueSuggestions(issue).map((hint, hintIndex) => (
-                              <li key={`${issue.code}-${idx}-${hintIndex}`}>{hint}</li>
-                            ))
-                          )}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-[#475569]">
-                          This row is marked as <strong>{selectedLabel ?? 'Needs Review'}</strong>. Update relevant fields below and save.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="mt-3 pt-3 border-t border-[#e2e8f0] flex items-center gap-2 flex-wrap">
-                      {selectedItem && manualFixedRows.has(selectedItem.rowKey) ? (
-                        <div className="flex items-center gap-3">
-                          <Badge className="bg-[#f1f5f9] text-[#1f2937] px-2 py-1 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Fix Applied
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ffdad6]"
-                            onClick={() => undoManualFix(selectedItem.rowKey)}
+                {/* Issues & Suggestions */}
+                {selectedItem && !manualFixedRows.has(activeRowKey) && (
+                  <div className="space-y-4">
+                    {/* Suggestions (AI/Automated) */}
+                    {selectedItem.suggestion && (
+                      <div className="bg-[#fff4e9] border border-[#ffd8a8] rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Edit3 className="w-4 h-4 text-[#8f4600]" />
+                          <h4 className="text-sm font-bold text-[#8f4600]">Suggested Fix</h4>
+                          <span className="text-[10px] font-bold bg-[#8f4600] text-white px-1.5 py-0.5 rounded tracking-wide uppercase">Medium Confidence</span>
+                        </div>
+                        <p className="text-xs text-[#8f4600]/80 mb-3">{selectedItem.primaryMessage}</p>
+                        <div className="bg-white/60 border border-[#ffd8a8]/50 rounded-lg p-3 text-sm text-[#1f2937] font-medium flex items-center justify-between">
+                          <span className="truncate flex-1 pr-4">{selectedItem.suggestion.suggestedValue}</span>
+                          <Button 
+                            onClick={() => wrappedApplyManualFix(activeRowKey, selectedItem.suggestion!, String(selectedItem.suggestion!.suggestedValue))}
+                            size="sm" 
+                            className="bg-[#8f4600] hover:bg-[#7a3b00] text-white text-xs h-7 shrink-0"
                           >
-                            Undo Fix
+                            Accept Fix
                           </Button>
                         </div>
-                      ) : selectedItem?.source === 'suggestion' && selectedItem.suggestion ? (
-                        <SuggestionActions
-                          item={selectedItem}
-                          suggestion={selectedItem.suggestion}
-                          manualFixInputs={manualFixInputs}
-                          setManualFixInputs={setManualFixInputs}
-                          wrappedApplyManualFix={wrappedApplyManualFix}
-                          getRowOptionsForSuggestion={getRowOptionsForSuggestion}
-                        />
-                      ) : selectedItem?.source === 'validation_error' ? (
-                        <p className="text-xs text-[#475569] italic flex items-center gap-1.5">
-                          <Edit3 className="w-3.5 h-3.5" />
-                          Edit the fields below to fix this row. Changes apply on blur.
-                        </p>
-                      ) : (
-                        <p className="text-xs text-[#475569] italic flex items-center gap-1.5">
-                          <Edit3 className="w-3.5 h-3.5" />
-                          Edit fields below for this row and save your changes.
-                        </p>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Hard Errors (Blocking) */}
+                    {selectedItem.blockIssues.length > 0 && !selectedItem.suggestion && (
+                      <div className="bg-[#fff4f2] border border-[#ffb4ab] rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="w-4 h-4 text-[#ba1a1a]" />
+                          <h4 className="text-sm font-bold text-[#ba1a1a]">Validation Error</h4>
+                        </div>
+                        <ul className="space-y-2">
+                          {selectedItem.blockIssues.map((issue, idx) => (
+                            <li key={idx} className="text-xs text-[#93000a] bg-white/50 border border-[#ffb4ab]/30 p-2 rounded-md">
+                              <span className="font-semibold">{issue.field}:</span> {issue.message}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
 
-              {/* Editable Row Data Grid */}
-              <div className="flex-1 overflow-y-auto p-4 bg-[#f4f7ff]">
-                <div className="rounded-2xl border border-[#e2e8f0] bg-card shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[#e2e8f0] bg-[#f5f8ff]">
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <h4 className="text-xs font-semibold text-[#2a3550] uppercase tracking-wider flex items-center gap-1.5">
-                        <Edit3 className="w-3.5 h-3.5" />
-                        Editable Row Data
-                      </h4>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge className="bg-[#f0f3ff] text-[#111827] border border-[#e2e8f0] text-[10px] px-2 py-0.5">
-                          {columns.length} fields
-                        </Badge>
-                        {problematicFieldCount > 0 && (
-                          <Badge className="bg-[#fff4ea] text-[#8f4600] border border-[#ffdcc6] text-[10px] px-2 py-0.5">
-                            {problematicFieldCount} needs attention
-                          </Badge>
-                        )}
-                        {currentRowEditCount > 0 && (
-                          <Badge className="bg-[#f1f5f9] text-[#1f2937] border border-[#c5d8ff] text-[10px] px-2 py-0.5">
-                            {currentRowEditCount} unsaved change{currentRowEditCount > 1 ? 's' : ''}
-                          </Badge>
-                        )}
-                        {currentRowEditCount > 0 && (
-                          <Button
-                            size="sm"
-                            className="h-8 text-xs px-3 bg-[#111827] hover:bg-[#1f2937] text-primary-foreground shadow-sm"
-                            onMouseDown={(e) => {
-                              e.preventDefault(); // prevent blur from firing first
-                              handleSaveRow(activeRowKey);
-                            }}
-                          >
-                            <Save className="w-3.5 h-3.5 mr-1.5" />
-                            Save Changes
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 md:p-4 grid grid-cols-1 xl:grid-cols-2 gap-3 items-start auto-rows-min">
-                    {columns.map((col) => {
-                      const isProblematic =
-                        selectedItem?.primaryField === col ||
-                        (selectedItem?.blockIssues.some((i) => i.field === col) ?? false);
-                      const originalValue =
-                        selectedRowData?.[col] !== null && selectedRowData?.[col] !== undefined
-                          ? String(selectedRowData?.[col])
-                          : '';
-                      const localValue =
-                        gridEdits.get(activeRowKey)?.[col] ?? undefined;
-                      const displayValue = localValue !== undefined ? localValue : originalValue;
-
-                      return (
-                        <div
-                          key={col}
-                          className={`rounded-xl border p-3 transition-colors h-fit ${
-                            isProblematic
-                              ? 'bg-[#fff7f0] border-[#ffd0ad] focus-within:border-[#ffb786]'
-                              : 'bg-[#fbfcff] border-[#dfe5f6] focus-within:border-[#9db6ff]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <label className="text-[11px] font-semibold uppercase tracking-wide text-[#4a5570]">
-                              {col}
-                            </label>
-                            {isProblematic && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border border-[#ffb786] bg-[#ffdcc6] text-[#8f4600]">
-                                <AlertTriangle className="w-3 h-3" />
-                                Check
-                              </span>
+                {/* Editing Grid */}
+                {canEditSelectedRow && (
+                  <div className="bg-card border border-[#e2e8f0] rounded-xl overflow-hidden shadow-sm flex flex-col">
+                    <div className="px-4 py-3 bg-[#f8fafc] border-b border-[#e2e8f0] flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <h4 className="text-xs font-bold text-[#334155] uppercase tracking-wider">Manual Editor</h4>
+                        {onAddCustomColumn && (
+                          <div className="flex items-center gap-2">
+                            {isAddingField ? (
+                              <div className="flex items-center gap-1">
+                                <input 
+                                  type="text" 
+                                  value={newFieldName}
+                                  onChange={(e) => setNewFieldName(e.target.value)}
+                                  placeholder="New field name..."
+                                  className="h-7 px-2 text-xs rounded border border-[#cbd5e1] focus:outline-none focus:border-[#4f46e5]"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      if (newFieldName.trim()) {
+                                        onAddCustomColumn(newFieldName.trim());
+                                        setNewFieldName('');
+                                        setIsAddingField(false);
+                                      }
+                                    } else if (e.key === 'Escape') {
+                                      setIsAddingField(false);
+                                      setNewFieldName('');
+                                    }
+                                  }}
+                                  autoFocus
+                                />
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => {
+                                    if (newFieldName.trim()) {
+                                      onAddCustomColumn(newFieldName.trim());
+                                      setNewFieldName('');
+                                      setIsAddingField(false);
+                                    }
+                                  }} 
+                                  className="h-7 text-xs bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#0f172a]"
+                                >
+                                  Add
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setIsAddingField(false); setNewFieldName(''); }} className="h-7 w-7 p-0 text-[#64748b]">
+                                  <X className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setIsAddingField(true)} 
+                                className="h-7 text-xs border-dashed border-[#cbd5e1] text-[#64748b] hover:text-[#0f172a]"
+                              >
+                                + Custom Field
+                              </Button>
                             )}
                           </div>
-                          <textarea
-                            value={displayValue}
-                            onChange={(e) =>
-                              handleGridInput(activeRowKey, col, e.target.value)
-                            }
-                            onBlur={() =>
-                              handleFieldBlur(
-                                activeRowKey,
-                                col,
-                                displayValue,
-                                originalValue
-                              )
-                            }
-                            rows={displayValue.length > 100 ? 5 : displayValue.length > 40 ? 3 : 2}
-                            className={`w-full min-h-[2.5rem] max-h-[24rem] text-sm rounded-md px-2.5 py-1.5 bg-card text-[#0f172a] font-data focus:outline-none focus:ring-1 border transition-colors resize-y overflow-auto ${
-                              isProblematic
-                                ? 'border-[#ffb786] focus:border-[#8f4600] focus:ring-[#8f4600]'
-                                : 'border-[#c5cfe8] focus:border-[#111827] focus:ring-[#111827]'
-                            }`}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Validation errors summary */}
-                {validationResult && validationResult.issues.length > 0 && (
-                  <div className="mt-4 p-3 rounded-lg bg-[#ffdad6] border border-[#ffdad6]">
-                    <h4 className="text-xs font-semibold text-[#93000a] uppercase tracking-wider mb-2">
-                      All Validation Errors
-                    </h4>
-                    <ul className="space-y-1">
-                      {validationResult.issues.map((issue, i) => (
-                        <li key={i} className="text-xs text-[#ba1a1a] flex gap-2">
-                          <X className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                          <span>
-                            <strong>{issue.field}:</strong> {issue.message}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                        )}
+                      </div>
+                      {currentRowEditCount > 0 && (
+                        <Button onClick={() => handleSaveRow(activeRowKey)} size="sm" className="h-7 text-xs bg-[#111827] hover:bg-[#1f2937] text-white flex items-center gap-1.5">
+                          <Save className="w-3.5 h-3.5" /> Save Edits
+                        </Button>
+                      )}
+                    </div>
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {columns.map(col => {
+                        const val = gridEdits.get(activeRowKey)?.[col] ?? selectedRowData[col] ?? '';
+                        const hasError = selectedItem?.blockIssues.some(i => i.field === col);
+                        return (
+                          <div key={col} className="space-y-1.5">
+                            <label className={`text-[11px] font-bold uppercase tracking-wide ${hasError ? 'text-[#ba1a1a]' : 'text-[#64748b]'}`}>
+                              {col}
+                            </label>
+                            <input
+                              type="text"
+                              value={String(val)}
+                              onChange={(e) => handleGridInput(activeRowKey, col, e.target.value)}
+                              onBlur={(e) => handleFieldBlur(activeRowKey, col, e.target.value, String(selectedRowData[col] ?? ''))}
+                              className={`w-full h-9 px-3 text-sm rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all ${
+                                hasError ? 'border-[#ffb4ab] focus:border-[#ba1a1a] focus:ring-[#ffb4ab] bg-[#fff4f2]' : 'border-[#cbd5e1] focus:border-[#4f46e5] focus:ring-[#eef2ff]'
+                              }`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-[#64748b] p-8 text-center">
-              <LayoutPanelLeft className="w-12 h-12 mb-3 text-[#e2e8f0]" />
-              <p className="text-base font-medium text-[#475569]">
-                {isSelectedValidRow ? 'This row is already valid' : isSelectedDeletedRow ? 'This row was deleted during deduplication' : 'Select an issue to fix'}
-              </p>
-              <p className="text-sm mt-1">
-                {isSelectedValidRow
-                  ? 'Valid rows do not need edits, so editable row data is hidden.'
-                  : isSelectedDeletedRow
-                  ? 'Deleted duplicate rows are shown for traceability and cannot be edited.'
-                  : 'Click on any non-valid row in the list to view details and apply fixes.'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────
-
-function IssueCard({
-  item,
-  selected,
-  badgeLabel,
-  badgeClass,
-  cardClass,
-  selectedClass,
-  onSelect,
-  onIgnore,
-}: {
-  item: ActionableItem;
-  selected: boolean;
-  badgeLabel: string;
-  badgeClass: string;
-  cardClass?: string;
-  selectedClass?: string;
-  onSelect: () => void;
-  onIgnore: (e: React.MouseEvent) => void;
-}) {
-  const isBlocked = badgeLabel === 'BLOCKED';
-
-  return (
-    <div
-      onClick={onSelect}
-      className={`p-3 rounded-lg border text-sm cursor-pointer transition-all ${
-        selected
-          ? selectedClass ?? 'border-[#111827] bg-[#f1f5f9] shadow-sm'
-          : cardClass ?? 'border-[#e2e8f0] bg-card hover:border-[#64748b]'
-      }`}
-    >
-      <div className="flex justify-between items-start mb-1">
-        <span className="font-semibold text-[#0f172a]">Row {item.rowIndex}</span>
-        <Badge className={`${badgeClass} text-[10px] px-1.5 py-0 border-none`}>
-          {badgeLabel}
-        </Badge>
-      </div>
-      <p className="text-xs text-[#475569] line-clamp-2">{item.primaryMessage}</p>
-      <div className="mt-2 flex gap-2">
-        <Button
-          size="sm"
-          variant="default"
-          className={`h-6 text-[10px] px-2 py-0 text-primary-foreground ${
-            isBlocked
-              ? 'bg-[#ba1a1a] hover:bg-[#93000a]'
-              : 'bg-[#111827] hover:bg-[#1f2937]'
-          }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect();
-          }}
-        >
-          Fix Now
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className={`h-6 text-[10px] px-2 py-0 ${
-            isBlocked
-              ? 'text-[#93000a] hover:text-[#93000a] hover:bg-[#ffdad6]'
-              : 'text-[#475569] hover:text-[#475569] hover:bg-[#f0f3ff]'
-          }`}
-          onClick={onIgnore}
-        >
-          Ignore
-        </Button>
+              </>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
 }
-
-function SuggestionActions({
-  item,
-  suggestion,
-  manualFixInputs,
-  setManualFixInputs,
-  wrappedApplyManualFix,
-  getRowOptionsForSuggestion,
-}: {
-  item: ActionableItem;
-  suggestion: RemediationSuggestion;
-  manualFixInputs: Map<string, string>;
-  setManualFixInputs: React.Dispatch<React.SetStateAction<Map<string, string>>>;
-  wrappedApplyManualFix: (rowKey: string, suggestion: RemediationSuggestion, value: string) => void;
-  getRowOptionsForSuggestion: (rowIndex: number) => { label: string; text: string }[];
-}) {
-  if (suggestion.suggestedValue !== '') {
-    return (
-      <Button
-        size="sm"
-        className="h-8 text-xs bg-[#8f4600] hover:bg-[#8f4600] text-primary-foreground shadow-sm"
-        onClick={() =>
-          wrappedApplyManualFix(suggestion.rowKey, suggestion, suggestion.suggestedValue)
-        }
-      >
-        Apply &quot;{suggestion.suggestedValue}&quot;
-      </Button>
-    );
-  }
-
-  if (
-    suggestion.type === 'MISSING_ANSWER_MULTIPLE_OPTIONS' &&
-    getRowOptionsForSuggestion(suggestion.rowIndex).length > 0
-  ) {
-    const options = getRowOptionsForSuggestion(suggestion.rowIndex);
-    return (
-      <div className="flex flex-col gap-2 w-full mt-2">
-        <p className="text-xs font-semibold text-[#0f172a]">Select the correct option:</p>
-        <div className="grid grid-cols-2 gap-2">
-          {options.map((o) => (
-            <div
-              key={o.label}
-              onClick={() =>
-                setManualFixInputs((prev) => new Map(prev).set(suggestion.rowKey, o.label))
-              }
-              className={`cursor-pointer border rounded-md p-2 text-xs flex items-center transition-all ${
-                manualFixInputs.get(suggestion.rowKey) === o.label
-                  ? 'border-[#111827] bg-[#f1f5f9] text-[#111827] ring-1 ring-[#111827]'
-                  : 'border-[#e2e8f0] bg-card text-[#475569] hover:bg-[#f8fafc]'
-              }`}
-            >
-              <div
-                className={`w-3 h-3 rounded-full border mr-2 flex items-center justify-center shrink-0 ${
-                  manualFixInputs.get(suggestion.rowKey) === o.label
-                    ? 'border-[#111827]'
-                    : 'border-[#e2e8f0]'
-                }`}
-              >
-                {manualFixInputs.get(suggestion.rowKey) === o.label && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#111827]" />
-                )}
-              </div>
-              <span className="font-semibold mr-1">{o.label}:</span>
-              <span className="truncate">{o.text}</span>
-            </div>
-          ))}
-        </div>
-        <Button
-          size="sm"
-          disabled={!manualFixInputs.get(suggestion.rowKey)}
-          className="h-8 text-xs bg-[#8f4600] hover:bg-[#8f4600] text-primary-foreground disabled:opacity-50 self-start mt-2 shadow-sm"
-          onClick={() => {
-            const val = manualFixInputs.get(suggestion.rowKey);
-            if (val) wrappedApplyManualFix(suggestion.rowKey, suggestion, val);
-          }}
-        >
-          Apply Selection
-        </Button>
-      </div>
-    );
-  }
-
-  // No special action — user can fix via the editable row data grid below
-  return (
-    <p className="text-xs text-[#475569] italic flex items-center gap-1.5">
-      <Edit3 className="w-3.5 h-3.5" />
-      Edit the fields below to fix this row, then click Save Changes.
-    </p>
-  );
-}
-

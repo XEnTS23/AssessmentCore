@@ -13,7 +13,7 @@ import {
   ScanText,
   Sparkles,
   Sun,
-  Upload,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -32,11 +32,11 @@ export function WorkspaceLayout() {
     if (location.pathname.includes("/workspace/qti-renderer")) return "QTI Renderer";
     if (location.pathname.includes("/workspace/lms-export")) return "LMS Export";
     if (location.pathname.includes("/workspace/validation-dashboard")) return "Validation Dashboard";
-    if (location.pathname.includes("/workspace/batch-creator")) return "Batch Creator";
+
     return "Workspace";
   }, [location.pathname]);
 
-  const isBatchCreatorRoute = location.pathname.includes("/workspace/batch-creator");
+
 
   if (loading) {
     return (
@@ -50,20 +50,15 @@ export function WorkspaceLayout() {
     return <Navigate to="/auth/login" replace />;
   }
 
-  if (isBatchCreatorRoute) {
-    return (
-      <div className="h-screen overflow-hidden">
-        <Outlet />
-      </div>
-    );
-  }
+
 
   const navItems = [
     { to: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
     { to: "/workspace/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
     { to: "/workspace/ocr", label: "OCR Processor", icon: <ScanText className="h-4 w-4" /> },
+    { to: "/workspace/batch-creator", label: "Batch Creator", icon: <Wrench className="h-4 w-4" /> },
     { to: "/workspace/qti-renderer", label: "QTI Renderer", icon: <Code className="h-4 w-4" />, comingSoon: true },
-    { to: "/workspace/batch-creator", label: "Batch Creator", icon: <Upload className="h-4 w-4" />, premiumOnly: true },
+
     { to: "/workspace/lms-export", label: "LMS Export", icon: <Download className="h-4 w-4" />, comingSoon: true },
   ];
 
@@ -93,8 +88,8 @@ export function WorkspaceLayout() {
         <nav className="flex-1 space-y-1 px-2 py-3 overflow-y-auto overflow-x-hidden">
           {navItems.map((item) => {
             const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
-            const isLocked = item.premiumOnly && !userUsage?.is_premium;
-            const isComingSoon = item.comingSoon;
+            const isLocked = (item as any).premiumOnly && !userUsage?.is_premium;
+            const isComingSoon = (item as any).comingSoon;
             const isDisabled = isLocked || isComingSoon;
             
             if (isDisabled) {
@@ -137,16 +132,7 @@ export function WorkspaceLayout() {
           })}
         </nav>
 
-        <div className="space-y-1 border-t border-border px-2 py-3 overflow-hidden">
-          <Link
-            to="/documentation"
-            title={!isSidebarHovered ? "Docs" : undefined}
-            className={`flex w-full items-center rounded-md py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground ${isSidebarHovered ? 'gap-2 px-3 justify-start' : 'gap-0 px-0 justify-center'}`}
-          >
-            <Book className="h-4 w-4 shrink-0" />
-            {isSidebarHovered && <span className="whitespace-nowrap">Docs</span>}
-          </Link>
-          
+        <div className="flex h-14 shrink-0 items-center border-t border-border px-2 overflow-hidden transition-all">
           <button
             onClick={toggleTheme}
             title={!isSidebarHovered ? (isDark ? "Light mode" : "Dark mode") : undefined}

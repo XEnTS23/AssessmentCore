@@ -205,8 +205,9 @@ export default function OCRProcessor() {
     return blob;
   };
 
-  const saveReusableOCRDiagrams = async (processedPages: OCRProcessedPage[]) => {
-    if (!user?.id || processedPages.length === 0) return;
+  const saveReusableOCRDiagrams = async (processedPages: OCRProcessedPage[]): Promise<Map<string, string>> => {
+    const urlMap = new Map<string, string>();
+    if (!user?.id || processedPages.length === 0) return urlMap;
 
     let questionCounter = 0;
     const uploads: Array<{
@@ -218,6 +219,7 @@ export default function OCRProcessor() {
       box?: [number, number, number, number];
       fileName: string;
       blob: Blob;
+      oldUrl?: string;
     }> = [];
 
     for (const page of processedPages) {
@@ -246,6 +248,7 @@ export default function OCRProcessor() {
               box: diagram.box,
               fileName,
               blob,
+              oldUrl: diagram.url,
             });
           } catch (error) {
             console.warn('Failed to crop OCR diagram:', error);
@@ -255,13 +258,22 @@ export default function OCRProcessor() {
     }
 
     try {
-      await saveLatestOCRExtractedDiagrams({
+      const savedRecords = await saveLatestOCRExtractedDiagrams({
         userId: user.id,
         diagrams: uploads,
+      });
+      
+      // Build the mapping from the old manual_crop URL to the newly uploaded latest/ URL
+      uploads.forEach((u, i) => {
+        if (u.oldUrl && savedRecords[i] && savedRecords[i].public_url) {
+          urlMap.set(u.oldUrl, savedRecords[i].public_url);
+        }
       });
     } catch (error) {
       console.warn('Failed to save reusable OCR diagrams:', error);
     }
+    
+    return urlMap;
   };
 
   const processFiles = async () => {
@@ -322,8 +334,41 @@ export default function OCRProcessor() {
     }
 
     if (processingResults.length > 0) {
+      const urlMap = await saveReusableOCRDiagrams(processingResults);
+      
+      // Synchronize old URLs with new URLs in the processing results
+      if (urlMap && urlMap.size > 0) {
+        for (const page of processingResults) {
+          for (const q of page.data.questions || []) {
+            // Replace in stem
+            if (q.stem) {
+              for (const [oldUrl, newUrl] of urlMap.entries()) {
+                q.stem = q.stem.replaceAll(oldUrl, newUrl);
+              }
+            }
+            // Replace in options
+            if (q.options) {
+              q.options = q.options.map(opt => {
+                let updatedOpt = opt;
+                for (const [oldUrl, newUrl] of urlMap.entries()) {
+                  updatedOpt = updatedOpt.replaceAll(oldUrl, newUrl);
+                }
+                return updatedOpt;
+              });
+            }
+            // Replace in diagram objects
+            if (q.diagrams) {
+              q.diagrams.forEach(d => {
+                if (d.url && urlMap.has(d.url)) {
+                  d.url = urlMap.get(d.url);
+                }
+              });
+            }
+          }
+        }
+      }
+
       await saveReusableOCRExport(processingResults.map((entry) => ({ filename: entry.filename, data: entry.data })), finalQueue.length);
-      await saveReusableOCRDiagrams(processingResults);
     }
     
     setResults(processingResults.map((entry) => ({ filename: entry.filename, data: entry.data })));

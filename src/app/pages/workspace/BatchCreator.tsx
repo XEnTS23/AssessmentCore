@@ -24,6 +24,7 @@ import {
   Check,
   Copy,
   Image,
+  FlaskConical,
   FolderOpen,
   Shield,
   Mail,
@@ -7247,7 +7248,7 @@ export function BatchCreator() {
             </div>
           )}
 
-          {auditStageMode === 'running' && (
+          {(auditStageMode as string) === 'running' && (
             <div className="min-h-0 flex-1 flex items-center justify-center p-6">
               <Card className="w-full max-w-xl border border-[#e2e8f0] bg-card">
                 <CardHeader>
@@ -10858,6 +10859,15 @@ export function BatchCreator() {
             <h1 className="truncate text-lg font-semibold tracking-tight text-[#0f172a]">{stepLabels[currentStep]}</h1>
           </div>
           <div className="flex items-center gap-4" ref={profileMenuRef}>
+            <button
+              type="button"
+              className="text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors border border-amber-200"
+              onClick={() => navigate('/workspace/batch-creator')}
+            >
+              <FlaskConical className="w-4 h-4" />
+              Try New Wizard
+            </button>
+
             <button
               type="button"
               className="text-[#475569] hover:text-[#111827] transition-colors"

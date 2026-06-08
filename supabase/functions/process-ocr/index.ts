@@ -27,11 +27,26 @@ const extractJsonObject = (content: string): Record<string, unknown> => {
     // Try to recover when model wraps JSON in markdown fences.
     const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (fenced?.[1]) {
-      return JSON.parse(fenced[1].trim());
+      try {
+        return JSON.parse(fenced[1].trim());
+      } catch (e) {
+        console.warn("Fenced JSON parse failed:", e);
+      }
+    }
+    
+    // Attempt to extract the outermost JSON object manually
+    const firstBrace = trimmed.indexOf('{');
+    const lastBrace = trimmed.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+      } catch (e) {
+        console.warn("Outermost JSON extract failed:", e);
+      }
     }
   }
 
-  throw new HttpError("Model returned invalid JSON payload", 502, content.slice(0, 500));
+  throw new HttpError("Model returned invalid JSON payload", 502, content.slice(0, 1000));
 };
 
 async function checkUnlimitedStatus(req: Request): Promise<boolean> {
@@ -588,7 +603,12 @@ serve(async (req: Request) => {
             img.composite(whiteBox, x, y);
           }
           const redactedBytes = await img.encodeJPEG(85);
-          finalImageBase64 = btoa(String.fromCharCode(...redactedBytes));
+          const chunks: string[] = [];
+          const chunkSize = 8192;
+          for (let i = 0; i < redactedBytes.length; i += chunkSize) {
+            chunks.push(String.fromCharCode.apply(null, Array.from(redactedBytes.subarray(i, i + chunkSize))));
+          }
+          finalImageBase64 = btoa(chunks.join(""));
         } catch (imgErr) { console.warn("Redaction failed:", imgErr); }
       }
 
@@ -602,7 +622,7 @@ serve(async (req: Request) => {
         body: JSON.stringify({
           model: "pixtral-12b-2409",
           temperature: 0.2,
-          max_tokens: 2500,
+          max_tokens: 4000,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: [{ type: "image_url", image_url: { url: `data:image/jpeg;base64,${finalImageBase64}` } }] }

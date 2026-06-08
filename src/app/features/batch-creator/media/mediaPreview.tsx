@@ -41,7 +41,7 @@ export function MediaPreview({ media, className = '' }: MediaPreviewProps) {
     <div className={`relative overflow-hidden rounded-md border border-border bg-muted/20 ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={media.publicUrlSource}
+        src={`${media.publicUrlSource}${media.publicUrlSource.includes('?') ? '&' : '?'}t=${Date.now()}`}
         alt={media.altText || 'Media preview'}
         className="h-full w-full object-contain"
         onError={() => setHasError(true)}

@@ -28,7 +28,7 @@ const MEDIA_RE = /\[MEDIA:(https?:\/\/[^\]]+)\]/g;
  *
  * The rest of the text is plain XML-escaped.
  */
-export function renderRichContent(text: string | undefined | null, mathMode: MathMode): string {
+export function renderRichContent(text: string | undefined | null, mathMode: MathMode, forPreview: boolean = false): string {
   if (!text) return '';
 
   // MathML mode: treat the whole value as opaque XML (no escaping at top level)
@@ -53,7 +53,8 @@ export function renderRichContent(text: string | undefined | null, mathMode: Mat
       // The url inside might have been XML-escaped by the browser, but escapeXml(part) already did it if it was raw text.
       // We shouldn't double-escape, so since escapeXml runs on `part`, the url inside match is now escaped.
       // Wait, MEDIA_RE runs on the ALREADY escaped string.
-      return `<img src="${url}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Question Media" />`;
+      const finalUrl = forPreview ? `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}` : url;
+      return `<img src="${finalUrl}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Question Media" />`;
     });
     return escaped;
   }).join('');
@@ -62,6 +63,6 @@ export function renderRichContent(text: string | undefined | null, mathMode: Mat
 /**
  * Convenience: wrap content in a paragraph element.
  */
-export function renderParagraph(text: string | undefined | null, mathMode: MathMode): string {
-  return `<p>${renderRichContent(text, mathMode)}</p>`;
+export function renderParagraph(text: string | undefined | null, mathMode: MathMode, forPreview: boolean = false): string {
+  return `<p>${renderRichContent(text, mathMode, forPreview)}</p>`;
 }

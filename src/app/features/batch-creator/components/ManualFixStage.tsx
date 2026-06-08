@@ -504,7 +504,11 @@ export function ManualFixStage({ upload, wizard }: { upload: any, wizard: any })
                            </div>
                            {media.status === 'resolved' ? (
                              <div className="relative aspect-video rounded overflow-hidden bg-black/5 flex items-center justify-center">
-                               <img src={media.resolvedUrl || media.publicUrlSource} alt="Reference" className="max-w-full max-h-full object-contain" />
+                               {(() => {
+                                 const url = media.resolvedUrl || media.publicUrlSource;
+                                 const cacheBustedUrl = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                                 return <img src={cacheBustedUrl} alt="Reference" className="max-w-full max-h-full object-contain" />;
+                               })()}
                              </div>
                            ) : (
                              <div className="aspect-video rounded bg-destructive/5 border border-destructive/20 border-dashed flex items-center justify-center text-destructive/50 flex-col gap-1">

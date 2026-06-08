@@ -38,6 +38,7 @@ export function useExportBuildStage(inputRows: QuestionRow[] = [], config: Expor
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [selectedArtifactIndex, setSelectedArtifactIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'student' | 'raw'>('student');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const rows = useMemo<QuestionRow[]>(() => {
     return inputRows;
@@ -50,7 +51,7 @@ export function useExportBuildStage(inputRows: QuestionRow[] = [], config: Expor
     const row = rows[selectedPreviewIndex];
     if (!row) return '';
     return renderStudentPreviewHtml(row, config);
-  }, [rows, selectedPreviewIndex, config]);
+  }, [rows, selectedPreviewIndex, config, refreshKey]);
 
   const selectedArtifact = useMemo(() => {
     const artifacts = packageResult?.validatedArtifacts ?? [];
@@ -62,6 +63,7 @@ export function useExportBuildStage(inputRows: QuestionRow[] = [], config: Expor
   const runBuild = useCallback(async (config: ExportConfig) => {
     setBuildStatus('building');
     setPackageResult(null);
+    setRefreshKey(prev => prev + 1);
     try {
       const result = await buildAndPackage(rows, config);
       setPackageResult(result);

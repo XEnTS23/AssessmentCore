@@ -638,16 +638,29 @@ export const saveLatestOCRExtractedDiagrams = async (params: {
     });
   }
 
-  const { data, error } = await supabase
-    .from('ocr_extracted_diagrams')
-    .insert(rowsToInsert)
-    .select('*');
+  const insertedData: OCRExtractedDiagramRecord[] = [];
+  
+  for (const row of rowsToInsert) {
+    const { data, error } = await supabase
+      .from('ocr_extracted_diagrams')
+      .insert(row)
+      .select('*')
+      .single();
 
-  if (error) {
-    throw new Error(`Failed to save OCR diagram metadata: ${error.message}`);
+    if (error) {
+      console.error('Individual diagram insert failed:', error);
+      continue;
+    }
+
+    if (data) {
+      insertedData.push(data as OCRExtractedDiagramRecord);
+    }
+    
+    // Stagger webhook firing to prevent overwhelming the microservice
+    await new Promise(resolve => setTimeout(resolve, 3000));
   }
 
-  return (data || []) as OCRExtractedDiagramRecord[];
+  return insertedData;
 };
 
 export const getLatestOCRExtractedDiagrams = async (

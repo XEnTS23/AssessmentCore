@@ -43,6 +43,7 @@ export interface TextEntryQuestion {
 export interface UnknownQuestion {
   type: 'UNKNOWN';
   rawStem?: string;
+  options?: Option[];
 }
 
 export type Question = McqQuestion | MsqQuestion | TextEntryQuestion | OrderQuestion | UnknownQuestion;

@@ -64,7 +64,8 @@ export function normalizeAnswer(
       // By default without explicit type, we still guess MSQ for comma-separated options.
       // (Unless they map 'order' type explicitly)
       inferredType = 'MSQ';
-    } else if (optionsMap.length > 0 && answerRaw) {
+    } else if (optionsMap.length > 0) {
+      // If there are options, assume MCQ even if the answer is missing
       inferredType = 'MCQ';
     } else if (optionsMap.length === 0 && answerRaw) {
       inferredType = 'TEXT_ENTRY';
@@ -202,6 +203,7 @@ export function normalizeAnswer(
 
   return {
     type: 'UNKNOWN',
-    rawStem: stem
+    rawStem: stem,
+    options: options.length > 0 ? options : undefined
   } as UnknownQuestion;
 }

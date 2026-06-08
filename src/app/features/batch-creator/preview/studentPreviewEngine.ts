@@ -73,11 +73,11 @@ export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig)
     const optionsHtml = mcq.options.map(o =>
       `<li class="option" data-id="${escHtml(o.id)}" onclick="selectOption('${escHtml(o.id)}', 'MCQ')">
          <input type="radio" name="mcq" value="${escHtml(o.id)}" style="pointer-events: none; margin-top: 4px;" />
-         <span class="option-label">${escHtml(o.label)}.</span><span>${renderRichContent(o.text, config.mathMode)}</span>
+         <span class="option-label">${escHtml(o.label)}.</span><span>${renderRichContent(o.text, config.mathMode, true)}</span>
        </li>`
     ).join('');
     bodyHtml = `
-      <p class="stem">${renderRichContent(mcq.stem, config.mathMode)}</p>
+      <p class="stem">${renderRichContent(mcq.stem, config.mathMode, true)}</p>
       <ul class="options">${optionsHtml}</ul>`;
   } else if (q.type === 'MSQ') {
     const msq = q as MsqQuestion;
@@ -85,18 +85,18 @@ export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig)
     const optionsHtml = msq.options.map(o =>
       `<li class="option" data-id="${escHtml(o.id)}" onclick="selectOption('${escHtml(o.id)}', 'MSQ')">
          <input type="checkbox" name="msq" value="${escHtml(o.id)}" style="pointer-events: none; margin-top: 4px;" />
-         <span class="option-label">${escHtml(o.label)}.</span><span>${renderRichContent(o.text, config.mathMode)}</span>
+         <span class="option-label">${escHtml(o.label)}.</span><span>${renderRichContent(o.text, config.mathMode, true)}</span>
        </li>`
     ).join('');
     bodyHtml = `
-      <p class="stem">${renderRichContent(msq.stem, config.mathMode)}</p>
+      <p class="stem">${renderRichContent(msq.stem, config.mathMode, true)}</p>
       <ul class="options">${optionsHtml}</ul>`;
   } else if (q.type === 'TEXT_ENTRY') {
     const te = q as TextEntryQuestion;
     correctPayload = (te.acceptedAnswers || []).map(a => String(a).toLowerCase());
     const hint = te.mode === 'numeric' ? `Numeric answer${te.units ? ' (' + escHtml(te.units) + ')' : ''}` : 'Type your answer';
     bodyHtml = `
-      <p class="stem">${renderRichContent(te.stem, config.mathMode)}</p>
+      <p class="stem">${renderRichContent(te.stem, config.mathMode, true)}</p>
       <input class="text-input" type="${te.mode === 'numeric' ? 'number' : 'text'}" placeholder="${escHtml(hint)}" onkeypress="handleEnter(event)" />
       <p class="hint">${escHtml(hint)}</p>`;
   } else if (q.type === 'ORDER') {
@@ -106,16 +106,17 @@ export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig)
       `<li class="option" style="cursor: grab;">
          <span style="color: #94a3b8; margin-right: 8px;">≡</span>
          <span class="option-label">${idx + 1}.</span>
-         <span>${renderRichContent(o.text, config.mathMode)}</span>
+         <span>${renderRichContent(o.text, config.mathMode, true)}</span>
        </li>`
     ).join('');
     bodyHtml = `
-      <p class="stem">${renderRichContent(order.stem, config.mathMode)}</p>
+      <p class="stem">${renderRichContent(order.stem, config.mathMode, true)}</p>
       <p class="hint" style="margin-bottom: 8px;">Drag items to reorder them:</p>
       <ul class="options">${optionsHtml}</ul>`;
   }
   
-  const mediaHtml = row.metadata?.mediaUrl ? `<div style="margin-bottom: 16px;"><img src="${escHtml(row.metadata.mediaUrl)}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Question Media" /></div>` : '';
+  const cacheBustedUrl = row.metadata?.mediaUrl ? `${row.metadata.mediaUrl}${row.metadata.mediaUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : '';
+  const mediaHtml = cacheBustedUrl ? `<div style="margin-bottom: 16px;"><img src="${escHtml(cacheBustedUrl)}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Question Media" /></div>` : '';
   bodyHtml = mediaHtml + bodyHtml;
 
   if (q && q.type !== 'UNKNOWN') {

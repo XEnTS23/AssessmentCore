@@ -24,6 +24,7 @@ export interface UseExportBuildStageReturn {
   triggerDownload: () => void;
   selectPreview: (index: number) => void;
   selectArtifact: (index: number) => void;
+  updateArtifact: (fileName: string, newData: string) => void; // TEMP: For XML editing feature
   setActiveTab: (tab: 'student' | 'raw') => void;
   reset: () => void;
 }
@@ -50,8 +51,64 @@ export function useExportBuildStage(inputRows: QuestionRow[] = [], config: Expor
   const studentPreviewHtml = useMemo(() => {
     const row = rows[selectedPreviewIndex];
     if (!row) return '';
-    return renderStudentPreviewHtml(row, config);
-  }, [rows, selectedPreviewIndex, config, refreshKey]);
+    
+    // TEMP FEATURE: Parse edited XML to reflect basic changes (stem, options) in Student View
+    let tempRow = row;
+    const currentXml = packageResult?.validatedArtifacts?.find(a => row.metadata?.questionId && a.fileName.includes(row.metadata.questionId))?.data;
+    
+    if (typeof currentXml === 'string' && currentXml.includes('<assessmentItem')) {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(currentXml, 'text/xml');
+        const promptNode = doc.querySelector('prompt') || doc.querySelector('itemBody > p');
+        const choices = doc.querySelectorAll('simpleChoice');
+        const correctValues = doc.querySelectorAll('correctResponse value');
+        const mapEntry = doc.querySelector('mapEntry');
+        
+        if (promptNode || choices.length > 0 || correctValues.length > 0 || mapEntry) {
+          tempRow = JSON.parse(JSON.stringify(row));
+          
+          if (mapEntry && mapEntry.hasAttribute('mappedValue')) {
+            const parsedMarks = parseFloat(mapEntry.getAttribute('mappedValue') || '1');
+            if (!isNaN(parsedMarks) && tempRow.scoringConfig) {
+              tempRow.scoringConfig.marks = parsedMarks;
+            }
+          }
+
+          if (tempRow.normalizedQuestion) {
+            if (promptNode) {
+              tempRow.normalizedQuestion.stem = promptNode.innerHTML.trim() || promptNode.textContent || '';
+            }
+            if (choices.length > 0 && tempRow.normalizedQuestion.options) {
+               Array.from(choices).forEach(choice => {
+                 const id = choice.getAttribute('identifier');
+                 const option = tempRow.normalizedQuestion.options?.find((o: any) => o.id === id);
+                 if (option) {
+                   option.text = choice.innerHTML.trim() || choice.textContent || '';
+                 }
+               });
+            }
+            if (correctValues.length > 0) {
+               const vals = Array.from(correctValues).map(v => v.textContent || '');
+               if (tempRow.normalizedQuestion.type === 'MCQ') {
+                 tempRow.normalizedQuestion.correctAnswerId = vals[0];
+               } else if (tempRow.normalizedQuestion.type === 'MSQ') {
+                 tempRow.normalizedQuestion.correctAnswerIds = vals;
+               } else if (tempRow.normalizedQuestion.type === 'TEXT_ENTRY') {
+                 tempRow.normalizedQuestion.acceptedAnswers = vals;
+               } else if (tempRow.normalizedQuestion.type === 'ORDER') {
+                 tempRow.normalizedQuestion.correctSequenceIds = vals;
+               }
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore XML parsing errors for temp feature
+      }
+    }
+
+    return renderStudentPreviewHtml(tempRow, config);
+  }, [rows, selectedPreviewIndex, config, refreshKey, packageResult?.validatedArtifacts]);
 
   const selectedArtifact = useMemo(() => {
     const artifacts = packageResult?.validatedArtifacts ?? [];
@@ -109,6 +166,20 @@ export function useExportBuildStage(inputRows: QuestionRow[] = [], config: Expor
 
   const selectArtifact = useCallback((index: number) => setSelectedArtifactIndex(index), []);
 
+  // TEMP FEATURE: Update artifact data so changes reflect when toggling back
+  const updateArtifact = useCallback((fileName: string, newData: string) => {
+    setPackageResult(prev => {
+      if (!prev) return prev;
+      const updatedArtifacts = prev.validatedArtifacts.map(a =>
+        a.fileName === fileName ? { ...a, data: newData } : a
+      );
+      return {
+        ...prev,
+        validatedArtifacts: updatedArtifacts
+      };
+    });
+  }, []);
+
   const reset = useCallback(() => {
     setBuildStatus('idle');
     setPackageResult(null);
@@ -120,6 +191,6 @@ export function useExportBuildStage(inputRows: QuestionRow[] = [], config: Expor
   return {
     buildStatus, packageResult, previews, selectedPreviewIndex, selectedArtifactIndex,
     activeTab, selectedPreview, selectedArtifact, studentPreviewHtml, rows,
-    runBuild, triggerDownload, selectPreview, selectArtifact, setActiveTab, reset,
+    runBuild, triggerDownload, selectPreview, selectArtifact, updateArtifact, setActiveTab, reset,
   };
 }

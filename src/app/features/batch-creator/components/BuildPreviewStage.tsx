@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Package, Play, Download, FileCode2, Eye, AlertTriangle,
   CheckCircle2, XCircle, Loader2, FileJson, File, ChevronRight,
-  Info, RefreshCw,
+  Info, RefreshCw, Edit2, Save,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
@@ -61,6 +61,28 @@ export function BuildPreviewStage({ wizard, upload }: { wizard: any; upload: any
   useEffect(() => {
     wizard.__mockSetComplete('BUILD_PREVIEW', stage.packageResult?.isDownloadReady ?? false);
   }, [stage.packageResult?.isDownloadReady, wizard]);
+
+  // TEMP: State for XML editing feature
+  const [isEditingRaw, setIsEditingRaw] = useState(false);
+  const [editedRawContent, setEditedRawContent] = useState('');
+
+  // Reset edit state when changing artifacts
+  useEffect(() => {
+    setIsEditingRaw(false);
+    setEditedRawContent('');
+  }, [stage.selectedArtifact?.fileName]);
+
+  const handleEditClick = () => {
+    if (!stage.selectedArtifact) return;
+    setEditedRawContent(stage.selectedArtifact.data);
+    setIsEditingRaw(true);
+  };
+
+  const handleSaveClick = () => {
+    if (!stage.selectedArtifact) return;
+    stage.updateArtifact(stage.selectedArtifact.fileName, editedRawContent);
+    setIsEditingRaw(false);
+  };
 
   const artifacts = stage.packageResult?.validatedArtifacts ?? [];
   const hasWarnings = (stage.packageResult?.validationWarnings.length ?? 0) > 0;
@@ -192,7 +214,22 @@ export function BuildPreviewStage({ wizard, upload }: { wizard: any; upload: any
           ) : (
             <div className="flex-1 overflow-hidden flex flex-col">
 
-              <div className="flex-1 overflow-auto bg-[#0d1117] text-[#c9d1d9] font-mono text-xs p-4 leading-relaxed">
+              <div className="flex-1 overflow-auto bg-[#0d1117] text-[#c9d1d9] font-mono text-xs p-4 leading-relaxed relative">
+                {/* TEMP: XML Edit Button (Requested by User to be removed later) */}
+                {stage.buildStatus === 'success' && stage.selectedArtifact && stage.selectedArtifact.fileName.endsWith('.xml') && (
+                  <div className="absolute top-4 right-4">
+                    {isEditingRaw ? (
+                      <Button size="sm" variant="secondary" className="h-7 text-xs gap-1" onClick={handleSaveClick}>
+                        <Save className="h-3 w-3" /> Save
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="secondary" className="h-7 text-xs gap-1" onClick={handleEditClick}>
+                        <Edit2 className="h-3 w-3" /> Edit XML
+                      </Button>
+                    )}
+                  </div>
+                )}
+
                 {stage.buildStatus === 'idle' && (
                   <p className="text-[#8b949e]">Click <strong>Build</strong> to generate artifacts.</p>
                 )}
@@ -200,7 +237,15 @@ export function BuildPreviewStage({ wizard, upload }: { wizard: any; upload: any
                   <p className="text-[#8b949e] animate-pulse">Generating artifacts…</p>
                 )}
                 {(stage.buildStatus === 'success' || stage.buildStatus === 'error') && stage.selectedArtifact ? (
-                  <pre className="whitespace-pre-wrap break-all">{stage.selectedArtifact.data}</pre>
+                  isEditingRaw ? (
+                    <textarea
+                      className="w-full h-full bg-transparent text-[#c9d1d9] outline-none resize-none font-mono text-xs"
+                      value={editedRawContent}
+                      onChange={(e) => setEditedRawContent(e.target.value)}
+                    />
+                  ) : (
+                    <pre className="whitespace-pre-wrap break-all">{stage.selectedArtifact.data}</pre>
+                  )
                 ) : (stage.buildStatus === 'error' && !stage.selectedArtifact) ? (
                   <p className="text-red-400">Build failed. See error panel below.</p>
                 ) : null}

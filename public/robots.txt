@@ -1,17 +1,13 @@
 # AssessmentCore robots.txt
-# Allow all search engines to crawl the site
+# Public marketing pages are crawlable. Authenticated and utility surfaces are not.
 
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api
-
-# Specific rules for popular search engines
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
+Disallow: /auth/
+Disallow: /workspace
+Disallow: /ocr
 
 # Sitemaps
 Sitemap: https://assessmentcore.vercel.app/sitemap.xml

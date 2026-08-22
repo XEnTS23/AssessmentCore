@@ -28,38 +28,44 @@ export function ResourcesPage() {
     {
       icon: <FileSpreadsheet className="h-6 w-6" />,
       title: "Ingestion Schemas & OCR Guidelines",
-      description: "Learn the optimal PDF scanning resolutions and layout best practices for our OCR engine, plus exact CSV/Excel structures for manual uploads.",
-      link: "/docs/schemas",
+      description:
+        "Learn the optimal PDF scanning resolutions and layout best practices for our OCR engine, plus exact CSV/Excel structures for manual uploads.",
+      link: "/documentation#formatting",
     },
     {
       icon: <LibrarySquare className="h-6 w-6" />,
       title: "Supported Question Types",
-      description: "Comprehensive guides on formatting Multiple Choice, Multiple Select, True/False, and Text Entry questions.",
-      link: "/docs/question-types",
+      description:
+        "Comprehensive guides on formatting Multiple Choice, Multiple Select, True/False, and Text Entry questions.",
+      link: "/documentation#question-types",
     },
     {
       icon: <Sigma className="h-6 w-6" />,
       title: "MathML & LaTeX Handling",
-      description: "Understand how our engine parses mathematical equations and the differences between MathJax and native MathML outputs.",
-      link: "/docs/math-rendering",
+      description:
+        "Understand how our engine parses mathematical equations and the differences between MathJax and native MathML outputs.",
+      link: "/documentation#math-latex",
     },
     {
       icon: <Code2 className="h-6 w-6" />,
       title: "QTI 3.0 Specifications",
-      description: "Deep dive into the underlying XML architecture. See how we map spreadsheet data to valid IMS Global QTI 3.0 nodes.",
-      link: "/docs/qti-specs",
+      description:
+        "Deep dive into the underlying XML architecture. See how we map spreadsheet data to valid IMS Global QTI 3.0 nodes.",
+      link: "/documentation#step-5",
     },
     {
       icon: <GraduationCap className="h-6 w-6" />,
       title: "LMS Export Guides",
-      description: "Step-by-step instructions for importing your generated ZIP packages into Canvas, Moodle, and Blackboard.",
-      link: "/docs/lms-exports",
+      description:
+        "Step-by-step instructions for importing your generated ZIP packages into Canvas, Moodle, and Blackboard.",
+      link: "/documentation#step-5",
     },
     {
       icon: <LifeBuoy className="h-6 w-6" />,
       title: "Validation Rule Reference",
-      description: "A complete list of the 25+ deterministic structural rules our system checks before allowing an export.",
-      link: "/docs/validation-rules",
+      description:
+        "A complete list of the 25+ deterministic structural rules our system checks before allowing an export.",
+      link: "/documentation#step-2",
     },
   ];
 

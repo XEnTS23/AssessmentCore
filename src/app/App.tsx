@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 import { RouterProvider } from "react-router";
 import { AuthProvider } from "../contexts/AuthContext";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -34,8 +34,20 @@ export default function App() {
   return (
     <ThemeContext.Provider value={{ isDark, toggleTheme: () => setIsDark((prev) => !prev) }}>
       <AuthProvider>
-        <RouterProvider router={router} />
-        <Toaster position="top-right" richColors theme={isDark ? "dark" : "light"} />
+        <Suspense
+          fallback={
+            <div className="grid min-h-screen place-items-center bg-background">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+            </div>
+          }
+        >
+          <RouterProvider router={router} />
+        </Suspense>
+        <Toaster
+          position="top-right"
+          richColors
+          theme="light"
+        />
       </AuthProvider>
     </ThemeContext.Provider>
   );

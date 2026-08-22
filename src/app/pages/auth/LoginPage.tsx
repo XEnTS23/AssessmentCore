@@ -1,6 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router";
-import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+} from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { AuthScaffold } from "./AuthScaffold";
 
@@ -15,6 +23,10 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
+
+  const isWorkspaceSubdomain =
+    typeof window !== "undefined" &&
+    window.location.hostname.startsWith("workspace.");
 
   // ── Rate-limiting state ───────────────────────────────────────────────
   const failCountRef = useRef(0);
@@ -78,7 +90,9 @@ export function LoginPage() {
         setError(`Too many failed attempts. Locked for ${LOCKOUT_SECONDS}s.`);
       } else {
         const remaining = MAX_ATTEMPTS - failCountRef.current;
-        setError(`${response.error || "Login failed."} ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+        setError(
+          `${response.error || "Login failed."} ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
+        );
       }
     }
     setLoading(false);
@@ -89,12 +103,17 @@ export function LoginPage() {
       title="Welcome back"
       subtitle="Sign in to your workspace to continue your assessment pipeline."
       footer={
-        <>
-          New here?{" "}
-          <Link to="/auth/register" className="font-medium text-foreground/80 hover:text-foreground">
-            Create an account
-          </Link>
-        </>
+        !isWorkspaceSubdomain ? (
+          <>
+            New here?{" "}
+            <Link
+              to="/auth/register"
+              className="font-medium text-foreground/80 hover:text-foreground"
+            >
+              Create an account
+            </Link>
+          </>
+        ) : null
       }
     >
       <form onSubmit={onSubmit} className="space-y-4">
@@ -124,9 +143,14 @@ export function LoginPage() {
         <label className="block text-xs font-medium text-muted-foreground">
           <div className="mb-1.5 flex items-center justify-between">
             <span>Password</span>
-            <Link to="/auth/forgot-password" className="text-[11px] font-normal text-muted-foreground hover:text-foreground">
-              Forgot?
-            </Link>
+            {!isWorkspaceSubdomain && (
+              <Link
+                to="/auth/forgot-password"
+                className="text-[11px] font-normal text-muted-foreground hover:text-foreground"
+              >
+                Forgot?
+              </Link>
+            )}
           </div>
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
@@ -147,7 +171,11 @@ export function LoginPage() {
               aria-pressed={showPassword}
               disabled={loading || isLocked}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </button>
           </div>
         </label>

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, CheckCircle2 } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
+import "./WorkspaceLoginPage.css";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 30;
@@ -52,8 +53,8 @@ export function WorkspaceLoginPage() {
       return;
     }
 
-    if (!email.trim() || !email.includes("@")) {
-      setError("Please enter a valid email address");
+    if (!email.trim()) {
+      setError("Please enter a valid employee ID or email");
       return;
     }
     if (!password) {
@@ -82,117 +83,167 @@ export function WorkspaceLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-white font-sans text-slate-900">
-      {/* Left Pane - Abstract Premium Visual */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-950 items-center justify-center">
-        {/* Gradient Mesh Background */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-600/30 blur-[120px] mix-blend-screen" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-600/30 blur-[120px] mix-blend-screen" />
-          <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-emerald-500/20 blur-[100px] mix-blend-screen" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[linear-gradient(110deg,#f9fbff_0%,#f8fbff_48%,#eef6ff_100%)] font-sans text-slate-900">
+      
+      {/* Decorative background shapes */}
+      <div className="wlp-shape wlp-shape-1"></div>
+      <div className="wlp-shape wlp-shape-2"></div>
+      <div className="wlp-shape wlp-shape-3"></div>
+      <div className="wlp-dot-pattern"></div>
+
+      {/* Office illustration */}
+      <div className="wlp-office" aria-hidden="true">
+        <div className="wlp-window"></div>
+        <div className="wlp-building wlp-b1"></div>
+        <div className="wlp-building wlp-b2"></div>
+        <div className="wlp-building wlp-b3"></div>
+        <div className="wlp-building wlp-b4"></div>
+        <div className="wlp-lamp-wire"></div>
+        <div className="wlp-lamp"></div>
+        <div className="wlp-wall-picture"></div>
+        <div className="wlp-desk"></div>
+        <div className="wlp-chair wlp-chair-left"></div>
+        <div className="wlp-chair wlp-chair-right"></div>
+        
+        <div className="wlp-person wlp-person-one">
+          <div className="wlp-head"></div>
+          <div className="wlp-hair"></div>
+          <div className="wlp-body"></div>
         </div>
         
-        {/* Glassmorphic Element */}
-        <div className="relative z-10 p-12 max-w-lg">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-10 backdrop-blur-2xl shadow-2xl">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
-                <CheckCircle2 className="h-7 w-7" />
-              </div>
-              <h2 className="text-3xl font-bold text-white tracking-tight">AssessmentCore</h2>
-            </div>
-            <h1 className="text-4xl font-extrabold text-white leading-tight mb-6">
-              The premier platform for assessment generation.
-            </h1>
-            <p className="text-slate-300 text-lg leading-relaxed">
-              Access your secure internal workspace to process OCR documents, build test batches, and export to QTI seamlessly.
-            </p>
-          </div>
+        <div className="wlp-person wlp-person-two">
+          <div className="wlp-head"></div>
+          <div className="wlp-hair"></div>
+          <div className="wlp-body"></div>
         </div>
+        
+        <div className="wlp-person wlp-person-three">
+          <div className="wlp-head"></div>
+          <div className="wlp-hair"></div>
+          <div className="wlp-body"></div>
+          <div className="wlp-legs"></div>
+          <div className="wlp-tablet"></div>
+        </div>
+        
+        <div className="wlp-plant-pot"></div>
+        <div className="wlp-leaf wlp-leaf-1"></div>
+        <div className="wlp-leaf wlp-leaf-2"></div>
+        <div className="wlp-leaf wlp-leaf-3"></div>
       </div>
 
-      {/* Right Pane - Clean Login Form */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center p-8 sm:p-12 lg:p-24 bg-white relative z-10">
-        <div className="w-full max-w-sm">
-          <div className="mb-12 lg:hidden flex items-center gap-3">
-            <img src="/AC_logo.png" alt="Logo" className="h-10 w-10" />
-            <span className="font-bold text-2xl tracking-tight">AssessmentCore</span>
+      {/* Login Card */}
+      <section className="relative z-10 w-full max-w-[460px] mx-5 py-10 px-8 sm:py-11 sm:px-12 bg-white/96 backdrop-blur-md border border-slate-200/65 rounded-2xl shadow-[0_22px_55px_rgba(18,46,83,0.13),0_6px_18px_rgba(18,46,83,0.06)]">
+        
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <img src="/AC_logo.png" alt="Logo" className="h-9 w-9" />
+          <div className="text-xl font-extrabold tracking-tight text-slate-900">
+            AssessmentCore
+          </div>
+        </div>
+
+        <p className="text-center text-sm sm:text-[15px] text-slate-500 mb-7">
+          Sign in to access your secure workspace
+        </p>
+
+        <form onSubmit={onSubmit}>
+          {error && (
+            <div className="flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-[13px] text-red-600 mb-5">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="mb-5">
+            <label htmlFor="employee" className="block text-[13px] font-semibold text-slate-700 mb-1.5">
+              Employee ID or Email
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-400" />
+              <input
+                id="employee"
+                name="employee"
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your employee ID or email"
+                autoComplete="username"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-900 outline-none transition-all focus:border-slate-400 focus:ring-3 focus:ring-slate-100 placeholder:text-slate-400"
+                disabled={loading || isLocked}
+                required
+              />
+            </div>
           </div>
 
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-3">Welcome back</h2>
-          <p className="text-slate-500 text-base mb-10">
-            Sign in to access your secure workspace.
-          </p>
+          <div className="mb-4">
+            <label htmlFor="password" className="block text-[13px] font-semibold text-slate-700 mb-1.5">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-400" />
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-11 text-sm text-slate-900 outline-none transition-all focus:border-slate-400 focus:ring-3 focus:ring-slate-100 placeholder:text-slate-400"
+                disabled={loading || isLocked}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded hover:bg-slate-50"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+              </button>
+            </div>
+          </div>
 
-          <form onSubmit={onSubmit} className="space-y-6">
-            {error && (
-              <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 shadow-sm">
-                <AlertCircle className="h-5 w-5 shrink-0" />
-                <span>{error}</span>
-              </div>
+          <div className="flex items-center text-[13px] mb-6">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600">
+              <input 
+                type="checkbox" 
+                name="remember" 
+                className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer" 
+              />
+              <span>Remember me</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || isLocked}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition-all hover:bg-slate-800 hover:-translate-y-px hover:shadow-lg hover:shadow-slate-900/20 disabled:opacity-70 disabled:hover:shadow-none disabled:hover:translate-y-0 active:translate-y-px"
+          >
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</>
+            ) : isLocked ? (
+              `Locked — ${lockCountdown}s`
+            ) : (
+              "Sign In"
             )}
+          </button>
+        </form>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1">Email Address</label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@school.edu"
-                  autoComplete="email"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm text-slate-900 outline-none transition-all focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  disabled={loading || isLocked}
-                />
-              </div>
-            </div>
+        <div className="h-px bg-slate-100 w-full my-5"></div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1">Password</label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-sm text-slate-900 outline-none transition-all focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  disabled={loading || isLocked}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || isLocked}
-              className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/30 disabled:opacity-70 disabled:hover:shadow-none"
-            >
-              {loading ? (
-                <><Loader2 className="h-5 w-5 animate-spin" /> Signing in...</>
-              ) : isLocked ? (
-                `Locked — ${lockCountdown}s`
-              ) : (
-                <>Sign In <ArrowRight className="h-5 w-5" /></>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-10 border-t border-slate-100 pt-6 text-center">
-            <p className="text-xs text-slate-400">
-              For internal use only. Contact your administrator if you need access.
-            </p>
-          </div>
+        <div className="flex items-center justify-center gap-1.5 text-[13px] text-slate-500">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+            <path d="M4 14v-2a8 8 0 0 1 16 0v2"></path>
+            <path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5Z"></path>
+            <path d="M20 14h-3v6h2a1 1 0 0 0 1-1v-5Z"></path>
+          </svg>
+          <span>Need help?</span>
+          <a href="#" className="font-medium text-slate-900 hover:underline">
+            Contact IT support
+          </a>
         </div>
-      </div>
+
+      </section>
     </div>
   );
 }

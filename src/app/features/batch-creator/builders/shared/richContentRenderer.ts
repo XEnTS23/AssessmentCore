@@ -236,7 +236,11 @@ export function renderRichContent(
       if (LATEX_RE.test(part)) {
         // Reset lastIndex after test()
         LATEX_RE.lastIndex = 0;
-        return `<span class="math">${escapeXml(part)}</span>`;
+        // For preview: emit raw LaTeX so MathJax can recognise delimiters.
+        // For QTI XML export: wrap in <span class="math"> with XML-escaped content.
+        return forPreview
+          ? part
+          : `<span class="math">${escapeXml(part)}</span>`;
       }
       // Reset lastIndex
       LATEX_RE.lastIndex = 0;

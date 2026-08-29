@@ -278,7 +278,7 @@ export function BuildPreviewStage({
                   <iframe
                     srcDoc={stage.studentPreviewHtml}
                     className="w-full h-full border-0"
-                    sandbox="allow-scripts"
+                    sandbox="allow-scripts allow-same-origin"
                     referrerPolicy="no-referrer"
                     title="Student question preview"
                   />

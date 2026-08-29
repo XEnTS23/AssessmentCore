@@ -20,7 +20,7 @@ import { renderRichContent } from "../builders/shared/richContentRenderer";
 import { normalizePublicHttpUrl } from "../security/publicUrlPolicy";
 
 const PREVIEW_CSP =
-  "default-src 'none'; img-src https: http: data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net data:; connect-src 'none'; base-uri 'none'; form-action 'none'";
+  "default-src 'none'; img-src https: http: data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net data:; connect-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'";
 
 const BASE_STYLES = `
   <style>

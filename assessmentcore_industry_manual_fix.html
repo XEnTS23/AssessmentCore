@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>AssessmentCore — Industry Manual Fix Workspace</title>
+  <style>
+:root{
+  --nav:#10243f;
+  --nav-dark:#0b1b30;
+  --border:#dfe5ec;
+  --border-strong:#c9d3df;
+  --muted:#718096;
+  --text:#172033;
+  --blue:#112d54;
+  --blue-soft:#eef4fb;
+  --danger:#d92d20;
+  --danger-bg:#fff3f2;
+  --orange:#b96a00;
+  --orange-bg:#fff8ee;
+  --green:#108653;
+  --green-bg:#eefbf5;
+  --yellow:#8a6d00;
+  --yellow-bg:#fffbea;
+  --purple:#6d28d9;
+  --purple-bg:#f7f3ff;
+  --shadow:0 16px 48px rgba(15,23,42,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:Inter,Arial,sans-serif;color:var(--text);background:#fff;font-size:12px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}
+button:disabled,input:disabled,select:disabled{opacity:.48;cursor:not-allowed}
+.app{min-width:1280px;min-height:100vh;display:grid;grid-template-columns:120px 1fr}
+.side-nav{background:linear-gradient(180deg,var(--nav),var(--nav-dark));color:white;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;width:120px;z-index:20}
+.logo-row{height:50px;display:flex;align-items:center;padding:0 14px;gap:8px;font-size:13px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1)}
+.shield-icon{font-size:18px}.side-links{display:flex;flex-direction:column;padding:14px 8px;gap:3px}
+.side-links button,.collapse-button{border:0;background:transparent;color:#eef5ff;padding:10px 8px;border-radius:5px;display:flex;align-items:center;gap:8px;text-align:left;font-size:10px}
+.side-links button:hover,.side-links button.active{background:rgba(255,255,255,.09)}
+.collapse-button{margin-top:auto;margin-bottom:10px}
+.main{grid-column:2;min-width:0}
+.top-header{height:50px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 24px;background:white;position:sticky;top:0;z-index:15}
+.steps{display:flex;align-items:center;gap:10px}.steps>i{font-style:normal;color:#a9b2bf;font-size:18px}
+.step{display:flex;align-items:center;gap:8px;color:#8b96a6;font-weight:500;font-size:12px}.step span{width:24px;height:24px;border-radius:50%;border:1px solid #cfd7e2;display:grid;place-items:center;background:#fff;font-size:10px}
+.step.done{color:#42526a}.step.current{color:#123878;font-weight:700}.step.current span{background:#112d54;border-color:#112d54;color:#fff}
+.header-actions{display:flex;align-items:center;gap:9px}.header-actions select{height:30px;border:1px solid #ced7e3;border-radius:5px;padding:0 9px;background:#fff;font-size:9px}
+.circle-btn{width:26px;height:26px;border:0;background:transparent}.avatar{width:25px;height:25px;border-radius:50%;background:#102b51;color:white;display:grid;place-items:center;font-size:9px;font-weight:700}
+.content-shell{height:calc(100vh - 50px);display:grid;grid-template-columns:390px minmax(0,1fr)}
+.question-browser{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;background:#fff}
+.browser-top{padding:15px 17px 10px;position:relative}.manual-title{display:flex;align-items:center;gap:12px;margin-bottom:10px}.manual-title h1{font-size:18px;margin:0}.total-pill{background:#f1f3f6;border-radius:16px;padding:5px 10px;font-size:9px}
+.progress-summary{display:grid;grid-template-columns:auto auto 1fr;gap:12px;align-items:center;margin-bottom:11px;padding:8px 10px;border:1px solid #e3e8ef;background:#fafbfd;border-radius:6px}
+.progress-summary>div:not(.progress-track){display:flex;flex-direction:column}.progress-summary strong{font-size:12px}.progress-summary span{font-size:8px;color:var(--muted)}
+.progress-track{height:6px;background:#e9eef4;border-radius:99px;overflow:hidden}.progress-track span{display:block;height:100%;width:61%;background:#1e6ec7}
+.search-box{height:36px;border:1px solid #d7dfe9;border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 10px;margin-bottom:12px}.search-box input{border:0;outline:0;flex:1;font-size:10px}.search-box kbd{border:1px solid #d7dfe9;border-radius:4px;padding:2px 4px;font-size:8px;color:#667085}
+.status-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.status-tabs button{border:1px solid #dde4ec;background:white;border-radius:6px;padding:8px 5px;font-size:8px}.status-tabs button.active{border-color:#163c70;box-shadow:inset 0 0 0 1px #163c70}.status-tabs b{font-size:7px;background:#eef1f4;border-radius:10px;padding:2px 5px;margin-left:3px}
+.sort-filter-row{display:flex;justify-content:space-between;margin-top:12px}.sort-filter-row select,.filter-button{height:30px;border:1px solid #d9e1ea;border-radius:5px;background:#fff;padding:0 10px;font-size:9px}.filter-button{min-width:88px}
+.filter-popover{position:absolute;right:17px;top:230px;width:260px;background:white;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:30;padding:12px;display:grid;gap:9px}
+.filter-popover label{display:grid;gap:4px;font-size:8px;font-weight:700}.filter-popover select{height:30px;border:1px solid var(--border);border-radius:5px;padding:0 8px}.filter-popover .toggle-label{display:flex;align-items:center;gap:7px;font-weight:500}.text-button{border:0;background:transparent;color:#1d5fa7;text-align:left;font-size:9px;padding:3px 0}
+.row-list{flex:1;overflow:auto;padding:6px 17px 8px}.row-card{border:1px solid #dfe5ec;border-left:3px solid #d1d8e1;border-radius:7px;margin-bottom:8px;padding:11px 12px;background:white;cursor:pointer}.row-card.active{background:#fffafa;border-color:#ff8e89;border-left-color:var(--danger)}.row-card.review{border-left-color:#f59e0b}.row-card.valid{border-left-color:#22a06b}.row-card.caution{border-left-color:#eab308}.row-card.rejected{border-left-color:#ef4444}.row-card.dirty{box-shadow:inset 0 0 0 1px #3b82f6}
+.row-card-top{display:flex;justify-content:space-between;align-items:center}.row-card-left{display:flex;gap:10px;align-items:center}.row-check{width:12px;height:12px;border:1px solid #cbd5df;border-radius:3px}.row-number{font-size:11px;font-weight:700}.dirty-dot{color:#2563eb;font-size:9px}
+.row-badges{display:flex;gap:7px}.badge{font-size:8px;border-radius:4px;padding:4px 8px;font-weight:600}.badge.rejected{color:#e92d27;border:1px solid #ff9d99;background:#fff4f3}.badge.review{color:#ef7d00;border:1px solid #ffc16b;background:#fffaf0}.badge.valid{color:#0b9f5c;border:1px solid #7ad9ae;background:#f1fff8}.badge.caution{color:#8a6d00;border:1px solid #fde68a;background:#fffbea}.badge.type{color:#4f46e5;border:1px solid #b8a9ff;background:#f6f3ff}.badge.unsupported{color:#7c2d12;border:1px solid #fdba74;background:#fff7ed}
+.row-stem{font-size:9px;margin:9px 0 7px 26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row-meta{font-size:8px;color:#7a8594;margin-left:26px}.issue-row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0 26px}.issue-tag{font-size:7px;padding:4px 7px;border-radius:4px;border:1px solid #ffb9b5;background:#fff7f6;color:#e63b33}.issue-tag.orange{border-color:#ffc883;background:#fffaf2;color:#e27700}.issue-tag.yellow{border-color:#fde68a;background:#fffbea;color:#8a6d00}.issue-tag.more{border-color:#d8dee6;background:#f6f8fa;color:#687386}
+.browser-footer{height:54px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;padding:0 17px;font-size:8px}.browser-footer select{height:26px;border:1px solid #d9e1ea;border-radius:5px}.page-controls{display:flex;gap:7px;align-items:center;justify-content:flex-end}.page-controls button{border:0;background:transparent;font-size:9px}.page-controls button.active{width:24px;height:24px;border:1px solid #d5dde7;border-radius:5px;background:white}
+.editor-area{background:#fff;display:flex;flex-direction:column;min-width:0;overflow:hidden;position:relative}
+.editor-topbar{height:57px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#fff;position:relative}.editing-nav,.topbar-buttons{display:flex;align-items:center;gap:8px}.tiny-checkbox{width:12px;height:12px;border:1px solid #b9c4d2;border-radius:2px}.editing-nav strong{font-size:12px}.editing-nav>button,.icon-only{height:29px;border:1px solid #d7dfe9;background:#fff;border-radius:5px;padding:0 9px}.text-action{color:#1e5b9f}
+.topbar-buttons>button{height:30px;border:1px solid #d4dce6;border-radius:5px;background:white;padding:0 10px;font-size:9px}.topbar-buttons .primary{background:#102b51;color:white;border-color:#102b51}
+.draft-state,.recovery-state{font-size:8px;border-radius:99px;padding:4px 7px}.draft-state.saved{color:#087a47;background:#eaf8f0}.draft-state.dirty{color:#1d5fa7;background:#eef5ff}.draft-state.saving{color:#8a5c00;background:#fff7df}.draft-state.error{color:#b42318;background:#fff0ee}.recovery-state{color:#67520b;background:#fffbea}
+.more-menu{position:absolute;right:158px;top:48px;width:230px;background:white;border:1px solid var(--border);border-radius:7px;box-shadow:var(--shadow);z-index:40;padding:6px}.more-menu button{display:block;width:100%;border:0;background:white;text-align:left;padding:9px;border-radius:5px;font-size:9px}.more-menu button:hover{background:#f5f7fa}
+.global-message{margin:12px 18px 0;padding:10px 12px;border:1px solid #b8d5f4;background:#f0f7ff;color:#1f5d98;border-radius:6px;font-size:9px}.global-message.error{border-color:#ffc9c5;background:#fff3f2;color:#b42318}.global-message.warning{border-color:#fbd68a;background:#fff9e9;color:#8a5c00}.global-message.success{border-color:#a7dfc2;background:#eefbf5;color:#087a47}
+.blocking-banner{margin:12px 18px 0;border:1px solid #ffaaa6;background:linear-gradient(90deg,#fff4f3,#fff1f0);border-radius:6px;padding:10px 13px}.banner-title{display:flex;align-items:center;gap:9px;font-size:10px;margin-bottom:8px}.alert-icon{width:17px;height:17px;border:1px solid var(--danger);border-radius:50%;color:var(--danger);display:grid;place-items:center;font-weight:700}.banner-tags{display:flex;gap:8px;margin-left:24px;flex-wrap:wrap}.banner-tags button{height:23px;padding:0 9px;border:1px solid #d9a7ff;color:#6b21a8;background:#fff6ff;border-radius:4px;font-size:8px}.banner-tags button.review{border-color:#ffc473;color:#9a5a00;background:#fff9ef}.banner-tags button.warning{border-color:#fde68a;color:#8a6d00;background:#fffbea}
+.editor-grid{flex:1;overflow:auto;padding:12px 18px 58px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px;align-content:start;background:#fff}.left-editor-column,.right-editor-column{display:flex;flex-direction:column;gap:12px}.panel{border:1px solid #dce3ea;border-radius:7px;background:white;overflow:hidden}.panel.highlight-block{outline:2px solid #ef4444;outline-offset:2px}.panel.highlight-review{outline:2px solid #f59e0b;outline-offset:2px}.panel.highlight-warning{outline:2px solid #eab308;outline-offset:2px}
+.panel-head{min-height:43px;border-bottom:1px solid #e4e9ef;display:flex;align-items:center;justify-content:space-between;padding:0 11px;font-size:10px}.panel-head.plain{min-height:35px}.panel-head small{display:block;font-size:7px;color:#7a8492;margin-top:2px}.section-actions{display:flex;gap:6px}.panel-head button{height:27px;border:1px solid #dbe2e9;border-radius:5px;background:#fff;font-size:8px;padding:0 9px}.panel-head em,.options-title em,.meta-grid em{color:red;font-style:normal}.help-dot{display:inline-grid;place-items:center;width:13px;height:13px;border:1px solid #8e9aaa;border-radius:50%;font-size:8px;color:#64748b}
+.toolbar{min-height:35px;border-bottom:1px solid #e5eaf0;display:flex;align-items:center;gap:3px;padding:4px 8px;background:#fafbfc;flex-wrap:wrap}.toolbar button{border:0;background:transparent;height:25px;min-width:25px;font-size:8px}.toolbar button:hover{background:white;box-shadow:inset 0 0 0 1px #dfe5ec}.toolbar .source-btn{border:1px solid #dce3ea;background:white;border-radius:4px}.tool-sep{height:19px;width:1px;background:#d9e0e7}.spacer{flex:1}
+.question-stem-panel textarea{width:100%;height:112px;border:0;resize:vertical;padding:15px 13px;font-family:Georgia,serif;font-size:12px;line-height:1.5;outline:0}.editor-meta{height:27px;border-top:1px solid #edf0f3;display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:8px;color:#6f7b8c}.toggle{background:#10a861;color:white;border-radius:10px;padding:2px 5px;font-size:7px}.field-message{padding:7px 11px;background:#fff5f4;color:#b42318;border-top:1px solid #ffd0cc;font-size:8px}
+.type-line{height:45px;border-bottom:1px solid #e5eaf0;display:grid;grid-template-columns:100px 1fr;align-items:center;padding:0 11px}.type-line strong{font-size:9px}.type-line select{height:30px;border:1px solid #dbe2ea;border-radius:5px;padding:0 9px;font-size:9px}.conversion-notice{padding:8px 11px;background:#fff8e8;color:#8a5c00;border-bottom:1px solid #f8d58a;font-size:8px}.options-title{height:36px;display:flex;align-items:center;padding:0 11px;font-size:9px;font-weight:700}
+.option-table-head,.option-row{display:grid;grid-template-columns:20px 28px minmax(0,1fr) 75px 52px;align-items:center}.option-table-head{height:30px;background:#f6f7f9;border-top:1px solid #e2e7ed;border-bottom:1px solid #e2e7ed;font-size:8px;font-weight:600;color:#4d5968;padding:0 9px}.option-row{min-height:47px;border-bottom:1px solid #e4e9ef;padding:6px 9px}.drag{font-size:14px;color:#667085}.option-row input[type=text]{height:30px;border:1px solid #d7dfe8;border-radius:4px;padding:0 10px;font-family:Georgia,serif;font-size:10px}.correct-cell{text-align:center}.delete-option{border:0;background:transparent;color:#4a5568}.inline-error{grid-column:3/6;color:#b42318;font-size:7px;margin-top:2px}.add-option{height:31px;margin:8px 9px;width:calc(100% - 18px);border:1px dashed #86b5ff;border-radius:3px;background:#f8fbff;color:#184b9c;font-size:9px}
+.correct-answer-row{display:grid;grid-template-columns:110px 185px;align-items:center;padding:0 11px 9px;font-size:9px}.correct-answer-row select{height:30px;border:1px solid #d9e1e9;border-radius:4px;padding:0 9px}.text-entry-editor,.order-editor,.unsupported-editor{padding:12px;display:grid;gap:10px}.mode-tabs{display:inline-flex;border:1px solid var(--border);border-radius:5px;overflow:hidden;width:max-content}.mode-tabs button{height:29px;border:0;background:white;padding:0 13px;font-size:8px}.mode-tabs button.active{background:#102b51;color:white}.answer-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.answer-tag{display:flex;align-items:center;gap:5px;border:1px solid #d7dfe8;background:#f4f7fa;border-radius:99px;padding:5px 8px;font-size:8px}.answer-tag button{border:0;background:transparent;color:#b42318}.small-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.small-grid label,.text-entry-editor>label{display:grid;gap:5px;font-size:8px;font-weight:700}.small-grid input,.small-grid select,.text-entry-editor>label input,.text-entry-editor>label select{height:31px;border:1px solid var(--border);border-radius:4px;padding:0 8px}.checkbox-line{display:flex;gap:14px;font-size:8px;color:#576274}.order-item{display:grid;grid-template-columns:25px 1fr 54px;gap:7px;align-items:center}.order-item input{height:31px;border:1px solid var(--border);border-radius:4px;padding:0 8px}.order-item button{height:28px;border:1px solid var(--border);background:white;border-radius:4px}.unsupported-editor{background:#fff9f0}.unsupported-editor pre{white-space:pre-wrap;background:white;border:1px solid #f1d09e;border-radius:5px;padding:9px;font-size:8px}.unsupported-actions{display:flex;gap:8px}.unsupported-actions button{height:30px;border:1px solid var(--border);border-radius:4px;background:white;padding:0 9px;font-size:8px}
+.preview-panel{min-height:238px}.preview-tabs{height:32px;border-bottom:1px solid #dfe5ec;display:flex;align-items:end;padding-left:10px}.preview-tabs button{height:32px;border:0;background:transparent;padding:0 13px;font-size:9px;color:#7b8695}.preview-tabs button.active{color:#11356c;font-weight:700;border-bottom:2px solid #11356c}.preview-tabs .expand-btn{margin-left:auto}.compatibility-warning{padding:7px 10px;border-bottom:1px solid #f5d58b;background:#fff9e9;color:#8a5c00;font-size:8px}.question-preview{padding:14px 16px;font-size:10px;min-height:190px}.preview-question{margin-bottom:12px;line-height:1.5}.preview-choice{display:flex;align-items:center;gap:10px;margin:10px 0;font-family:Georgia,serif;font-size:11px}.preview-choice input{accent-color:#12a665}.preview-text-input{width:100%;height:32px;border:1px solid var(--border);border-radius:4px;padding:0 9px}.preview-media{width:100%;max-height:190px;object-fit:contain;border:1px solid var(--border);border-radius:5px;margin:8px 0}
+.explanation-panel textarea{width:100%;height:118px;border:0;resize:vertical;padding:12px 13px;font-family:Georgia,serif;font-size:10px;line-height:1.6;outline:0}
+.media-warning{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#fff8e8;color:#8a5c00;border-bottom:1px solid #f8d58a;font-size:8px}.media-warning button{height:26px;border:1px solid #e6c375;background:white;border-radius:4px;font-size:8px}.media-warning .danger-link{color:#b42318;border-color:#f2b5af}
+.media-body{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:11px}.media-actions{height:92px;border:1px dashed #cfd8e3;border-radius:4px;display:grid;grid-template-columns:repeat(3,1fr);align-items:center}.media-actions label,.media-actions button{border:0;background:white;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:13px}.media-actions small{font-size:7px;line-height:1.25}.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px}.media-card{border:1px solid var(--border);border-radius:5px;overflow:hidden;background:white}.media-thumb{height:70px;background:#f0f2f5;display:grid;place-items:center;position:relative}.media-thumb img{width:100%;height:100%;object-fit:contain}.media-thumb button{position:absolute;right:3px;top:3px;width:18px;height:18px;border-radius:50%;border:0;background:white;box-shadow:0 1px 4px rgba(0,0,0,.18)}.media-card-body{padding:7px;display:grid;gap:5px}.media-card-body strong{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.media-card-body input,.media-card-body select{height:26px;border:1px solid var(--border);border-radius:4px;padding:0 6px;font-size:7px}.media-card-actions{display:flex;gap:5px}.media-card-actions button{flex:1;height:25px;border:1px solid var(--border);border-radius:4px;background:white;font-size:7px}
+.metadata-panel{position:relative}.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:11px}.meta-grid.bottom{grid-template-columns:1.4fr 1.4fr .8fr;padding-top:0}.meta-grid label{display:flex;flex-direction:column;gap:5px;font-size:8px;font-weight:700}.meta-grid select,.meta-grid input{height:30px;border:1px solid #d7dfe8;border-radius:4px;padding:0 9px;font-size:9px}.copy-field{display:grid;grid-template-columns:1fr 30px}.copy-field input{border-radius:4px 0 0 4px}.copy-field button{border:1px solid #d7dfe8;border-left:0;background:white;border-radius:0 4px 4px 0}.last-updated{text-align:right;color:#7c8796;font-size:8px;padding:0 11px 8px}
+.shortcut-bar{height:41px;border-top:1px solid #dfe5ec;background:white;display:flex;align-items:center;gap:18px;padding:0 18px;font-size:8px;color:#6d7887}.shortcut-bar div{display:flex;align-items:center;gap:4px}.shortcut-bar kbd{height:21px;min-width:21px;border:1px solid #d7dfe8;border-radius:4px;background:white;display:grid;place-items:center;font-size:8px;color:#24364f}
+.issue-detail-popover{position:fixed;width:330px;background:white;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:70;padding:12px}.issue-detail-popover h3{font-size:11px;margin:0 0 6px}.issue-detail-popover dl{display:grid;grid-template-columns:90px 1fr;gap:5px;font-size:8px}.issue-detail-popover dt{font-weight:700}.issue-detail-popover dd{margin:0;color:#596576}
+.drawer,.modal{position:fixed;inset:0;z-index:100}.drawer-backdrop,.modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.38)}.drawer-panel{position:absolute;right:0;top:0;height:100%;width:min(560px,94vw);background:white;box-shadow:-20px 0 55px rgba(15,23,42,.2);display:flex;flex-direction:column}.preview-drawer-panel{width:min(620px,94vw)}.drawer-head,.modal-head{min-height:60px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 15px}.drawer-head h2,.modal-head h2{font-size:14px;margin:2px 0 0}.drawer-head small,.modal-head small{font-size:8px;color:var(--muted)}.drawer-head button,.modal-head button{border:0;background:transparent;font-size:20px}.drawer-tabs,.modal-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 12px}.drawer-tabs button,.modal-tabs button{height:40px;border:0;background:transparent;padding:0 13px;font-size:8px;color:#6f7b8c;border-bottom:2px solid transparent}.drawer-tabs button.active,.modal-tabs button.active{color:#153e75;border-bottom-color:#153e75;font-weight:700}.source-content{margin:0;padding:14px;overflow:auto;font-size:9px;line-height:1.6}.history-content{padding:14px;overflow:auto}.history-item{padding:11px 0;border-bottom:1px solid var(--border)}.history-item strong{font-size:9px}.history-item p{font-size:8px;color:#667085;margin:5px 0}.history-item small{font-size:7px;color:#8a94a3}.preview-drawer-content{padding:18px;overflow:auto}.learner-card{border:1px solid var(--border);border-radius:7px;padding:18px}.learner-card h3{font-size:12px;line-height:1.6}.learner-submit{width:100%;height:34px;border:0;border-radius:5px;background:#102b51;color:white;opacity:.55}
+.modal-card{position:relative;width:min(580px,92vw);max-height:84vh;margin:8vh auto;background:white;border-radius:9px;box-shadow:var(--shadow);overflow:hidden}.asset-modal-card{width:min(650px,92vw)}.conflict-card{width:min(760px,94vw)}.modal-body{padding:15px;overflow:auto}.modal-body p{font-size:9px;color:#5d6877}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}.modal-actions button,.modal-body .full{height:32px;border:1px solid var(--border);border-radius:5px;background:white;padding:0 10px;font-size:8px}.modal-actions .primary,.modal-body .primary{background:#102b51;color:white;border-color:#102b51}.danger-button{background:#b42318!important;color:white!important;border-color:#b42318!important}.asset-tab-panel{display:none}.asset-tab-panel.active{display:block}.dropzone{min-height:180px;border:1px dashed var(--border-strong);border-radius:7px;background:#f8fafc;display:grid;place-items:center;align-content:center;gap:5px;font-size:9px;color:#657184}.dropzone.dragover{background:#eef6ff;border-color:#3b82f6}.asset-tab-panel label{display:grid;gap:6px;font-size:8px;font-weight:700}.asset-tab-panel input{height:34px;border:1px solid var(--border);border-radius:5px;padding:0 9px}.asset-library-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.library-item{border:1px solid var(--border);border-radius:5px;padding:6px}.library-item img{width:100%;height:90px;object-fit:cover;border-radius:4px}.library-item button{width:100%;height:27px;border:1px solid var(--border);border-radius:4px;background:white;font-size:7px;margin-top:5px}.diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.diff-grid>div{border:1px solid var(--border);border-radius:5px;padding:9px}.diff-grid pre{white-space:pre-wrap;font-size:8px;background:#f8fafc;padding:8px;border-radius:4px;min-height:130px}.shortcut-card{width:min(430px,90vw)}.shortcut-list{padding:12px 16px}.shortcut-list p{display:flex;justify-content:space-between;align-items:center;font-size:8px}.shortcut-list kbd{border:1px solid var(--border);border-radius:4px;padding:3px 5px}
+.toast-container{position:fixed;right:18px;bottom:52px;z-index:160;display:grid;gap:8px}.toast{min-width:260px;max-width:360px;padding:10px 12px;border-radius:6px;background:#102b51;color:white;box-shadow:var(--shadow);font-size:9px}.toast.error{background:#a32923}.toast.success{background:#0b7b4b}.toast.warning{background:#8a5c00}
+.hidden{display:none!important}.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:1365px){.content-shell{grid-template-columns:355px minmax(0,1fr)}.shortcut-bar{gap:11px}.topbar-buttons>button{padding:0 7px}.editing-nav .text-action{display:none}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+</style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="side-nav" aria-label="Primary navigation">
+      <div class="logo-row">
+        <span class="shield-icon" aria-hidden="true">◇</span>
+        <span>AssessmentCore</span>
+      </div>
+
+      <nav class="side-links">
+        <button><span>⌂</span>Dashboard</button>
+        <button class="active"><span>▱</span>Batches</button>
+        <button><span>◩</span>Questions</button>
+        <button><span>▧</span>Media Library</button>
+        <button><span>⌘</span>Mappings</button>
+        <button><span>▤</span>Reports</button>
+        <button><span>⚙</span>Settings</button>
+        <button><span>?</span>Help</button>
+      </nav>
+
+      <button class="collapse-button"><span>≪</span>Collapse</button>
+    </aside>
+
+    <main class="main">
+      <header class="top-header">
+        <div class="steps" aria-label="Batch workflow">
+          <div class="step done"><span>✓</span><b>Upload</b></div>
+          <i>›</i>
+          <div class="step done"><span>✓</span><b>Validation</b></div>
+          <i>›</i>
+          <div class="step current"><span>3</span><b>Manual Fix</b></div>
+          <i>›</i>
+          <div class="step"><span>4</span><b>AI Audit</b></div>
+          <i>›</i>
+          <div class="step"><span>5</span><b>Build & Export</b></div>
+        </div>
+
+        <div class="header-actions">
+          <select id="roleSelect" aria-label="Current role">
+            <option>Content Editor</option>
+            <option>Reviewer</option>
+            <option>Approver</option>
+            <option>Read-only Auditor</option>
+          </select>
+          <select aria-label="Current batch">
+            <option>Batch: JEE_Main_2026_SetA</option>
+          </select>
+          <button class="circle-btn" aria-label="Help">?</button>
+          <span class="avatar">AD</span>
+        </div>
+      </header>
+
+      <div class="content-shell">
+        <aside class="question-browser" aria-label="Question navigator">
+          <div class="browser-top">
+            <div class="manual-title">
+              <h1>Manual Fix</h1>
+              <span id="totalRowsPill" class="total-pill">120 Total Rows</span>
+            </div>
+
+            <div class="progress-summary">
+              <div>
+                <strong id="reviewedCount">73</strong>
+                <span>Reviewed</span>
+              </div>
+              <div>
+                <strong id="remainingCount">47</strong>
+                <span>Remaining</span>
+              </div>
+              <div class="progress-track" aria-hidden="true">
+                <span id="progressBar"></span>
+              </div>
+            </div>
+
+            <div class="search-box">
+              <span>⌕</span>
+              <input id="searchRows" placeholder="Search ID, stem, subject, issue..." />
+              <kbd>/</kbd>
+            </div>
+
+            <div class="status-tabs" id="statusTabs">
+              <button class="active" data-filter="ALL">All <b id="allCount">120</b></button>
+              <button data-filter="REJECTED">Rejected <b id="rejectedCount">0</b></button>
+              <button data-filter="NEEDS_REVIEW">Review <b id="reviewCount">0</b></button>
+              <button data-filter="CAUTION">Caution <b id="cautionCount">0</b></button>
+              <button data-filter="VALID">Valid <b id="validCount">0</b></button>
+            </div>
+
+            <div class="sort-filter-row">
+              <select id="sortSelect">
+                <option value="ROW_ASC">Sort: Row ID (Asc)</option>
+                <option value="STATUS">Sort: Status</option>
+                <option value="UPDATED">Sort: Recently edited</option>
+              </select>
+              <button id="filterPopoverBtn" class="filter-button">▽ Filters <span>⌄</span></button>
+            </div>
+
+            <div id="filterPopover" class="filter-popover hidden">
+              <label>Question type
+                <select id="typeFilter">
+                  <option value="ALL">All types</option>
+                  <option value="MCQ">MCQ</option>
+                  <option value="MSQ">MSQ</option>
+                  <option value="TEXT_ENTRY">Text Entry</option>
+                  <option value="ORDER">Order</option>
+                  <option value="UNSUPPORTED">Unsupported</option>
+                </select>
+              </label>
+              <label>Severity
+                <select id="severityFilter">
+                  <option value="ALL">All severities</option>
+                  <option value="BLOCK">Blocking</option>
+                  <option value="REVIEW">Review</option>
+                  <option value="WARNING">Caution</option>
+                </select>
+              </label>
+              <label>Subject
+                <select id="subjectFilter">
+                  <option value="ALL">All subjects</option>
+                  <option>Physics</option>
+                  <option>Chemistry</option>
+                  <option>Mathematics</option>
+                  <option>Biology</option>
+                </select>
+              </label>
+              <label class="toggle-label"><input id="changedOnlyFilter" type="checkbox" /> Changed only</label>
+              <label class="toggle-label"><input id="unresolvedOnlyFilter" type="checkbox" /> Unresolved only</label>
+              <label class="toggle-label"><input id="assignedToMeFilter" type="checkbox" /> Assigned to me</label>
+              <button id="clearFiltersBtn" class="text-button">Clear filters</button>
+            </div>
+          </div>
+
+          <div id="rowList" class="row-list" role="list"></div>
+
+          <div class="browser-footer">
+            <div>Rows per page:
+              <select id="pageSizeSelect">
+                <option>25</option>
+                <option>50</option>
+              </select>
+            </div>
+            <div id="rangeLabel">1–25 of 120</div>
+            <div class="page-controls">
+              <button id="prevPageBtn">‹</button>
+              <button class="active">1</button>
+              <button id="nextPageBtn">›</button>
+            </div>
+          </div>
+        </aside>
+
+        <section class="editor-area">
+          <div class="editor-topbar">
+            <div class="editing-nav">
+              <span class="tiny-checkbox"></span>
+              <strong id="editingRow">Editing Row 2</strong>
+              <span id="editingOf">of 120</span>
+              <button id="prevQuestion" aria-label="Previous row">‹</button>
+              <button id="nextQuestion" aria-label="Next row">›</button>
+              <button id="nextUnresolvedBtn" class="text-action">Next unresolved</button>
+              <span id="draftState" class="draft-state saved">Saved</span>
+              <span id="localRecoveryState" class="recovery-state hidden">Recovery copy stored</span>
+            </div>
+
+            <div class="topbar-buttons">
+              <button id="sourceBtn">Source</button>
+              <button id="historyBtn">History</button>
+              <button id="previewBtn">Preview</button>
+              <button id="shortcutsBtn">⌨ Shortcuts</button>
+              <button id="undoBtn" class="icon-only" title="Undo">↶</button>
+              <button id="moreBtn" class="icon-only" title="More actions">⋯</button>
+              <button id="saveDraftBtn">▣ Save Draft</button>
+              <button id="saveValidateBtn" class="primary">▣ Save & Validate</button>
+            </div>
+
+            <div id="moreMenu" class="more-menu hidden">
+              <button id="simulateConflictBtn">Simulate version conflict</button>
+              <button id="simulateSaveFailureBtn">Simulate next save failure</button>
+              <button id="simulateValidationFailureBtn">Simulate next validation failure</button>
+              <button id="restoreRecoveryBtn">Restore local recovery copy</button>
+            </div>
+          </div>
+
+          <div id="globalMessage" class="global-message hidden" role="status" aria-live="polite"></div>
+          <div id="issueBanner" class="blocking-banner"></div>
+
+          <div class="editor-grid">
+            <div class="left-editor-column">
+              <section id="stemSection" class="panel question-stem-panel" data-section="stem">
+                <div class="panel-head">
+                  <div>
+                    <strong>Question Stem <em>*</em></strong>
+                    <span class="help-dot" title="Learner-facing question">?</span>
+                  </div>
+                  <div class="section-actions">
+                    <button id="compareStemBtn">Compare</button>
+                    <button id="insertStemBtn">Insert⌄</button>
+                  </div>
+                </div>
+                <div class="toolbar" data-editor="stemInput">
+                  <button data-wrap-left="**" data-wrap-right="**"><b>B</b></button>
+                  <button data-wrap-left="_" data-wrap-right="_"><i>I</i></button>
+                  <button data-wrap-left="$" data-wrap-right="$">Inline math</button>
+                  <button data-wrap-left="$$\n" data-wrap-right="\n$$">Display math</button>
+                  <button data-insert="\frac{a}{b}">½</button>
+                  <button data-insert="\sqrt{x}">√</button>
+                  <button data-insert="x^2">x²</button>
+                  <button data-insert="_n">xₙ</button>
+                  <button data-insert="\pm">±</button>
+                  <button data-insert="\theta">θ</button>
+                  <button data-insert="\infty">∞</button>
+                  <span class="tool-sep"></span>
+                  <button data-insert="![alt](asset-url)">▧ Asset</button>
+                  <span class="spacer"></span>
+                  <button id="stemSourceModeBtn" class="source-btn">Source</button>
+                </div>
+                <textarea id="stemInput" aria-label="Question stem"></textarea>
+                <div id="stemFieldMessage" class="field-message hidden"></div>
+                <div class="editor-meta">
+                  <span id="stemChars">chars: 0</span>
+                  <span id="stemMathState">Math <b class="toggle on">ON</b></span>
+                </div>
+              </section>
+
+              <section id="answerSection" class="panel question-type-panel" data-section="answer">
+                <div class="type-line">
+                  <strong>Question Type</strong>
+                  <select id="questionType"></select>
+                </div>
+                <div id="conversionNotice" class="conversion-notice hidden"></div>
+                <div class="options-title">
+                  <span id="answerSectionTitle">Options <em>*</em></span>
+                  <span class="help-dot">?</span>
+                </div>
+                <div id="answerEditor" class="options-editor"></div>
+              </section>
+
+              <section id="metadataSection" class="panel metadata-panel" data-section="metadata">
+                <div class="panel-head plain">
+                  <strong>Metadata & Scoring</strong>
+                  <button id="collapseMetadataBtn">Collapse</button>
+                </div>
+                <div id="metadataBody">
+                  <div class="meta-grid">
+                    <label>Subject <em>*</em><select id="subject"></select></label>
+                    <label>Chapter<input id="chapter" /></label>
+                    <label>Topic<input id="topic" /></label>
+                    <label>Marks <em>*</em><input id="marks" type="number" step="0.25" /></label>
+                    <label>Negative Marks<input id="negativeMarks" type="number" step="0.25" /></label>
+                    <label>Difficulty<select id="difficulty"><option>Easy</option><option>Medium</option><option>Hard</option></select></label>
+                    <label>Language<select id="language"><option>English</option><option>Hindi</option></select></label>
+                    <label>Time Limit (sec)<input id="timeLimit" type="number" /></label>
+                    <label>Reviewer<select id="reviewer"><option>Unassigned</option><option>Me</option><option>Priya Sharma</option></select></label>
+                  </div>
+                  <div class="meta-grid bottom">
+                    <label class="wide">Tags<input id="tags" /></label>
+                    <label class="wide">Question ID
+                      <div class="copy-field">
+                        <input id="questionId" />
+                        <button id="copyId">▣</button>
+                      </div>
+                    </label>
+                    <label>Status<select id="statusSelect"></select></label>
+                  </div>
+                </div>
+                <div class="last-updated" id="lastUpdated">Last updated: —</div>
+              </section>
+            </div>
+
+            <div class="right-editor-column">
+              <section class="panel preview-panel">
+                <div class="preview-tabs">
+                  <button class="active" data-preview-tab="GENERIC">Preview</button>
+                  <button data-preview-tab="CANVAS">Canvas</button>
+                  <button data-preview-tab="MOODLE">Moodle</button>
+                  <button id="openPreviewDrawerBtn" class="expand-btn">↗</button>
+                </div>
+                <div id="compatibilityWarning" class="compatibility-warning hidden"></div>
+                <div id="questionPreview" class="question-preview"></div>
+              </section>
+
+              <section id="explanationSection" class="panel explanation-panel" data-section="explanation">
+                <div class="panel-head plain">
+                  <strong>Explanation</strong>
+                  <button id="compareExplanationBtn">Compare</button>
+                </div>
+                <div class="toolbar" data-editor="explanationInput">
+                  <button data-wrap-left="**" data-wrap-right="**"><b>B</b></button>
+                  <button data-wrap-left="_" data-wrap-right="_"><i>I</i></button>
+                  <button data-wrap-left="$" data-wrap-right="$">Inline math</button>
+                  <button data-wrap-left="$$\n" data-wrap-right="\n$$">Display math</button>
+                  <button data-insert="\frac{a}{b}">½</button>
+                  <button data-insert="\sqrt{x}">√</button>
+                  <button data-insert="![alt](asset-url)">▧ Asset</button>
+                  <span class="spacer"></span>
+                  <button class="source-btn">Source</button>
+                </div>
+                <textarea id="explanationInput" aria-label="Explanation"></textarea>
+                <div id="explanationFieldMessage" class="field-message hidden"></div>
+                <div class="editor-meta">
+                  <span id="explanationChars">chars: 0</span>
+                  <span>Math <b class="toggle on">ON</b></span>
+                </div>
+              </section>
+
+              <section id="mediaSection" class="panel media-panel" data-section="media">
+                <div class="panel-head plain">
+                  <div>
+                    <strong>Attached Media</strong>
+                    <small>Images, diagrams, graphs and equation assets</small>
+                  </div>
+                  <button id="addAssetBtn">+ Add asset</button>
+                </div>
+                <div id="mediaRequirementWarning" class="media-warning hidden">
+                  <span><strong>Image required.</strong> Attach an asset or remove the requirement.</span>
+                  <div>
+                    <button id="mediaWarningAddBtn">Add asset</button>
+                    <button id="removeImageRequirementBtn" class="danger-link">Remove requirement</button>
+                  </div>
+                </div>
+                <div class="media-body">
+                  <div class="media-actions">
+                    <label>
+                      <input id="fileUpload" type="file" accept="image/*" hidden />
+                      <span>⇧</span><small>Upload</small>
+                    </label>
+                    <button id="urlMediaBtn"><span>🔗</span><small>From URL</small></button>
+                    <button id="libraryBtn"><span>▣</span><small>Media Library</small></button>
+                  </div>
+                  <div id="mediaGrid" class="media-grid"></div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <footer class="shortcut-bar">
+            <div><kbd>J</kbd>/<kbd>↓</kbd><span>Next Row</span></div>
+            <div><kbd>K</kbd>/<kbd>↑</kbd><span>Previous Row</span></div>
+            <div><kbd>Shift</kbd>+<kbd>J</kbd><span>Next Unresolved</span></div>
+            <div><kbd>Alt</kbd>+<kbd>Enter</kbd><span>Save & Next</span></div>
+            <div><kbd>Ctrl</kbd>+<kbd>S</kbd><span>Save Draft</span></div>
+            <div><kbd>Ctrl</kbd>+<kbd>Enter</kbd><span>Save & Validate</span></div>
+            <div><kbd>?</kbd><span>Shortcuts</span></div>
+          </footer>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="issueDetailPopover" class="issue-detail-popover hidden" role="dialog" aria-modal="false"></div>
+
+  <div id="sourceDrawer" class="drawer hidden">
+    <div class="drawer-backdrop" data-close-drawer></div>
+    <aside class="drawer-panel">
+      <header class="drawer-head">
+        <div><small>Data lineage</small><h2>Source Comparison</h2></div>
+        <button data-close-drawer>×</button>
+      </header>
+      <div class="drawer-tabs">
+        <button class="active" data-source-tab="RAW">Original spreadsheet</button>
+        <button data-source-tab="CANONICAL">Normalized</button>
+        <button data-source-tab="CURRENT">Current draft</button>
+      </div>
+      <pre id="sourceContent" class="source-content"></pre>
+    </aside>
+  </div>
+
+  <div id="historyDrawer" class="drawer hidden">
+    <div class="drawer-backdrop" data-close-drawer></div>
+    <aside class="drawer-panel">
+      <header class="drawer-head">
+        <div><small>Audit trail</small><h2>Question History</h2></div>
+        <button data-close-drawer>×</button>
+      </header>
+      <div id="historyContent" class="history-content"></div>
+    </aside>
+  </div>
+
+  <div id="previewDrawer" class="drawer hidden">
+    <div class="drawer-backdrop" data-close-drawer></div>
+    <aside class="drawer-panel preview-drawer-panel">
+      <header class="drawer-head">
+        <div><small>Learner view</small><h2>Question Preview</h2></div>
+        <button data-close-drawer>×</button>
+      </header>
+      <div id="previewDrawerContent" class="preview-drawer-content"></div>
+    </aside>
+  </div>
+
+  <div id="assetModal" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card asset-modal-card">
+      <header class="modal-head">
+        <div><small>Attach media</small><h2>Add Asset</h2></div>
+        <button data-close-modal>×</button>
+      </header>
+      <div class="modal-tabs">
+        <button class="active" data-asset-tab="UPLOAD">Upload</button>
+        <button data-asset-tab="URL">URL</button>
+        <button data-asset-tab="LIBRARY">Asset Library</button>
+      </div>
+      <div class="modal-body">
+        <div class="asset-tab-panel active" data-asset-panel="UPLOAD">
+          <label id="dropzone" class="dropzone">
+            <input id="modalFileUpload" type="file" accept="image/*" hidden />
+            <strong>Drop an image here or browse</strong>
+            <span>PNG, JPG, WEBP or sanitized SVG up to 10 MB</span>
+          </label>
+        </div>
+        <div class="asset-tab-panel" data-asset-panel="URL">
+          <label>HTTPS image URL<input id="assetUrlInput" placeholder="https://example.com/image.png" /></label>
+          <button id="addUrlAssetBtn" class="primary full">Add URL asset</button>
+        </div>
+        <div class="asset-tab-panel" data-asset-panel="LIBRARY">
+          <div id="assetLibraryGrid" class="asset-library-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="conversionModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <header class="modal-head"><h2>Change question type?</h2></header>
+      <div class="modal-body">
+        <p id="conversionImpactText"></p>
+        <div class="modal-actions">
+          <button id="cancelConversionBtn">Cancel</button>
+          <button id="preserveInactiveBtn">Preserve as inactive data</button>
+          <button id="convertRemoveBtn" class="danger-button">Convert and remove</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="conflictModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card conflict-card">
+      <header class="modal-head">
+        <div><small>Concurrent edit detected</small><h2>This question has changed</h2></div>
+      </header>
+      <div class="modal-body">
+        <p id="conflictSummary"></p>
+        <div class="diff-grid">
+          <div><strong>Your draft</strong><pre id="yourDiff"></pre></div>
+          <div><strong>Latest server version</strong><pre id="serverDiff"></pre></div>
+        </div>
+        <div class="modal-actions">
+          <button id="keepDraftBtn">Keep my draft</button>
+          <button id="reloadLatestBtn">Reload latest</button>
+          <button id="mergeConflictBtn" class="primary">Use my changes on latest</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="shortcutsModal" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card shortcut-card">
+      <header class="modal-head"><h2>Keyboard Shortcuts</h2><button data-close-modal>×</button></header>
+      <div class="shortcut-list">
+        <p><kbd>Ctrl/Cmd + S</kbd><span>Save draft</span></p>
+        <p><kbd>Ctrl + Enter</kbd><span>Save & Validate</span></p>
+        <p><kbd>Alt + Enter</kbd><span>Save & next unresolved</span></p>
+        <p><kbd>J / ↓</kbd><span>Next row</span></p>
+        <p><kbd>K / ↑</kbd><span>Previous row</span></p>
+        <p><kbd>Shift + J</kbd><span>Next unresolved</span></p>
+        <p><kbd>Shift + K</kbd><span>Previous unresolved</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="liveRegion" class="sr-only" role="status" aria-live="polite"></div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script>
+const SUBJECTS = ["Physics","Chemistry","Mathematics","Biology"];
+const TYPES = [
+  {value:"MCQ",label:"MCQ (Single Correct)"},
+  {value:"MSQ",label:"MSQ (Multiple Correct)"},
+  {value:"TEXT_ENTRY",label:"Text Entry"},
+  {value:"ORDER",label:"Order"},
+  {value:"UNSUPPORTED",label:"Unsupported / Unknown"}
+];
+
+const ISSUE_MAP = {
+  REQUIRED_MEDIA_MISSING: {section:"mediaSection", severity:"BLOCK", field:"assets", category:"Media", action:"Attach an asset or remove the requirement."},
+  MISSING_CORRECT_ANSWER: {section:"answerSection", severity:"BLOCK", field:"correctAnswer", category:"Answer", action:"Select exactly one correct option."},
+  AT_LEAST_ONE_CORRECT: {section:"answerSection", severity:"REVIEW", field:"correctAnswers", category:"Answer", action:"Select at least one correct option."},
+  OPTION_TEXT_DUPLICATE: {section:"answerSection", severity:"REVIEW", field:"options", category:"Answer", action:"Make every option text unique."},
+  MALFORMED_LATEX_DELIMITER: {section:"stemSection", severity:"BLOCK", field:"stem", category:"Math/LaTeX", action:"Close or replace the malformed delimiter."},
+  NUMERIC_TOLERANCE_MISSING: {section:"answerSection", severity:"REVIEW", field:"tolerance", category:"Answer", action:"Define an exact-match or tolerance policy."},
+  UNIT_EMBEDDED_IN_NUMERIC_ANSWER: {section:"answerSection", severity:"BLOCK", field:"acceptedAnswers", category:"Answer", action:"Move the unit into the Unit field."},
+  WRONG_SUBJECT_TAG: {section:"metadataSection", severity:"REVIEW", field:"subject", category:"Metadata", action:"Select the subject matching the chapter taxonomy."},
+  EXPLANATION_RESULT_MISMATCH: {section:"explanationSection", severity:"BLOCK", field:"explanation", category:"Explanation", action:"Align the explanation result with the structured answer."},
+  UNSUPPORTED_TYPE_FOR_TARGET_EXPORT: {section:"answerSection", severity:"BLOCK", field:"type", category:"Compatibility", action:"Change the type or select a compatible export profile."}
+};
+
+const ASSET_LIBRARY = [
+  {name:"projectile-trajectory.png",url:"https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=700&q=80"},
+  {name:"coordinate-graph.png",url:"https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=700&q=80"},
+  {name:"laboratory-diagram.png",url:"https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=700&q=80"}
+];
+
+function makeQuestion(index){
+  const row=index+2;
+  const seed=index%10;
+  const base={
+    row,
+    id:`JEE26-${["PHY","CHE","MAT"][index%3]}-${String(index+1).padStart(3,"0")}`,
+    type:["MCQ","MSQ","TEXT_ENTRY","MCQ","ORDER","MCQ","TEXT_ENTRY","UNSUPPORTED","MCQ","MSQ"][seed],
+    status:["REJECTED","NEEDS_REVIEW","VALID","CAUTION","NEEDS_REVIEW","VALID","REJECTED","REJECTED","VALID","NEEDS_REVIEW"][seed],
+    subject:SUBJECTS[index%SUBJECTS.length],
+    chapter:["Mechanics","Thermodynamics","Integrals","Cell Biology"][index%4],
+    topic:["Core Concepts","Applications","Problem Solving"][index%3],
+    difficulty:["Easy","Medium","Hard"][index%3],
+    language:"English",
+    marks:4,
+    negativeMarks:1,
+    timeLimit:90,
+    tags:["jee","assessment"],
+    reviewer:index%4===0?"Me":"Unassigned",
+    assignedToMe:index%4===0,
+    stem:[
+      "What is the value of $\\int x^2\\,dx$?",
+      "Select all correct statements about Newton's laws.",
+      "Enter the acceleration due to gravity near Earth's surface.",
+      "Which option best describes the periodic trend?",
+      "Arrange the following steps in the correct sequence."
+    ][seed%5],
+    explanation:"Use the relevant concept and show the essential derivation. Final answer: B.",
+    options:[
+      {id:"A",text:"$x^3+C$"},
+      {id:"B",text:"$\\frac{x^3}{3}+C$"},
+      {id:"C",text:"$\\frac{x^3}{3}-C$"},
+      {id:"D",text:"$3x^2+C$"}
+    ],
+    correctAnswers:seed===0?[]:["B"],
+    textMode:"Numeric",
+    acceptedAnswers:seed===2?["9.8"]:[],
+    tolerance:seed===2?"0.1":"",
+    unit:seed===2?"m/s²":"",
+    caseSensitive:false,
+    trimWhitespace:true,
+    orderItems:["Identify data","Choose formula","Substitute values","Verify result"],
+    imageRequired:seed===0||seed===6,
+    assets:seed===3?[{name:"diagram.png",url:ASSET_LIBRARY[1].url,role:"Question stem",alt:"Coordinate graph"}]:[],
+    inactiveData:{},
+    raw:{Question_Type:"SCQ",Question_Stem:"What is the value of ∫ x² dx ?",Correct_Answer:"",Image_Required:"Yes"},
+    canonical:{type:"MCQ",stem:"What is the value of $\\int x^2\\,dx$?",correctAnswers:[]},
+    version:1,
+    updatedAt:"2 minutes ago",
+    updatedBy:"A. Das",
+    changed:index%7===0,
+    history:[
+      {time:"3:42 PM",user:"A. Das",action:"Question opened for manual review",fields:[]},
+      {time:"3:35 PM",user:"Import Engine",action:"Canonical question created from spreadsheet",fields:["type","stem","options"]}
+    ]
+  };
+  base.issues=deriveInitialIssues(base,seed);
+  return base;
+}
+
+function deriveInitialIssues(q,seed){
+  const issues=[];
+  if(q.imageRequired&&!q.assets.length)issues.push(issue("REQUIRED_MEDIA_MISSING","Image is required but no asset is attached."));
+  if(q.type==="MCQ"&&!q.correctAnswers.length)issues.push(issue("MISSING_CORRECT_ANSWER","No correct option is selected."));
+  if(q.type==="MSQ"&&!q.correctAnswers.length)issues.push(issue("AT_LEAST_ONE_CORRECT","Select at least one correct option."));
+  if(seed===1)issues.push(issue("OPTION_TEXT_DUPLICATE","Two options normalize to the same text."));
+  if(seed===6)issues.push(issue("MALFORMED_LATEX_DELIMITER","The question stem contains an unclosed math delimiter."));
+  if(q.type==="UNSUPPORTED")issues.push(issue("UNSUPPORTED_TYPE_FOR_TARGET_EXPORT","This question type is unsupported by the selected export profile."));
+  if(q.type==="TEXT_ENTRY"&&q.textMode==="Numeric"&&!q.tolerance)issues.push(issue("NUMERIC_TOLERANCE_MISSING","No tolerance or exact-match rounding policy is defined."));
+  return issues;
+}
+function issue(code,message){
+  const meta=ISSUE_MAP[code]||{section:"metadataSection",severity:"REVIEW",field:"unknown",category:"Other",action:"Review the affected value."};
+  return {code,message,...meta,evidence:{currentValue:"See field",required:"Valid value"}};
+}
+
+const questions=Array.from({length:120},(_,i)=>makeQuestion(i));
+let selectedIndex=0;
+let activeFilter="ALL";
+let currentPage=1;
+let pageSize=25;
+let draft=null;
+let savedSnapshot=null;
+let dirty=false;
+let currentPreviewProfile="GENERIC";
+let activeSourceTab="RAW";
+let simulateSaveFailure=false;
+let simulateValidationFailure=false;
+let simulatedServerVersion=null;
+let pendingTypeChange=null;
+let localRecoveryTimer=null;
+
+const $=id=>document.getElementById(id);
+const clone=obj=>JSON.parse(JSON.stringify(obj));
+
+function currentQuestion(){return questions[selectedIndex]}
+function storageKey(){return `assessmentcore:manual-fix:${currentQuestion().id}`}
+
+function setDraftState(state,text){
+  const node=$("draftState");
+  node.className=`draft-state ${state}`;
+  node.textContent=text;
+}
+function announce(message){
+  $("liveRegion").textContent=message;
+}
+function toast(message,type=""){
+  const node=document.createElement("div");
+  node.className=`toast ${type}`;
+  node.textContent=message;
+  $("toastContainer").appendChild(node);
+  announce(message);
+  setTimeout(()=>node.remove(),3200);
+}
+function showGlobal(message,type=""){
+  const node=$("globalMessage");
+  node.textContent=message;
+  node.className=`global-message ${type}`.trim();
+  node.classList.remove("hidden");
+}
+function hideGlobal(){$("globalMessage").classList.add("hidden")}
+
+function sanitizeText(value=""){
+  return value.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+function renderMarkup(value=""){
+  return sanitizeText(value)
+    .replace(/\n/g,"<br>")
+    .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
+    .replace(/_(.*?)_/g,"<em>$1</em>")
+    .replace(/!\[(.*?)\]\((https:\/\/.*?)\)/g,'<img class="preview-media" src="$2" alt="$1">');
+}
+function typeset(root){
+  if(window.MathJax?.typesetPromise){
+    window.MathJax.typesetClear?.([root]);
+    window.MathJax.typesetPromise([root]).catch(()=>{});
+  }
+}
+
+function statusClass(status){
+  return status==="REJECTED"?"rejected":status==="NEEDS_REVIEW"?"review":status==="CAUTION"?"caution":"valid";
+}
+function severityClass(sev){
+  return sev==="BLOCK"?"":sev==="REVIEW"?"orange":"yellow";
+}
+
+function updateCounts(){
+  const counts={
+    ALL:questions.length,
+    REJECTED:questions.filter(q=>q.status==="REJECTED").length,
+    NEEDS_REVIEW:questions.filter(q=>q.status==="NEEDS_REVIEW").length,
+    CAUTION:questions.filter(q=>q.status==="CAUTION").length,
+    VALID:questions.filter(q=>q.status==="VALID").length
+  };
+  $("allCount").textContent=counts.ALL;
+  $("rejectedCount").textContent=counts.REJECTED;
+  $("reviewCount").textContent=counts.NEEDS_REVIEW;
+  $("cautionCount").textContent=counts.CAUTION;
+  $("validCount").textContent=counts.VALID;
+  const reviewed=counts.VALID+counts.CAUTION;
+  $("reviewedCount").textContent=reviewed;
+  $("remainingCount").textContent=questions.length-reviewed;
+  $("progressBar").style.width=`${Math.round(reviewed/questions.length*100)}%`;
+}
+
+function getFilteredQuestions(){
+  const term=$("searchRows").value.trim().toLowerCase();
+  const type=$("typeFilter").value;
+  const severity=$("severityFilter").value;
+  const subject=$("subjectFilter").value;
+  const changedOnly=$("changedOnlyFilter").checked;
+  const unresolvedOnly=$("unresolvedOnlyFilter").checked;
+  const assignedToMe=$("assignedToMeFilter").checked;
+
+  let data=questions.filter(q=>{
+    const hay=[q.id,q.stem,q.subject,q.chapter,q.topic,...q.issues.map(i=>`${i.code} ${i.message}`)].join(" ").toLowerCase();
+    return (activeFilter==="ALL"||q.status===activeFilter)
+      &&(!term||hay.includes(term))
+      &&(type==="ALL"||q.type===type)
+      &&(severity==="ALL"||q.issues.some(i=>i.severity===severity))
+      &&(subject==="ALL"||q.subject===subject)
+      &&(!changedOnly||q.changed)
+      &&(!unresolvedOnly||q.status!=="VALID")
+      &&(!assignedToMe||q.assignedToMe);
+  });
+  const sort=$("sortSelect").value;
+  if(sort==="STATUS")data=data.sort((a,b)=>a.status.localeCompare(b.status));
+  if(sort==="UPDATED")data=data.sort((a,b)=>Number(b.changed)-Number(a.changed));
+  return data;
+}
+
+function renderRows(){
+  updateCounts();
+  const filtered=getFilteredQuestions();
+  const start=(currentPage-1)*pageSize;
+  const page=filtered.slice(start,start+pageSize);
+  $("rowList").innerHTML=page.map(q=>{
+    const idx=questions.indexOf(q);
+    return `<article class="row-card ${statusClass(q.status)} ${idx===selectedIndex?"active":""} ${idx===selectedIndex&&dirty?"dirty":""}" data-index="${idx}" role="listitem" tabindex="0">
+      <div class="row-card-top">
+        <div class="row-card-left">
+          <span class="row-check"></span>
+          <span class="row-number">Row ${q.row}</span>
+          ${idx===selectedIndex&&dirty?'<span class="dirty-dot" title="Unsaved changes">●</span>':""}
+        </div>
+        <div class="row-badges">
+          <span class="badge ${statusClass(q.status)}">${q.status.replace("_"," ")}</span>
+          <span class="badge ${q.type==="UNSUPPORTED"?"unsupported":"type"}">${q.type}</span>
+        </div>
+      </div>
+      <div class="row-stem">${sanitizeText(q.stem)}</div>
+      <div class="row-meta">${q.subject} · ${q.chapter} · v${q.version}</div>
+      <div class="issue-row">
+        ${q.issues.slice(0,2).map(i=>`<span class="issue-tag ${severityClass(i.severity)}">${i.code}</span>`).join("")}
+        ${q.issues.length>2?`<span class="issue-tag more">+${q.issues.length-2}</span>`:""}
+      </div>
+    </article>`;
+  }).join("");
+  $("rangeLabel").textContent=filtered.length?`${start+1}–${Math.min(start+pageSize,filtered.length)} of ${filtered.length}`:"0 results";
+  document.querySelectorAll(".row-card").forEach(card=>{
+    const choose=()=>selectQuestion(Number(card.dataset.index));
+    card.addEventListener("click",choose);
+    card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();choose()}});
+  });
+}
+
+function selectQuestion(index){
+  if(index===selectedIndex)return;
+  if(dirty&&!confirm("This row has unsaved changes. Discard them and switch rows?"))return;
+  selectedIndex=index;
+  loadQuestion();
+  renderRows();
+}
+
+function loadQuestion(){
+  const q=currentQuestion();
+  draft=clone(q);
+  savedSnapshot=clone(q);
+  dirty=false;
+  pendingTypeChange=null;
+  hideGlobal();
+  $("editingRow").textContent=`Editing Row ${q.row}`;
+  $("editingOf").textContent=`of ${questions.length}`;
+  $("stemInput").value=draft.stem;
+  $("explanationInput").value=draft.explanation;
+  populateTypeSelect();
+  populateSubjectSelect();
+  $("questionType").value=draft.type;
+  $("subject").value=draft.subject;
+  $("chapter").value=draft.chapter;
+  $("topic").value=draft.topic;
+  $("marks").value=draft.marks;
+  $("negativeMarks").value=draft.negativeMarks;
+  $("difficulty").value=draft.difficulty;
+  $("language").value=draft.language;
+  $("timeLimit").value=draft.timeLimit;
+  $("reviewer").value=draft.reviewer;
+  $("tags").value=draft.tags.join(", ");
+  $("questionId").value=draft.id;
+  populateStatusSelect();
+  $("statusSelect").value=draft.status;
+  $("lastUpdated").textContent=`Last updated: ${draft.updatedAt} by ${draft.updatedBy} · Version ${draft.version}`;
+  renderIssueBanner();
+  renderAnswerEditor();
+  renderMedia();
+  renderPreview();
+  renderHistory();
+  updateEditorMeta();
+  setDraftState("saved","Saved");
+  $("localRecoveryState").classList.toggle("hidden",!localStorage.getItem(storageKey()));
+  applyPermissions();
+}
+
+function populateTypeSelect(){
+  $("questionType").innerHTML=TYPES.map(t=>`<option value="${t.value}">${t.label}</option>`).join("");
+}
+function populateSubjectSelect(){
+  $("subject").innerHTML=SUBJECTS.map(s=>`<option>${s}</option>`).join("");
+}
+function populateStatusSelect(){
+  $("statusSelect").innerHTML=["REJECTED","NEEDS_REVIEW","CAUTION","VALID"].map(s=>`<option>${s}</option>`).join("");
+}
+
+function renderIssueBanner(){
+  const issues=draft.issues;
+  if(!issues.length){
+    $("issueBanner").innerHTML=`<div class="banner-title"><strong style="color:#087a47">✓ No unresolved validation issues.</strong></div>`;
+    $("issueBanner").style.borderColor="#a7dfc2";
+    $("issueBanner").style.background="#eefbf5";
+    return;
+  }
+  $("issueBanner").style.borderColor="#ffaaa6";
+  $("issueBanner").style.background="linear-gradient(90deg,#fff4f3,#fff1f0)";
+  const blocks=issues.filter(i=>i.severity==="BLOCK").length;
+  $("issueBanner").innerHTML=`
+    <div class="banner-title">
+      <span class="alert-icon">!</span>
+      <strong>${blocks} blocking issue(s)</strong>
+      <span>${blocks?"must be resolved before export.":"require review."}</span>
+    </div>
+    <div class="banner-tags">
+      ${issues.map(i=>`<button class="${i.severity==="REVIEW"?"review":i.severity==="WARNING"?"warning":""}" data-issue-code="${i.code}">${i.code}</button>`).join("")}
+    </div>`;
+  document.querySelectorAll("[data-issue-code]").forEach(btn=>{
+    btn.addEventListener("click",e=>showIssueDetail(e,btn.dataset.issueCode));
+  });
+}
+
+function showIssueDetail(event,code){
+  const issue=draft.issues.find(i=>i.code===code);
+  if(!issue)return;
+  highlightSection(issue);
+  const pop=$("issueDetailPopover");
+  pop.innerHTML=`
+    <h3>${issue.code}</h3>
+    <dl>
+      <dt>Severity</dt><dd>${issue.severity}</dd>
+      <dt>Affected field</dt><dd>${issue.field}</dd>
+      <dt>Message</dt><dd>${issue.message}</dd>
+      <dt>Suggested action</dt><dd>${issue.action}</dd>
+      <dt>Current value</dt><dd>${issue.evidence?.currentValue||"—"}</dd>
+    </dl>`;
+  const rect=event.currentTarget.getBoundingClientRect();
+  pop.style.left=`${Math.min(rect.left,window.innerWidth-350)}px`;
+  pop.style.top=`${rect.bottom+7}px`;
+  pop.classList.remove("hidden");
+  setTimeout(()=>document.addEventListener("click",hideIssueDetail,{once:true}),0);
+}
+function hideIssueDetail(e){
+  if(e?.target?.closest("#issueDetailPopover"))return;
+  $("issueDetailPopover").classList.add("hidden");
+}
+function highlightSection(issue){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("highlight-block","highlight-review","highlight-warning"));
+  const node=$(issue.section);
+  const cls=issue.severity==="BLOCK"?"highlight-block":issue.severity==="REVIEW"?"highlight-review":"highlight-warning";
+  node?.classList.add(cls);
+  setTimeout(()=>node?.classList.remove(cls),2000);
+}
+
+function renderAnswerEditor(){
+  $("answerSectionTitle").textContent=draft.type==="TEXT_ENTRY"?"Accepted Answers":draft.type==="ORDER"?"Sequence Items":draft.type==="UNSUPPORTED"?"Unsupported Type":"Options";
+  if(draft.type==="MCQ"||draft.type==="MSQ")renderChoiceEditor();
+  else if(draft.type==="TEXT_ENTRY")renderTextEntryEditor();
+  else if(draft.type==="ORDER")renderOrderEditor();
+  else renderUnsupportedEditor();
+}
+
+function renderChoiceEditor(){
+  const multiple=draft.type==="MSQ";
+  $("answerEditor").innerHTML=`
+    <div class="option-table-head"><span>#</span><span></span><span>Option Text</span><span>Is Correct</span><span>Actions</span></div>
+    ${draft.options.map((o,i)=>{
+      const duplicate=draft.options.some((other,j)=>j!==i&&other.text.trim()&&other.text.trim().toLowerCase()===o.text.trim().toLowerCase());
+      return `<div class="option-row" data-option-index="${i}">
+        <span class="drag">⠿</span><span>${o.id}</span>
+        <input class="option-text" value="${sanitizeText(o.text)}" />
+        <span class="correct-cell"><input class="correct-input" type="${multiple?"checkbox":"radio"}" name="correctOption" ${draft.correctAnswers.includes(o.id)?"checked":""}></span>
+        <button class="delete-option" title="Delete option">⌫</button>
+        ${duplicate?'<span class="inline-error">Duplicate option text.</span>':""}
+      </div>`;
+    }).join("")}
+    <button id="addOptionBtn" class="add-option">＋ Add Option</button>
+    <div class="correct-answer-row">
+      <strong>${multiple?"Correct Answers":"Correct Answer"}</strong>
+      <select id="correctAnswerSelect">
+        ${multiple?`<option>${draft.correctAnswers.join(", ")||"None selected"}</option>`:`<option value="">Select</option>${draft.options.map(o=>`<option value="${o.id}" ${draft.correctAnswers[0]===o.id?"selected":""}>${o.id}</option>`).join("")}`}
+      </select>
+    </div>`;
+
+  document.querySelectorAll("[data-option-index]").forEach(row=>{
+    const idx=Number(row.dataset.optionIndex);
+    row.querySelector(".option-text").addEventListener("input",e=>{
+      draft.options[idx].text=e.target.value;markDirty();renderPreview();
+    });
+    row.querySelector(".correct-input").addEventListener("change",e=>{
+      const id=draft.options[idx].id;
+      if(multiple){
+        const set=new Set(draft.correctAnswers);
+        e.target.checked?set.add(id):set.delete(id);
+        draft.correctAnswers=[...set];
+      }else draft.correctAnswers=[id];
+      markDirty();renderAnswerEditor();renderPreview();
+    });
+    row.querySelector(".delete-option").addEventListener("click",()=>{
+      if(draft.options.length<=2)return toast("At least two options are required.","error");
+      const removed=draft.options[idx].id;
+      draft.options.splice(idx,1);
+      draft.correctAnswers=draft.correctAnswers.filter(x=>x!==removed);
+      relabelOptions();
+      markDirty();renderAnswerEditor();renderPreview();
+    });
+  });
+  $("addOptionBtn").addEventListener("click",()=>{
+    draft.options.push({id:String.fromCharCode(65+draft.options.length),text:""});
+    markDirty();renderAnswerEditor();
+  });
+  if(!multiple)$("correctAnswerSelect").addEventListener("change",e=>{
+    draft.correctAnswers=e.target.value?[e.target.value]:[];
+    markDirty();renderAnswerEditor();renderPreview();
+  });
+}
+
+function relabelOptions(){
+  const old={};
+  draft.options.forEach((o,i)=>{old[o.id]=String.fromCharCode(65+i);o.id=String.fromCharCode(65+i)});
+  draft.correctAnswers=draft.correctAnswers.map(id=>old[id]).filter(Boolean);
+}
+
+function renderTextEntryEditor(){
+  $("answerEditor").innerHTML=`
+    <div class="text-entry-editor">
+      <div class="mode-tabs">
+        ${["Text","Numeric","Formula"].map(m=>`<button class="${draft.textMode===m?"active":""}" data-text-mode="${m}">${m}</button>`).join("")}
+      </div>
+      <label>Accepted answers
+        <div class="answer-tags">
+          ${draft.acceptedAnswers.map((a,i)=>`<span class="answer-tag">${sanitizeText(a)}<button data-remove-answer="${i}">×</button></span>`).join("")}
+          <button id="addAcceptedAnswerBtn">+ Add answer</button>
+        </div>
+      </label>
+      <div class="small-grid">
+        <label>Tolerance<input id="toleranceInput" value="${sanitizeText(draft.tolerance)}" ${draft.textMode!=="Numeric"?"disabled":""}></label>
+        <label>Unit<input id="unitInput" value="${sanitizeText(draft.unit)}" ${draft.textMode!=="Numeric"?"disabled":""}></label>
+        <label>Rounding policy<select id="roundingPolicy" ${draft.textMode!=="Numeric"?"disabled":""}><option>Exact</option><option>Decimal places</option><option>Significant figures</option></select></label>
+      </div>
+      <div class="checkbox-line">
+        <label><input id="caseSensitiveInput" type="checkbox" ${draft.caseSensitive?"checked":""}> Case-sensitive</label>
+        <label><input id="trimWhitespaceInput" type="checkbox" ${draft.trimWhitespace?"checked":""}> Trim whitespace</label>
+      </div>
+    </div>`;
+  document.querySelectorAll("[data-text-mode]").forEach(btn=>btn.addEventListener("click",()=>{
+    draft.textMode=btn.dataset.textMode;markDirty();renderAnswerEditor();
+  }));
+  document.querySelectorAll("[data-remove-answer]").forEach(btn=>btn.addEventListener("click",()=>{
+    draft.acceptedAnswers.splice(Number(btn.dataset.removeAnswer),1);markDirty();renderAnswerEditor();renderPreview();
+  }));
+  $("addAcceptedAnswerBtn").addEventListener("click",()=>{
+    const value=prompt("Enter an accepted answer:");
+    if(value?.trim()){draft.acceptedAnswers.push(value.trim());markDirty();renderAnswerEditor();renderPreview()}
+  });
+  $("toleranceInput").addEventListener("input",e=>{draft.tolerance=e.target.value;markDirty()});
+  $("unitInput").addEventListener("input",e=>{draft.unit=e.target.value;markDirty()});
+  $("caseSensitiveInput").addEventListener("change",e=>{draft.caseSensitive=e.target.checked;markDirty()});
+  $("trimWhitespaceInput").addEventListener("change",e=>{draft.trimWhitespace=e.target.checked;markDirty()});
+}
+
+function renderOrderEditor(){
+  $("answerEditor").innerHTML=`<div class="order-editor">
+    ${draft.orderItems.map((item,i)=>`<div class="order-item" data-order-index="${i}">
+      <span>${i+1}</span><input value="${sanitizeText(item)}"><button>${i?"↑ ":""}${i<draft.orderItems.length-1?"↓":""}</button>
+    </div>`).join("")}
+    <button id="addOrderItemBtn" class="add-option">+ Add sequence item</button>
+  </div>`;
+  document.querySelectorAll("[data-order-index]").forEach(row=>{
+    const idx=Number(row.dataset.orderIndex);
+    row.querySelector("input").addEventListener("input",e=>{draft.orderItems[idx]=e.target.value;markDirty();renderPreview()});
+    row.querySelector("button").addEventListener("click",()=>{
+      if(idx<draft.orderItems.length-1){
+        [draft.orderItems[idx],draft.orderItems[idx+1]]=[draft.orderItems[idx+1],draft.orderItems[idx]];
+      }else if(idx>0){
+        [draft.orderItems[idx],draft.orderItems[idx-1]]=[draft.orderItems[idx-1],draft.orderItems[idx]];
+      }
+      markDirty();renderAnswerEditor();renderPreview();
+    });
+  });
+  $("addOrderItemBtn").addEventListener("click",()=>{draft.orderItems.push("");markDirty();renderAnswerEditor()});
+}
+
+function renderUnsupportedEditor(){
+  $("answerEditor").innerHTML=`<div class="unsupported-editor">
+    <strong>Unsupported question type</strong>
+    <p>This row cannot be edited with a specialized editor. Inspect the raw fields, change the type, or exclude the row.</p>
+    <pre>${sanitizeText(JSON.stringify(draft.raw,null,2))}</pre>
+    <div class="unsupported-actions">
+      <button id="inspectRawUnsupportedBtn">Inspect raw fields</button>
+      <button id="excludeRowBtn">Exclude row</button>
+    </div>
+  </div>`;
+  $("inspectRawUnsupportedBtn").addEventListener("click",openSourceDrawer);
+  $("excludeRowBtn").addEventListener("click",()=>{
+    showGlobal("Row excluded from export. This prototype keeps it visible for audit.","warning");
+  });
+}
+
+function renderMedia(){
+  $("mediaRequirementWarning").classList.toggle("hidden",!(draft.imageRequired&&!draft.assets.length));
+  $("mediaGrid").innerHTML=draft.assets.map((a,i)=>`<article class="media-card" data-media-index="${i}">
+    <div class="media-thumb"><img src="${a.url}" alt="${sanitizeText(a.alt||a.name)}"><button data-delete-media="${i}">×</button></div>
+    <div class="media-card-body">
+      <strong title="${sanitizeText(a.name)}">${sanitizeText(a.name)}</strong>
+      <select data-media-role="${i}"><option ${a.role==="Question stem"?"selected":""}>Question stem</option><option ${a.role==="Explanation"?"selected":""}>Explanation</option></select>
+      <input data-media-alt="${i}" value="${sanitizeText(a.alt||"")}" placeholder="Alt text">
+      <div class="media-card-actions"><button data-insert-media="${i}">Insert</button><button data-replace-media="${i}">Replace</button></div>
+    </div>
+  </article>`).join("");
+  document.querySelectorAll("[data-delete-media]").forEach(btn=>btn.addEventListener("click",()=>{
+    const idx=Number(btn.dataset.deleteMedia);
+    const asset=draft.assets[idx];
+    const usages=[asset.role];
+    if(!confirm(`This asset is used in: ${usages.join(", ")}. Remove it?`))return;
+    draft.assets.splice(idx,1);markDirty();renderMedia();renderPreview();
+  }));
+  document.querySelectorAll("[data-media-role]").forEach(sel=>sel.addEventListener("change",e=>{draft.assets[Number(sel.dataset.mediaRole)].role=e.target.value;markDirty()}));
+  document.querySelectorAll("[data-media-alt]").forEach(inp=>inp.addEventListener("input",e=>{draft.assets[Number(inp.dataset.mediaAlt)].alt=e.target.value;markDirty()}));
+  document.querySelectorAll("[data-insert-media]").forEach(btn=>btn.addEventListener("click",()=>{
+    const asset=draft.assets[Number(btn.dataset.insertMedia)];
+    const target=asset.role==="Explanation"?$("explanationInput"):$("stemInput");
+    insertAtCursor(target,`![${asset.alt||asset.name}](${asset.url})`);
+    syncEditors();
+  }));
+  document.querySelectorAll("[data-replace-media]").forEach(btn=>btn.addEventListener("click",()=>openAssetModal()));
+}
+
+function renderPreview(){
+  const profile=currentPreviewProfile;
+  let warning="";
+  if(profile==="CANVAS"&&draft.type==="ORDER")warning="Order interactions may be transformed for the selected Canvas export profile.";
+  if(draft.type==="UNSUPPORTED")warning="The selected interaction is unsupported by this export profile.";
+  $("compatibilityWarning").textContent=warning;
+  $("compatibilityWarning").classList.toggle("hidden",!warning);
+
+  const assets=draft.assets.filter(a=>a.role==="Question stem");
+  let interaction="";
+  if(draft.type==="MCQ"||draft.type==="MSQ"){
+    interaction=draft.options.map(o=>`<label class="preview-choice"><input disabled type="${draft.type==="MCQ"?"radio":"checkbox"}" ${draft.correctAnswers.includes(o.id)?"checked":""}><strong>${o.id}.</strong><span>${renderMarkup(o.text)}</span></label>`).join("");
+  }else if(draft.type==="TEXT_ENTRY"){
+    interaction=`<input class="preview-text-input" disabled placeholder="Enter response">`;
+  }else if(draft.type==="ORDER"){
+    interaction=`<ol>${draft.orderItems.map(i=>`<li>${sanitizeText(i)}</li>`).join("")}</ol>`;
+  }else{
+    interaction=`<div class="compatibility-warning">Unsupported interaction preview.</div>`;
+  }
+  $("questionPreview").innerHTML=`<div class="preview-question"><strong>Q.</strong> ${renderMarkup(draft.stem)}</div>
+    ${assets.map(a=>`<img class="preview-media" src="${a.url}" alt="${sanitizeText(a.alt||a.name)}">`).join("")}
+    ${interaction}`;
+  typeset($("questionPreview"));
+}
+
+function renderPreviewDrawer(){
+  $("previewDrawerContent").innerHTML=`<div class="learner-card">
+    <h3>${renderMarkup(draft.stem)}</h3>
+    ${$("questionPreview").innerHTML}
+    <button class="learner-submit" disabled>Submit answer</button>
+    <details><summary>Show correct answer</summary><p>${draft.type==="TEXT_ENTRY"?draft.acceptedAnswers.join(", "):draft.correctAnswers.join(", ")||"Not defined"}</p></details>
+    <details><summary>Show explanation</summary><div>${renderMarkup(draft.explanation)}</div></details>
+  </div>`;
+  typeset($("previewDrawerContent"));
+}
+
+function renderHistory(){
+  $("historyContent").innerHTML=draft.history.map(h=>`<div class="history-item">
+    <strong>${sanitizeText(h.action)}</strong>
+    <p>${h.fields?.length?`Changed fields: ${h.fields.join(", ")}`:"No field-level changes recorded."}</p>
+    <small>${h.time} · ${h.user}</small>
+  </div>`).join("");
+}
+
+function updateEditorMeta(){
+  $("stemChars").textContent=`chars: ${draft.stem.length}`;
+  $("explanationChars").textContent=`chars: ${draft.explanation.length}`;
+  $("stemMathState").innerHTML=/\$|\\\(|\\\[/.test(draft.stem)?'Math <b class="toggle on">ON</b>':'Math <b>OFF</b>';
+}
+
+function markDirty(){
+  dirty=true;
+  draft.changed=true;
+  setDraftState("dirty","Unsaved");
+  $("localRecoveryState").classList.remove("hidden");
+  clearTimeout(localRecoveryTimer);
+  localRecoveryTimer=setTimeout(()=>{
+    localStorage.setItem(storageKey(),JSON.stringify({draft,timestamp:new Date().toISOString()}));
+    $("localRecoveryState").textContent="Recovery copy stored";
+  },350);
+  renderRows();
+}
+
+function syncEditors(){
+  draft.stem=$("stemInput").value;
+  draft.explanation=$("explanationInput").value;
+  markDirty();updateEditorMeta();renderPreview();
+}
+
+function validateDraft(){
+  const issues=[];
+  if(!draft.stem.trim())issues.push(issue("REQUIRED_QUESTION_FIELD","Question stem is required."));
+  if(draft.type==="MCQ"&&draft.correctAnswers.length!==1)issues.push(issue("MISSING_CORRECT_ANSWER","Select exactly one correct option."));
+  if(draft.type==="MSQ"&&draft.correctAnswers.length<1)issues.push(issue("AT_LEAST_ONE_CORRECT","Select at least one correct option."));
+  if((draft.type==="MCQ"||draft.type==="MSQ")){
+    const values=draft.options.map(o=>o.text.trim().toLowerCase()).filter(Boolean);
+    if(values.some((v,i)=>values.indexOf(v)!==i))issues.push(issue("OPTION_TEXT_DUPLICATE","Duplicate option text detected."));
+  }
+  if(draft.type==="TEXT_ENTRY"){
+    if(!draft.acceptedAnswers.length)issues.push(issue("TEXT_ENTRY_HAS_ANSWER","At least one accepted answer is required."));
+    if(draft.textMode==="Numeric"&&!draft.tolerance)issues.push(issue("NUMERIC_TOLERANCE_MISSING","Define a tolerance or exact-match policy."));
+    if(draft.textMode==="Numeric"&&draft.acceptedAnswers.some(a=>/[a-zA-Zµ°]/.test(a)))issues.push(issue("UNIT_EMBEDDED_IN_NUMERIC_ANSWER","Move units to the Unit field."));
+  }
+  if(draft.imageRequired&&!draft.assets.length)issues.push(issue("REQUIRED_MEDIA_MISSING","Image is required but no asset is attached."));
+  if(draft.type==="UNSUPPORTED")issues.push(issue("UNSUPPORTED_TYPE_FOR_TARGET_EXPORT","This type is unsupported by the selected export profile."));
+  draft.issues=issues;
+  draft.status=issues.some(i=>i.severity==="BLOCK")?"REJECTED":issues.some(i=>i.severity==="REVIEW")?"NEEDS_REVIEW":issues.some(i=>i.severity==="WARNING")?"CAUTION":"VALID";
+}
+
+function saveDraftOnly(){
+  if(!canEdit())return toast("Your current role is read-only.","error");
+  setDraftState("saving","Saving…");
+  $("saveDraftBtn").disabled=true;
+  setTimeout(()=>{
+    if(simulateSaveFailure){
+      simulateSaveFailure=false;
+      setDraftState("error","Save failed");
+      showGlobal("Draft could not be saved. Your local recovery copy is safe. Retry when the connection is available.","error");
+      $("saveDraftBtn").disabled=false;
+      return;
+    }
+    questions[selectedIndex]=clone(draft);
+    questions[selectedIndex].version+=1;
+    questions[selectedIndex].updatedAt="just now";
+    questions[selectedIndex].updatedBy="A. Das";
+    questions[selectedIndex].history.unshift({time:new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),user:"A. Das",action:"Draft saved",fields:diffFields(savedSnapshot,draft)});
+    draft=clone(questions[selectedIndex]);
+    savedSnapshot=clone(draft);
+    dirty=false;
+    localStorage.removeItem(storageKey());
+    $("localRecoveryState").classList.add("hidden");
+    setDraftState("saved","Saved");
+    hideGlobal();
+    renderRows();renderHistory();
+    $("saveDraftBtn").disabled=false;
+    toast("Draft saved.","success");
+  },650);
+}
+
+function saveAndValidate(goNext=false){
+  if(!canEdit())return toast("Your current role is read-only.","error");
+  if(simulatedServerVersion&&simulatedServerVersion.version>draft.version){
+    openConflictModal();
+    return;
+  }
+  setDraftState("saving","Saving…");
+  $("saveValidateBtn").disabled=true;
+  setTimeout(()=>{
+    if(simulateSaveFailure){
+      simulateSaveFailure=false;
+      setDraftState("error","Save failed");
+      showGlobal("Question was not saved. Your draft is preserved locally. Retry the save when ready.","error");
+      $("saveValidateBtn").disabled=false;
+      return;
+    }
+    setDraftState("saving","Validating…");
+    setTimeout(()=>{
+      if(simulateValidationFailure){
+        simulateValidationFailure=false;
+        questions[selectedIndex]=clone(draft);
+        questions[selectedIndex].version+=1;
+        dirty=false;
+        setDraftState("error","Validation failed");
+        showGlobal("Question saved, but validation could not complete. Your changes are safe. Retry validation.","warning");
+        $("saveValidateBtn").disabled=false;
+        renderRows();
+        return;
+      }
+      validateDraft();
+      questions[selectedIndex]=clone(draft);
+      questions[selectedIndex].version+=1;
+      questions[selectedIndex].updatedAt="just now";
+      questions[selectedIndex].updatedBy="A. Das";
+      questions[selectedIndex].history.unshift({time:new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),user:"A. Das",action:"Saved and validated",fields:diffFields(savedSnapshot,draft)});
+      draft=clone(questions[selectedIndex]);
+      savedSnapshot=clone(draft);
+      dirty=false;
+      localStorage.removeItem(storageKey());
+      setDraftState("saved","Saved");
+      $("localRecoveryState").classList.add("hidden");
+      hideGlobal();
+      renderIssueBanner();renderRows();renderHistory();populateStatusSelect();$("statusSelect").value=draft.status;
+      $("saveValidateBtn").disabled=false;
+      toast(`Row saved. ${draft.issues.length} issue(s) remain.`,draft.status==="VALID"?"success":"warning");
+      if(goNext)goToNextUnresolved();
+    },650);
+  },550);
+}
+
+function diffFields(before,after){
+  return Object.keys(after).filter(k=>JSON.stringify(before?.[k])!==JSON.stringify(after[k])).slice(0,12);
+}
+
+function openConflictModal(){
+  $("conflictSummary").textContent=`This question was updated by Priya Sharma. Your version: ${draft.version}. Latest version: ${simulatedServerVersion.version}.`;
+  $("yourDiff").textContent=JSON.stringify({stem:draft.stem,correctAnswers:draft.correctAnswers,version:draft.version},null,2);
+  $("serverDiff").textContent=JSON.stringify({stem:simulatedServerVersion.stem,correctAnswers:simulatedServerVersion.correctAnswers,version:simulatedServerVersion.version},null,2);
+  $("conflictModal").classList.remove("hidden");
+}
+
+function diffSource(tab){
+  if(tab==="RAW")return draft.raw;
+  if(tab==="CANONICAL")return draft.canonical;
+  return draft;
+}
+function renderSource(){ $("sourceContent").textContent=JSON.stringify(diffSource(activeSourceTab),null,2) }
+
+function openSourceDrawer(){activeSourceTab="RAW";renderSource();$("sourceDrawer").classList.remove("hidden")}
+function openHistoryDrawer(){$("historyDrawer").classList.remove("hidden")}
+function openPreviewDrawer(){renderPreviewDrawer();$("previewDrawer").classList.remove("hidden")}
+function closeDrawers(){document.querySelectorAll(".drawer").forEach(d=>d.classList.add("hidden"))}
+function closeModals(){document.querySelectorAll(".modal").forEach(m=>m.classList.add("hidden"))}
+function openAssetModal(){renderAssetLibrary();$("assetModal").classList.remove("hidden")}
+
+function renderAssetLibrary(){
+  $("assetLibraryGrid").innerHTML=ASSET_LIBRARY.map((a,i)=>`<div class="library-item">
+    <img src="${a.url}" alt="${a.name}">
+    <strong>${a.name}</strong>
+    <button data-library-index="${i}">Use asset</button>
+  </div>`).join("");
+  document.querySelectorAll("[data-library-index]").forEach(btn=>btn.addEventListener("click",()=>{
+    const a=ASSET_LIBRARY[Number(btn.dataset.libraryIndex)];
+    addAsset({name:a.name,url:a.url,role:"Question stem",alt:""});
+  }));
+}
+
+function addAsset(asset){
+  draft.assets.push(asset);markDirty();renderMedia();renderPreview();closeModals();toast("Asset added.","success");
+}
+function addFileAsset(file){
+  if(!file)return;
+  if(!file.type.startsWith("image/"))return toast("Unsupported file type.","error");
+  if(file.size>10*1024*1024)return toast("File exceeds 10 MB.","error");
+  const reader=new FileReader();
+  reader.onload=()=>addAsset({name:file.name,url:reader.result,role:"Question stem",alt:""});
+  reader.readAsDataURL(file);
+}
+
+function openConversionModal(nextType){
+  pendingTypeChange=nextType;
+  const becomingInactive=[];
+  if(["MCQ","MSQ"].includes(draft.type)&&!["MCQ","MSQ"].includes(nextType))becomingInactive.push("Options A–D","Correct option(s)");
+  if(draft.type==="TEXT_ENTRY"&&nextType!=="TEXT_ENTRY")becomingInactive.push("Accepted answers","Tolerance","Unit");
+  $("conversionImpactText").innerHTML=`Changing <strong>${draft.type}</strong> to <strong>${nextType}</strong> will make the following data inactive:<br><br>• ${becomingInactive.join("<br>• ")||"No major fields"}`;
+  $("conversionModal").classList.remove("hidden");
+}
+
+function applyTypeConversion(policy){
+  if(!pendingTypeChange)return;
+  if(policy==="PRESERVE"){
+    draft.inactiveData[draft.type]={options:clone(draft.options),correctAnswers:clone(draft.correctAnswers),acceptedAnswers:clone(draft.acceptedAnswers),tolerance:draft.tolerance,unit:draft.unit};
+  }
+  if(policy==="REMOVE"){
+    if(!["MCQ","MSQ"].includes(pendingTypeChange)){draft.options=[];draft.correctAnswers=[]}
+    if(pendingTypeChange!=="TEXT_ENTRY"){draft.acceptedAnswers=[];draft.tolerance="";draft.unit=""}
+  }
+  draft.type=pendingTypeChange;
+  if(["MCQ","MSQ"].includes(draft.type)&&!draft.options.length)draft.options=["A","B","C","D"].map(id=>({id,text:""}));
+  pendingTypeChange=null;
+  $("questionType").value=draft.type;
+  markDirty();renderAnswerEditor();renderPreview();closeModals();
+}
+
+function restoreRecovery(){
+  const raw=localStorage.getItem(storageKey());
+  if(!raw)return toast("No recovery copy is available.","warning");
+  try{
+    draft=JSON.parse(raw).draft;
+    dirty=true;
+    loadDraftIntoFields();
+    setDraftState("dirty","Recovered draft");
+    toast("Local recovery copy restored.","success");
+  }catch{toast("Recovery copy is corrupted.","error")}
+}
+function loadDraftIntoFields(){
+  $("stemInput").value=draft.stem;
+  $("explanationInput").value=draft.explanation;
+  $("questionType").value=draft.type;
+  $("subject").value=draft.subject;
+  $("chapter").value=draft.chapter;
+  $("topic").value=draft.topic;
+  $("marks").value=draft.marks;
+  $("negativeMarks").value=draft.negativeMarks;
+  $("difficulty").value=draft.difficulty;
+  $("language").value=draft.language;
+  $("timeLimit").value=draft.timeLimit;
+  $("reviewer").value=draft.reviewer;
+  $("tags").value=draft.tags.join(", ");
+  $("questionId").value=draft.id;
+  renderIssueBanner();renderAnswerEditor();renderMedia();renderPreview();updateEditorMeta();
+}
+
+function canEdit(){return $("roleSelect").value!=="Read-only Auditor"}
+function applyPermissions(){
+  const editable=canEdit();
+  ["stemInput","explanationInput","questionType","subject","chapter","topic","marks","negativeMarks","difficulty","language","timeLimit","reviewer","tags","questionId","saveDraftBtn","saveValidateBtn","addAssetBtn"].forEach(id=>{if($(id))$(id).disabled=!editable});
+  if(!editable)showGlobal("Read-only Auditor mode: editing and save controls are disabled.","warning");
+  else hideGlobal();
+}
+
+function goToNextRow(direction=1){
+  const next=Math.min(Math.max(selectedIndex+direction,0),questions.length-1);
+  selectQuestion(next);
+}
+function goToNextUnresolved(direction=1){
+  const indices=questions.map((q,i)=>({q,i})).filter(x=>x.q.status!=="VALID").map(x=>x.i);
+  let pos=indices.indexOf(selectedIndex);
+  const next=direction>0?(indices[pos+1]??indices[0]):(indices[pos-1]??indices[indices.length-1]);
+  if(next!==undefined)selectQuestion(next);
+}
+function insertAtCursor(input,text,left="",right=""){
+  const start=input.selectionStart??input.value.length;
+  const end=input.selectionEnd??input.value.length;
+  const selected=input.value.slice(start,end);
+  const insertion=left||right?`${left}${selected}${right}`:text;
+  input.value=input.value.slice(0,start)+insertion+input.value.slice(end);
+  input.selectionStart=input.selectionEnd=start+insertion.length;
+  input.focus();
+}
+function isTypingTarget(target){return target.matches("input,textarea,select,[contenteditable='true']")||target.closest("[contenteditable='true']")}
+
+function bindEvents(){
+  $("searchRows").addEventListener("input",()=>{currentPage=1;renderRows()});
+  document.querySelectorAll("#statusTabs button").forEach(btn=>btn.addEventListener("click",()=>{
+    activeFilter=btn.dataset.filter;
+    document.querySelectorAll("#statusTabs button").forEach(b=>b.classList.toggle("active",b===btn));
+    currentPage=1;renderRows();
+  }));
+  ["sortSelect","typeFilter","severityFilter","subjectFilter","changedOnlyFilter","unresolvedOnlyFilter","assignedToMeFilter"].forEach(id=>$(id).addEventListener("change",()=>{currentPage=1;renderRows()}));
+  $("filterPopoverBtn").addEventListener("click",()=>{$("filterPopover").classList.toggle("hidden")});
+  $("clearFiltersBtn").addEventListener("click",()=>{
+    $("typeFilter").value="ALL";$("severityFilter").value="ALL";$("subjectFilter").value="ALL";
+    $("changedOnlyFilter").checked=false;$("unresolvedOnlyFilter").checked=false;$("assignedToMeFilter").checked=false;renderRows();
+  });
+  $("pageSizeSelect").addEventListener("change",e=>{pageSize=Number(e.target.value);currentPage=1;renderRows()});
+  $("prevPageBtn").addEventListener("click",()=>{currentPage=Math.max(1,currentPage-1);renderRows()});
+  $("nextPageBtn").addEventListener("click",()=>{currentPage+=1;renderRows()});
+  $("prevQuestion").addEventListener("click",()=>goToNextRow(-1));
+  $("nextQuestion").addEventListener("click",()=>goToNextRow(1));
+  $("nextUnresolvedBtn").addEventListener("click",()=>goToNextUnresolved(1));
+
+  $("stemInput").addEventListener("input",syncEditors);
+  $("explanationInput").addEventListener("input",syncEditors);
+  $("questionType").addEventListener("change",e=>{
+    if(e.target.value===draft.type)return;
+    openConversionModal(e.target.value);
+    e.target.value=draft.type;
+  });
+  const fieldMap={subject:"subject",chapter:"chapter",topic:"topic",marks:"marks",negativeMarks:"negativeMarks",difficulty:"difficulty",language:"language",timeLimit:"timeLimit",reviewer:"reviewer",questionId:"id"};
+  Object.entries(fieldMap).forEach(([id,key])=>$(id).addEventListener("input",e=>{draft[key]=["marks","negativeMarks","timeLimit"].includes(key)?Number(e.target.value):e.target.value;markDirty();renderPreview()}));
+  $("tags").addEventListener("input",e=>{draft.tags=e.target.value.split(",").map(x=>x.trim()).filter(Boolean);markDirty()});
+  $("copyId").addEventListener("click",()=>{navigator.clipboard?.writeText($("questionId").value);toast("Question ID copied.","success")});
+
+  document.querySelectorAll(".toolbar").forEach(toolbar=>{
+    toolbar.querySelectorAll("button[data-insert],button[data-wrap-left]").forEach(btn=>btn.addEventListener("click",()=>{
+      const input=$(toolbar.dataset.editor);
+      if(btn.dataset.wrapLeft)insertAtCursor(input,"",btn.dataset.wrapLeft,btn.dataset.wrapRight);
+      else insertAtCursor(input,btn.dataset.insert||"");
+      syncEditors();
+    }));
+  });
+
+  $("saveDraftBtn").addEventListener("click",saveDraftOnly);
+  $("saveValidateBtn").addEventListener("click",()=>saveAndValidate(false));
+  $("undoBtn").addEventListener("click",()=>{
+    draft=clone(savedSnapshot);dirty=false;loadDraftIntoFields();setDraftState("saved","Saved");toast("Unsaved changes reverted.","success");
+  });
+
+  $("sourceBtn").addEventListener("click",openSourceDrawer);
+  $("historyBtn").addEventListener("click",openHistoryDrawer);
+  $("previewBtn").addEventListener("click",openPreviewDrawer);
+  $("openPreviewDrawerBtn").addEventListener("click",openPreviewDrawer);
+  $("shortcutsBtn").addEventListener("click",()=>$("shortcutsModal").classList.remove("hidden"));
+
+  document.querySelectorAll("[data-preview-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+    currentPreviewProfile=btn.dataset.previewTab;
+    document.querySelectorAll("[data-preview-tab]").forEach(b=>b.classList.toggle("active",b===btn));
+    renderPreview();
+  }));
+
+  document.querySelectorAll("[data-source-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+    activeSourceTab=btn.dataset.sourceTab;
+    document.querySelectorAll("[data-source-tab]").forEach(b=>b.classList.toggle("active",b===btn));
+    renderSource();
+  }));
+
+  $("addAssetBtn").addEventListener("click",openAssetModal);
+  $("mediaWarningAddBtn").addEventListener("click",openAssetModal);
+  $("urlMediaBtn").addEventListener("click",()=>{openAssetModal();switchAssetTab("URL")});
+  $("libraryBtn").addEventListener("click",()=>{openAssetModal();switchAssetTab("LIBRARY")});
+  $("fileUpload").addEventListener("change",e=>addFileAsset(e.target.files[0]));
+  $("modalFileUpload").addEventListener("change",e=>addFileAsset(e.target.files[0]));
+  $("removeImageRequirementBtn").addEventListener("click",()=>{
+    if(confirm("Remove image requirement? This will mark the question as not requiring an image.")){draft.imageRequired=false;markDirty();renderMedia()}
+  });
+  $("addUrlAssetBtn").addEventListener("click",()=>{
+    const url=$("assetUrlInput").value.trim();
+    if(!/^https:\/\//i.test(url))return toast("Use a valid HTTPS URL.","error");
+    addAsset({name:"remote-image.png",url,role:"Question stem",alt:""});
+  });
+  document.querySelectorAll("[data-asset-tab]").forEach(btn=>btn.addEventListener("click",()=>switchAssetTab(btn.dataset.assetTab)));
+
+  const dropzone=$("dropzone");
+  ["dragenter","dragover"].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.add("dragover")}));
+  ["dragleave","drop"].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.remove("dragover")}));
+  dropzone.addEventListener("drop",e=>addFileAsset(e.dataTransfer.files[0]));
+
+  $("collapseMetadataBtn").addEventListener("click",e=>{
+    $("metadataBody").classList.toggle("hidden");
+    e.target.textContent=$("metadataBody").classList.contains("hidden")?"Expand":"Collapse";
+  });
+
+  $("compareStemBtn").addEventListener("click",openSourceDrawer);
+  $("compareExplanationBtn").addEventListener("click",openSourceDrawer);
+  $("moreBtn").addEventListener("click",()=>$("moreMenu").classList.toggle("hidden"));
+  $("simulateConflictBtn").addEventListener("click",()=>{
+    simulatedServerVersion={...clone(draft),version:draft.version+1,stem:draft.stem+" [edited by Priya]",correctAnswers:["A"]};
+    toast("A newer server version is now simulated.","warning");$("moreMenu").classList.add("hidden");
+  });
+  $("simulateSaveFailureBtn").addEventListener("click",()=>{simulateSaveFailure=true;toast("Next save will fail.","warning");$("moreMenu").classList.add("hidden")});
+  $("simulateValidationFailureBtn").addEventListener("click",()=>{simulateValidationFailure=true;toast("Next validation will fail.","warning");$("moreMenu").classList.add("hidden")});
+  $("restoreRecoveryBtn").addEventListener("click",()=>{restoreRecovery();$("moreMenu").classList.add("hidden")});
+
+  $("cancelConversionBtn").addEventListener("click",()=>{pendingTypeChange=null;closeModals()});
+  $("preserveInactiveBtn").addEventListener("click",()=>applyTypeConversion("PRESERVE"));
+  $("convertRemoveBtn").addEventListener("click",()=>applyTypeConversion("REMOVE"));
+
+  $("keepDraftBtn").addEventListener("click",()=>{closeModals();toast("Draft kept. Resolve the conflict before saving.","warning")});
+  $("reloadLatestBtn").addEventListener("click",()=>{
+    questions[selectedIndex]=clone(simulatedServerVersion);simulatedServerVersion=null;closeModals();loadQuestion();renderRows();toast("Latest server version loaded.","success");
+  });
+  $("mergeConflictBtn").addEventListener("click",()=>{
+    draft.version=simulatedServerVersion.version;simulatedServerVersion=null;closeModals();saveAndValidate(false);
+  });
+
+  $("roleSelect").addEventListener("change",applyPermissions);
+
+  document.querySelectorAll("[data-close-drawer]").forEach(x=>x.addEventListener("click",closeDrawers));
+  document.querySelectorAll("[data-close-modal]").forEach(x=>x.addEventListener("click",closeModals));
+
+  document.addEventListener("click",e=>{
+    if(!e.target.closest("#moreBtn,#moreMenu"))$("moreMenu").classList.add("hidden");
+    if(!e.target.closest("#filterPopoverBtn,#filterPopover"))$("filterPopover").classList.add("hidden");
+  });
+
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){closeDrawers();closeModals();hideIssueDetail()}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();saveDraftOnly()}
+    if(e.ctrlKey&&e.key==="Enter"){e.preventDefault();saveAndValidate(false)}
+    if(e.altKey&&e.key==="Enter"){e.preventDefault();saveAndValidate(true)}
+    if(isTypingTarget(e.target))return;
+    if(e.key==="/"){e.preventDefault();$("searchRows").focus()}
+    if(e.key==="j"||e.key==="ArrowDown"){e.preventDefault();e.shiftKey?goToNextUnresolved(1):goToNextRow(1)}
+    if(e.key==="k"||e.key==="ArrowUp"){e.preventDefault();e.shiftKey?goToNextUnresolved(-1):goToNextRow(-1)}
+    if(e.key==="?")$("shortcutsModal").classList.remove("hidden");
+  });
+}
+
+function switchAssetTab(tab){
+  document.querySelectorAll("[data-asset-tab]").forEach(b=>b.classList.toggle("active",b.dataset.assetTab===tab));
+  document.querySelectorAll("[data-asset-panel]").forEach(p=>p.classList.toggle("active",p.dataset.assetPanel===tab));
+}
+
+function init(){
+  populateTypeSelect();
+  populateSubjectSelect();
+  bindEvents();
+  updateCounts();
+  renderRows();
+  loadQuestion();
+}
+
+init();
+
+</script>
+</body>
+</html>

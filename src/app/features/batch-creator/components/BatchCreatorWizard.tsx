@@ -1,18 +1,17 @@
-import { useAuth } from '../../../../contexts/AuthContext';
-import { useBatchWizard } from '../hooks/useBatchWizard';
-import { useUploadStage } from '../hooks/useUploadStage';
-import { UploadStage } from './UploadStage';
-import { ValidationStage } from './ValidationStage';
-import { ManualFixStage } from './ManualFixStage';
-import { AiAuditStage } from './AiAuditStage';
-import { ConfigureStage } from './ConfigureStage';
-import { BuildPreviewStage } from './BuildPreviewStage';
-import { Button } from '../../../components/ui/button';
-import type { WizardStage } from '../core/stageTypes';
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
-import { FlaskConical } from 'lucide-react';
-import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { useAuth } from "../../../../contexts/AuthContext";
+import { useBatchWizard } from "../hooks/useBatchWizard";
+import { useUploadStage } from "../hooks/useUploadStage";
+import { UploadStage } from "./UploadStage";
+import { ValidationStage } from "./ValidationStage";
+import { ManualFixStage } from "./ManualFixStage";
+import { AiAuditStage } from "./AiAuditStage";
+import { ConfigureStage } from "./ConfigureStage";
+import { BuildPreviewStage } from "./BuildPreviewStage";
+import { Button } from "../../../components/ui/button";
+import type { WizardStage } from "../core/stageTypes";
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
+import { ErrorBoundary } from "../../../components/ErrorBoundary";
 
 // ─── Stage → Component map ──────────────────────────────────────────────────
 
@@ -41,10 +40,13 @@ export function BatchCreatorWizard() {
 
   // Sync upload completion to wizard
   useEffect(() => {
-    if (upload.output && !wizard.isStageComplete('UPLOAD')) {
-      wizard.__mockSetComplete('UPLOAD', true);
-    } else if (!upload.output && wizard.isStageComplete('UPLOAD')) {
-      wizard.__mockSetComplete('UPLOAD', false);
+    if (upload.output && !wizard.isStageComplete("UPLOAD")) {
+      wizard.__mockSetComplete("UPLOAD", true);
+    } else if (!upload.output) {
+      if (wizard.isStageComplete("UPLOAD")) {
+        wizard.__mockSetComplete("UPLOAD", false);
+      }
+      wizard.__setProcessedRows([]);
     }
   }, [upload.output, wizard]);
 
@@ -72,27 +74,23 @@ export function BatchCreatorWizard() {
               Back
             </Button>
           )}
-          {wizard.currentStage === 'UPLOAD' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-8 text-muted-foreground hover:text-foreground hidden sm:flex items-center gap-2"
-              onClick={() => navigate('/workspace/batch-creator-legacy')}
-            >
-              <FlaskConical className="h-3 w-3" />
-              Use Legacy Batch Creator
-            </Button>
-          )}
+
         </div>
         <div id="wizard-footer-right" className="flex items-center gap-2">
           {wizard.hasNext && (
             <Button
               size="sm"
               onClick={() => wizard.goNext()}
-              disabled={!wizard.isStageComplete(wizard.currentStage) && wizard.currentStage !== 'AI_AUDIT'}
+              disabled={
+                !wizard.isStageComplete(wizard.currentStage) &&
+                wizard.currentStage !== "AI_AUDIT"
+              }
               className="text-xs h-8"
             >
-              {wizard.currentStage === 'AI_AUDIT' && !wizard.isStageComplete(wizard.currentStage) ? 'Skip & Next' : 'Next'}
+              {wizard.currentStage === "AI_AUDIT" &&
+              !wizard.isStageComplete(wizard.currentStage)
+                ? "Skip & Next"
+                : "Next"}
             </Button>
           )}
         </div>

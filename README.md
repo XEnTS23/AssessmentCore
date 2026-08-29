@@ -1,4 +1,5 @@
 # QTI 3.0 Implementation Plan
+
 System: Excel + Images → QTI XML Generator  
 Specification Reference: https://www.imsglobal.org/spec/qti/v3p0/impl
 
@@ -172,12 +173,12 @@ Example:
 
 Excel mapping:
 
-| Question Type | Cardinality | BaseType |
-|---------------|-------------|----------|
-Single choice | single | identifier |
-Multiple choice | multiple | identifier |
-Numeric | single | float |
-Text | single | string |
+| Question Type   | Cardinality | BaseType   |
+| --------------- | ----------- | ---------- |
+| Single choice   | single      | identifier |
+| Multiple choice | multiple    | identifier |
+| Numeric         | single      | float      |
+| Text            | single      | string     |
 
 ---
 
@@ -409,12 +410,12 @@ Metadata improves interoperability.
 
 Excel → Metadata mapping:
 
-| Excel Column | Metadata |
-|---------------|---------|
-Subject | classification |
-Topic | keyword |
-Difficulty | difficulty |
-Tags | keyword |
+| Excel Column | Metadata       |
+| ------------ | -------------- |
+| Subject      | classification |
+| Topic        | keyword        |
+| Difficulty   | difficulty     |
+| Tags         | keyword        |
 
 Metadata example:
 
@@ -494,6 +495,7 @@ Implement:
 **Status**: Complete (MCQ + Text Entry)
 
 **Implemented**:
+
 - ✅ Response declarations with correct identifiers and cardinality
 - ✅ Outcome declarations (SCORE, MAXSCORE) with metadata support
 - ✅ Response processing templates (match_correct, map_response, string matching)
@@ -503,6 +505,7 @@ Implement:
 - ✅ Case-insensitive answer matching
 
 **Files Created**:
+
 - `src/engine/qti3/responseProcessingBuilder.ts` - Response processing logic and templates
 - `src/engine/qti3/outcomeMapper.ts` - Outcome declarations with metadata mapping
 - `src/engine/qti3/feedbackBuilder.ts` - Modal feedback generation
@@ -516,6 +519,7 @@ Implement:
 **Status**: Complete
 
 **Implemented**:
+
 - ✅ AssessmentTest root structure with metadata
 - ✅ TestPart with navigation and submission modes
 - ✅ AssessmentSection with grouping and ordering
@@ -529,10 +533,12 @@ Implement:
 - ✅ Rubric blocks for instructions
 
 **Files Created**:
+
 - `src/engine/qti3/testStructure.ts` - Type definitions for test hierarchy
 - `src/engine/qti3/testBuilder.ts` - Assessment test XML generation
 
 **Features**:
+
 - Flexible grouping strategies for organizing items into sections
 - Automatic score aggregation with variable mappings
 - Pass/fail determination based on threshold
@@ -546,6 +552,7 @@ Implement:
 **Status**: Complete
 
 **Implemented**:
+
 - ✅ Resource registry for managing all package resources
 - ✅ IMS manifest builder (imsmanifest.xml generation)
 - ✅ Package builder with JSZip integration
@@ -558,11 +565,13 @@ Implement:
 - ✅ Compression level control
 
 **Files Created**:
+
 - `src/engine/qti3/resourceRegistry.ts` - Resource management and dependency tracking
 - `src/engine/qti3/manifestBuilder.ts` - IMS manifest XML generation
 - `src/engine/qti3/packageBuilder.ts` - ZIP package creation with JSZip
 
 **Package Structure**:
+
 ```
 package.zip
 ├── imsmanifest.xml (resource catalog)
@@ -578,6 +587,7 @@ package.zip
 ```
 
 **Features**:
+
 - Automatic dependency tracking between resources
 - Validation of package structure before ZIP creation
 - Support for metadata in manifest
@@ -592,6 +602,7 @@ package.zip
 **Status**: Complete
 
 **Implemented**:
+
 - ✅ Comprehensive metadata mapper with LOM (Learning Object Metadata) support
 - ✅ Extract metadata from Excel columns (Subject, Topic, Difficulty, Tags, etc.)
 - ✅ Map to QTI 3.0 metadata structures
@@ -604,9 +615,11 @@ package.zip
 - ✅ Automatic metadata XML generation in item files
 
 **Files Created**:
+
 - `src/engine/qti3/metadataMapper.ts` - Complete LOM metadata mapping system
 
 **Metadata Fields Supported**:
+
 - **Identification**: identifier, title, language
 - **Educational**: subject, topic, subtopic, difficulty, learning objective, Bloom level, grade level
 - **Classification**: curriculum, standards, taxonomies
@@ -624,6 +637,7 @@ package.zip
 **Status**: Complete
 
 **Implemented**:
+
 - ✅ Shared stimulus XML builder for QTI 3.0 (`assessmentStimulus`)
 - ✅ Item-to-stimulus references via `assessmentStimulusRef`
 - ✅ Stimulus package support (`stimuli/` folder in ZIP)
@@ -632,6 +646,7 @@ package.zip
 - ✅ Stimulus image support with manifest dependencies
 
 **Files Added/Updated**:
+
 - `src/engine/qti3/stimulusBuilder.ts`
 - `src/engine/qti3/packageBuilder.ts`
 - `src/engine/qti3/resourceRegistry.ts`

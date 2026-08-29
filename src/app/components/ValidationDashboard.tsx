@@ -61,34 +61,158 @@ function QtiSnippet() {
   return (
     <>
       {cm("<!-- QTI 2.1 IMS Standard — AssessmentCore Output -->\n")}
-      {br("<")}{kw("assessmentItem")}{"\n"}
-      {sp(2)}{at("identifier")}{br("=")}{av('"Q001"')}{"\n"}
-      {sp(2)}{at("title")}{br("=")}{av('"What is 2+2?"')}{"\n"}
-      {sp(2)}{at("adaptive")}{br("=")}{av('"false"')}{"\n"}
-      {sp(2)}{at("timeDependent")}{br("=")}{av('"false"')}{br(">")}{"\n"}
+      {br("<")}
+      {kw("assessmentItem")}
       {"\n"}
-      {sp(2)}{br("<")}{kw("responseDeclaration")}{"\n"}
-      {sp(4)}{at("identifier")}{br("=")}{av('"RESPONSE"')}{"\n"}
-      {sp(4)}{at("cardinality")}{br("=")}{av('"single"')}{"\n"}
-      {sp(4)}{at("baseType")}{br("=")}{av('"identifier"')}{br(">")}{"\n"}
-      {sp(4)}{br("<")}{kw("correctResponse")}{br(">")}{"\n"}
-      {sp(6)}{br("<")}{kw("value")}{br(">")}{tx("choice_A")}{br("</")}{kw("value")}{br(">")}{"\n"}
-      {sp(4)}{br("</")}{kw("correctResponse")}{br(">")}{"\n"}
-      {sp(2)}{br("</")}{kw("responseDeclaration")}{br(">")}{"\n"}
+      {sp(2)}
+      {at("identifier")}
+      {br("=")}
+      {av('"Q001"')}
       {"\n"}
-      {sp(2)}{br("<")}{kw("itemBody")}{br(">")}{"\n"}
-      {sp(4)}{br("<")}{kw("choiceInteraction")}{"\n"}
-      {sp(6)}{at("responseIdentifier")}{br("=")}{av('"RESPONSE"')}{"\n"}
-      {sp(6)}{at("shuffle")}{br("=")}{av('"false"')}{"\n"}
-      {sp(6)}{at("maxChoices")}{br("=")}{av('"1"')}{br(">")}{"\n"}
-      {sp(6)}{br("<")}{kw("prompt")}{br(">")}{tx("What is 2+2?")}{br("</")}{kw("prompt")}{br(">")}{"\n"}
-      {sp(6)}{br("<")}{kw("simpleChoice")}{" "}{at("identifier")}{br("=")}{av('"choice_A"')}{br(">")}{tx("4")}{br("</")}{kw("simpleChoice")}{br(">")}{"\n"}
-      {sp(6)}{br("<")}{kw("simpleChoice")}{" "}{at("identifier")}{br("=")}{av('"choice_B"')}{br(">")}{tx("5")}{br("</")}{kw("simpleChoice")}{br(">")}{"\n"}
-      {sp(6)}{br("<")}{kw("simpleChoice")}{" "}{at("identifier")}{br("=")}{av('"choice_C"')}{br(">")}{tx("6")}{br("</")}{kw("simpleChoice")}{br(">")}{"\n"}
-      {sp(4)}{br("</")}{kw("choiceInteraction")}{br(">")}{"\n"}
-      {sp(2)}{br("</")}{kw("itemBody")}{br(">")}{"\n"}
+      {sp(2)}
+      {at("title")}
+      {br("=")}
+      {av('"What is 2+2?"')}
       {"\n"}
-      {br("</")}{kw("assessmentItem")}{br(">")}{"\n"}
+      {sp(2)}
+      {at("adaptive")}
+      {br("=")}
+      {av('"false"')}
+      {"\n"}
+      {sp(2)}
+      {at("timeDependent")}
+      {br("=")}
+      {av('"false"')}
+      {br(">")}
+      {"\n"}
+      {"\n"}
+      {sp(2)}
+      {br("<")}
+      {kw("responseDeclaration")}
+      {"\n"}
+      {sp(4)}
+      {at("identifier")}
+      {br("=")}
+      {av('"RESPONSE"')}
+      {"\n"}
+      {sp(4)}
+      {at("cardinality")}
+      {br("=")}
+      {av('"single"')}
+      {"\n"}
+      {sp(4)}
+      {at("baseType")}
+      {br("=")}
+      {av('"identifier"')}
+      {br(">")}
+      {"\n"}
+      {sp(4)}
+      {br("<")}
+      {kw("correctResponse")}
+      {br(">")}
+      {"\n"}
+      {sp(6)}
+      {br("<")}
+      {kw("value")}
+      {br(">")}
+      {tx("choice_A")}
+      {br("</")}
+      {kw("value")}
+      {br(">")}
+      {"\n"}
+      {sp(4)}
+      {br("</")}
+      {kw("correctResponse")}
+      {br(">")}
+      {"\n"}
+      {sp(2)}
+      {br("</")}
+      {kw("responseDeclaration")}
+      {br(">")}
+      {"\n"}
+      {"\n"}
+      {sp(2)}
+      {br("<")}
+      {kw("itemBody")}
+      {br(">")}
+      {"\n"}
+      {sp(4)}
+      {br("<")}
+      {kw("choiceInteraction")}
+      {"\n"}
+      {sp(6)}
+      {at("responseIdentifier")}
+      {br("=")}
+      {av('"RESPONSE"')}
+      {"\n"}
+      {sp(6)}
+      {at("shuffle")}
+      {br("=")}
+      {av('"false"')}
+      {"\n"}
+      {sp(6)}
+      {at("maxChoices")}
+      {br("=")}
+      {av('"1"')}
+      {br(">")}
+      {"\n"}
+      {sp(6)}
+      {br("<")}
+      {kw("prompt")}
+      {br(">")}
+      {tx("What is 2+2?")}
+      {br("</")}
+      {kw("prompt")}
+      {br(">")}
+      {"\n"}
+      {sp(6)}
+      {br("<")}
+      {kw("simpleChoice")} {at("identifier")}
+      {br("=")}
+      {av('"choice_A"')}
+      {br(">")}
+      {tx("4")}
+      {br("</")}
+      {kw("simpleChoice")}
+      {br(">")}
+      {"\n"}
+      {sp(6)}
+      {br("<")}
+      {kw("simpleChoice")} {at("identifier")}
+      {br("=")}
+      {av('"choice_B"')}
+      {br(">")}
+      {tx("5")}
+      {br("</")}
+      {kw("simpleChoice")}
+      {br(">")}
+      {"\n"}
+      {sp(6)}
+      {br("<")}
+      {kw("simpleChoice")} {at("identifier")}
+      {br("=")}
+      {av('"choice_C"')}
+      {br(">")}
+      {tx("6")}
+      {br("</")}
+      {kw("simpleChoice")}
+      {br(">")}
+      {"\n"}
+      {sp(4)}
+      {br("</")}
+      {kw("choiceInteraction")}
+      {br(">")}
+      {"\n"}
+      {sp(2)}
+      {br("</")}
+      {kw("itemBody")}
+      {br(">")}
+      {"\n"}
+      {"\n"}
+      {br("</")}
+      {kw("assessmentItem")}
+      {br(">")}
+      {"\n"}
     </>
   );
 }
@@ -131,25 +255,39 @@ export function ValidationDashboard({
 
   const dedupPct = ((1 - uniqueCount / originalCount) * 100).toFixed(1);
   const removedCount = originalCount - uniqueCount;
-  const needsReviewCount = Math.max(0, uniqueCount - readyNowCount - recoverableCount);
+  const needsReviewCount = Math.max(
+    0,
+    uniqueCount - readyNowCount - recoverableCount,
+  );
 
   const readyPct = (readyNowCount / uniqueCount) * 100;
   const recoverPct = (recoverableCount / uniqueCount) * 100;
   const reviewPct = (needsReviewCount / uniqueCount) * 100;
 
   return (
-    <div className="bg-background min-h-screen" style={{ fontFamily: "'Inter', 'Roboto', system-ui, sans-serif" }}>
-
+    <div
+      className="bg-background min-h-screen"
+      style={{ fontFamily: "'Inter', 'Roboto', system-ui, sans-serif" }}
+    >
       {/* ─────────────────────────── HEADER ──────────────────────────────── */}
       <div
         className="px-6 py-10 text-primary-foreground"
-        style={{ background: "linear-gradient(135deg, #6B1E1E 0%, #4A0E0E 55%, #1A0505 100%)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, #6B1E1E 0%, #4A0E0E 55%, #1A0505 100%)",
+        }}
       >
         <div className="max-w-5xl mx-auto">
           {/* Brand row */}
           <div className="flex items-center gap-3 mb-1">
-            <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="w-9 h-9 rounded-lg object-contain border border-white/20 bg-card/10" />
-            <span className="text-2xl font-black tracking-tight">AssessmentCore</span>
+            <img
+              src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
+              alt="AssessmentCore logo"
+              className="w-9 h-9 rounded-lg object-contain border border-white/20 bg-card/10"
+            />
+            <span className="text-2xl font-black tracking-tight">
+              AssessmentCore
+            </span>
             <span className="ml-1 bg-red-800/50 border border-red-600/40 text-red-200 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
               Enterprise
             </span>
@@ -174,18 +312,42 @@ export function ValidationDashboard({
           {/* KPI pill row */}
           <div className="flex flex-wrap gap-3 mt-7">
             {[
-              { value: fmt(originalCount), label: "Total Rows", color: "text-red-100" },
-              { value: fmt(uniqueCount), label: "Unique", color: "text-[#60A5FA]" },
-              { value: fmt(readyNowCount), label: "Ready Now", color: "text-[#4ADE80]" },
-              { value: fmt(recoverableCount), label: "Recoverable", color: "text-[#FCD34D]" },
-              { value: `~${fmt(roiHoursSaved)}h`, label: "SME Hrs Saved", color: "text-[#C4B5FD]" },
+              {
+                value: fmt(originalCount),
+                label: "Total Rows",
+                color: "text-red-100",
+              },
+              {
+                value: fmt(uniqueCount),
+                label: "Unique",
+                color: "text-[#60A5FA]",
+              },
+              {
+                value: fmt(readyNowCount),
+                label: "Ready Now",
+                color: "text-[#4ADE80]",
+              },
+              {
+                value: fmt(recoverableCount),
+                label: "Recoverable",
+                color: "text-[#FCD34D]",
+              },
+              {
+                value: `~${fmt(roiHoursSaved)}h`,
+                label: "SME Hrs Saved",
+                color: "text-[#C4B5FD]",
+              },
             ].map((kpi) => (
               <div
                 key={kpi.label}
                 className="bg-card/10 border border-white/15 rounded-xl px-5 py-3 text-center backdrop-blur-sm"
               >
-                <p className={cn("text-xl font-black leading-none", kpi.color)}>{kpi.value}</p>
-                <p className="text-[11px] text-red-200/60 uppercase tracking-wide mt-1">{kpi.label}</p>
+                <p className={cn("text-xl font-black leading-none", kpi.color)}>
+                  {kpi.value}
+                </p>
+                <p className="text-[11px] text-red-200/60 uppercase tracking-wide mt-1">
+                  {kpi.label}
+                </p>
               </div>
             ))}
           </div>
@@ -194,14 +356,17 @@ export function ValidationDashboard({
 
       {/* ─────────────────────────── BODY ────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-10">
-
         {/* ══ SECTION 1: Deduplication ══════════════════════════════════════ */}
         <section>
           <div className="flex items-center gap-3 mb-5">
             <SectionBadge n={1} color="#6B1E1E" />
             <div>
-              <h2 className="text-xl font-bold text-foreground">The Deduplication Phase</h2>
-              <p className="text-sm text-muted-foreground">Automatic removal of exact and near-duplicate questions</p>
+              <h2 className="text-xl font-bold text-foreground">
+                The Deduplication Phase
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Automatic removal of exact and near-duplicate questions
+              </p>
             </div>
           </div>
 
@@ -237,7 +402,7 @@ export function ValidationDashboard({
                         width: `${w}px`,
                         background:
                           i < 3
-                            ? `rgba(127,29,29,${0.60 - i * 0.08})`
+                            ? `rgba(127,29,29,${0.6 - i * 0.08})`
                             : `rgba(29,78,216,${0.14 + (7 - i) * 0.07})`,
                       }}
                     />
@@ -245,7 +410,9 @@ export function ValidationDashboard({
                 </div>
                 {/* Badge */}
                 <div className="bg-[#6B1E1E] text-primary-foreground rounded-full px-4 py-2 text-center shadow-md mt-1">
-                  <p className="text-[15px] font-black leading-none">{dedupPct}%</p>
+                  <p className="text-[15px] font-black leading-none">
+                    {dedupPct}%
+                  </p>
                   <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5 opacity-75">
                     Removed
                   </p>
@@ -279,8 +446,11 @@ export function ValidationDashboard({
                   Phase 1 Complete: {dedupPct}% Redundancy Removed.
                 </span>{" "}
                 Your subject matter experts are shielded from{" "}
-                <span className="font-bold text-[#374151]">{fmt(removedCount)}</span> redundant review
-                cycles — meaning zero wasted time on content that was never going to ship.
+                <span className="font-bold text-[#374151]">
+                  {fmt(removedCount)}
+                </span>{" "}
+                redundant review cycles — meaning zero wasted time on content
+                that was never going to ship.
               </p>
             </div>
           </div>
@@ -291,9 +461,12 @@ export function ValidationDashboard({
           <div className="flex items-center gap-3 mb-5">
             <SectionBadge n={2} color="#1D4ED8" />
             <div>
-              <h2 className="text-xl font-bold text-foreground">The Recovery Value</h2>
+              <h2 className="text-xl font-bold text-foreground">
+                The Recovery Value
+              </h2>
               <p className="text-sm text-muted-foreground">
-                From {fmt(uniqueCount)} unique questions — here is what AssessmentCore can deliver
+                From {fmt(uniqueCount)} unique questions — here is what
+                AssessmentCore can deliver
               </p>
             </div>
           </div>
@@ -306,11 +479,20 @@ export function ValidationDashboard({
                 <div className="w-11 h-11 rounded-full bg-success-light border-2 border-success flex items-center justify-center mx-auto mb-3">
                   <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
                 </div>
-                <p className="text-4xl font-black text-[#15803D] leading-none tabular-nums">{fmt(readyNowCount)}</p>
-                <p className="text-[11px] font-bold text-success mt-2 uppercase tracking-wider">Ready Now</p>
-                <p className="text-[11px] text-success/70 mt-0.5">{readyPct.toFixed(0)}% of unique bank</p>
+                <p className="text-4xl font-black text-[#15803D] leading-none tabular-nums">
+                  {fmt(readyNowCount)}
+                </p>
+                <p className="text-[11px] font-bold text-success mt-2 uppercase tracking-wider">
+                  Ready Now
+                </p>
+                <p className="text-[11px] text-success/70 mt-0.5">
+                  {readyPct.toFixed(0)}% of unique bank
+                </p>
                 <div className="mt-3 pt-3 border-t border-emerald-100">
-                  <p className="text-xs text-[#374151]">Fully compliant — export immediately to Canvas, Moodle, Blackboard</p>
+                  <p className="text-xs text-[#374151]">
+                    Fully compliant — export immediately to Canvas, Moodle,
+                    Blackboard
+                  </p>
                 </div>
               </div>
 
@@ -319,11 +501,20 @@ export function ValidationDashboard({
                 <div className="w-11 h-11 rounded-full bg-warning-light border-2 border-warning flex items-center justify-center mx-auto mb-3">
                   <TrendingUp className="w-5 h-5 text-[#D97706]" />
                 </div>
-                <p className="text-4xl font-black text-[#B45309] leading-none tabular-nums">{fmt(recoverableCount)}</p>
-                <p className="text-[11px] font-bold text-warning mt-2 uppercase tracking-wider">Recoverable</p>
-                <p className="text-[11px] text-warning/70 mt-0.5">{recoverPct.toFixed(0)}% of unique bank</p>
+                <p className="text-4xl font-black text-[#B45309] leading-none tabular-nums">
+                  {fmt(recoverableCount)}
+                </p>
+                <p className="text-[11px] font-bold text-warning mt-2 uppercase tracking-wider">
+                  Recoverable
+                </p>
+                <p className="text-[11px] text-warning/70 mt-0.5">
+                  {recoverPct.toFixed(0)}% of unique bank
+                </p>
                 <div className="mt-3 pt-3 border-t border-amber-100">
-                  <p className="text-xs text-[#374151]">Fixable with automated remediation — no SME re-writing required</p>
+                  <p className="text-xs text-[#374151]">
+                    Fixable with automated remediation — no SME re-writing
+                    required
+                  </p>
                 </div>
               </div>
 
@@ -332,11 +523,19 @@ export function ValidationDashboard({
                 <div className="w-11 h-11 rounded-full bg-muted border-2 border-border flex items-center justify-center mx-auto mb-3">
                   <AlertCircle className="w-5 h-5 text-[#64748B]" />
                 </div>
-                <p className="text-4xl font-black text-[#475569] leading-none tabular-nums">{fmt(needsReviewCount)}</p>
-                <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wider">Needs Deeper Review</p>
-                <p className="text-[11px] text-muted-foreground/70 mt-0.5">{reviewPct.toFixed(0)}% of unique bank</p>
+                <p className="text-4xl font-black text-[#475569] leading-none tabular-nums">
+                  {fmt(needsReviewCount)}
+                </p>
+                <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wider">
+                  Needs Deeper Review
+                </p>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                  {reviewPct.toFixed(0)}% of unique bank
+                </p>
                 <div className="mt-3 pt-3 border-t border-border">
-                  <p className="text-xs text-[#374151]">Requires manual SME attention before LMS upload</p>
+                  <p className="text-xs text-[#374151]">
+                    Requires manual SME attention before LMS upload
+                  </p>
                 </div>
               </div>
             </div>
@@ -370,7 +569,10 @@ export function ValidationDashboard({
                   { color: "#CBD5E1", label: "Needs Review", pct: reviewPct },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-sm" style={{ background: item.color }} />
+                    <div
+                      className="w-3 h-3 rounded-sm"
+                      style={{ background: item.color }}
+                    />
                     <span className="text-[#374151] font-medium">
                       {item.label} ({item.pct.toFixed(0)}%)
                     </span>
@@ -382,7 +584,9 @@ export function ValidationDashboard({
             {/* ROI callout */}
             <div
               className="rounded-2xl border-2 border-primary p-6"
-              style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)" }}
+              style={{
+                background: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
+              }}
             >
               <div className="flex items-start gap-5">
                 <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-200">
@@ -393,30 +597,47 @@ export function ValidationDashboard({
                     Value Delivered
                   </p>
                   <p className="text-2xl font-black text-[#1E40AF] mt-1.5 leading-tight">
-                    Recovering these questions saves your subject matter experts approximately{" "}
-                    <span className="text-[#1D4ED8]">~{fmt(roiHoursSaved)} hours</span> of re-writing time.
+                    Recovering these questions saves your subject matter experts
+                    approximately{" "}
+                    <span className="text-[#1D4ED8]">
+                      ~{fmt(roiHoursSaved)} hours
+                    </span>{" "}
+                    of re-writing time.
                   </p>
                   <p className="text-sm text-[#3B82F6] mt-2">
                     Based on{" "}
-                    <span className="font-bold text-[#1D4ED8]">{fmt(recoverableCount)} recoverable questions</span> ×
-                    0.5 hrs/question estimated re-write time. At standard SME billing rates, this represents significant cost avoidance.
+                    <span className="font-bold text-[#1D4ED8]">
+                      {fmt(recoverableCount)} recoverable questions
+                    </span>{" "}
+                    × 0.5 hrs/question estimated re-write time. At standard SME
+                    billing rates, this represents significant cost avoidance.
                   </p>
 
                   {/* Calculation breakdown */}
                   <div className="mt-4 flex flex-wrap gap-2 items-center text-sm font-bold text-[#1E40AF]">
                     <div className="bg-card/70 rounded-lg px-4 py-2 text-center border border-blue-100">
-                      <p className="text-lg font-black">{fmt(recoverableCount)}</p>
-                      <p className="text-[10px] text-[#6B7280] font-normal">Questions Saved</p>
+                      <p className="text-lg font-black">
+                        {fmt(recoverableCount)}
+                      </p>
+                      <p className="text-[10px] text-[#6B7280] font-normal">
+                        Questions Saved
+                      </p>
                     </div>
                     <span className="text-[#93C5FD] text-lg">×</span>
                     <div className="bg-card/70 rounded-lg px-4 py-2 text-center border border-blue-100">
                       <p className="text-lg font-black">0.5</p>
-                      <p className="text-[10px] text-[#6B7280] font-normal">Hrs / Question</p>
+                      <p className="text-[10px] text-[#6B7280] font-normal">
+                        Hrs / Question
+                      </p>
                     </div>
                     <span className="text-[#93C5FD] text-lg">=</span>
                     <div className="bg-[#1D4ED8] text-primary-foreground rounded-lg px-4 py-2 text-center shadow-md">
-                      <p className="text-lg font-black">~{fmt(roiHoursSaved)} hrs</p>
-                      <p className="text-[10px] opacity-70 font-normal">Total Saved</p>
+                      <p className="text-lg font-black">
+                        ~{fmt(roiHoursSaved)} hrs
+                      </p>
+                      <p className="text-[10px] opacity-70 font-normal">
+                        Total Saved
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -430,9 +651,12 @@ export function ValidationDashboard({
           <div className="flex items-center gap-3 mb-5">
             <SectionBadge n={3} color="#B45309" />
             <div>
-              <h2 className="text-xl font-bold text-[#111827]">LMS Rejection Risks</h2>
+              <h2 className="text-xl font-bold text-[#111827]">
+                LMS Rejection Risks
+              </h2>
               <p className="text-sm text-[#6B7280]">
-                These data issues will cause silent import failures in Canvas, Moodle, and Blackboard
+                These data issues will cause silent import failures in Canvas,
+                Moodle, and Blackboard
               </p>
             </div>
           </div>
@@ -445,7 +669,7 @@ export function ValidationDashboard({
                   key={i}
                   className={cn(
                     "bg-card rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden flex",
-                    "hover:shadow-md transition-shadow"
+                    "hover:shadow-md transition-shadow",
                   )}
                 >
                   {/* Left accent stripe */}
@@ -458,13 +682,15 @@ export function ValidationDashboard({
                   <div
                     className={cn(
                       "flex items-center justify-center px-5",
-                      isCritical ? "bg-destructive-light" : "bg-warning-light"
+                      isCritical ? "bg-destructive-light" : "bg-warning-light",
                     )}
                   >
                     <div
                       className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
-                        isCritical ? "bg-destructive-light" : "bg-warning-light"
+                        isCritical
+                          ? "bg-destructive-light"
+                          : "bg-warning-light",
                       )}
                     >
                       {isCritical ? (
@@ -478,19 +704,23 @@ export function ValidationDashboard({
                   {/* Content */}
                   <div className="flex-1 px-5 py-4">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-bold text-[#111827] text-[15px]">{issue.title}</h3>
+                      <h3 className="font-bold text-[#111827] text-[15px]">
+                        {issue.title}
+                      </h3>
                       <span
                         className={cn(
                           "text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide",
                           isCritical
                             ? "bg-destructive-light text-destructive border border-destructive"
-                            : "bg-warning-light text-warning border border-warning"
+                            : "bg-warning-light text-warning border border-warning",
                         )}
                       >
                         {issue.lmsRiskLevel} Risk
                       </span>
                     </div>
-                    <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">{issue.description}</p>
+                    <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
+                      {issue.description}
+                    </p>
 
                     {/* Impact bar */}
                     <div className="mt-3 flex items-center gap-3">
@@ -524,7 +754,9 @@ export function ValidationDashboard({
           <div className="flex items-center gap-3 mb-5">
             <SectionBadge n={4} color="#047857" />
             <div>
-              <h2 className="text-xl font-bold text-[#111827]">The AssessmentCore Transformation</h2>
+              <h2 className="text-xl font-bold text-[#111827]">
+                The AssessmentCore Transformation
+              </h2>
               <p className="text-sm text-[#6B7280]">
                 From raw spreadsheet chaos to LMS-ready QTI 2.1 standard
               </p>
@@ -537,14 +769,23 @@ export function ValidationDashboard({
               {/* Panel header */}
               <div className="bg-[#FEF2F2] border-b-2 border-destructive px-5 py-3 flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-[#DC2626]" />
-                <span className="text-sm font-bold text-[#DC2626]">BEFORE — Raw Excel Upload</span>
+                <span className="text-sm font-bold text-[#DC2626]">
+                  BEFORE — Raw Excel Upload
+                </span>
               </div>
 
               <div className="p-5 overflow-x-auto">
                 <table className="text-[11px] border-collapse w-full min-w-max font-mono">
                   <thead>
                     <tr className="bg-[#F8FAFC]">
-                      {["Q_ID", "Question", "Answer", "Opt A", "Opt B", "Type"].map((h) => (
+                      {[
+                        "Q_ID",
+                        "Question",
+                        "Answer",
+                        "Opt A",
+                        "Opt B",
+                        "Type",
+                      ].map((h) => (
                         <th
                           key={h}
                           className="border border-[#D1D5DB] px-2.5 py-1.5 text-left font-bold text-[#374151] bg-[#F1F5F9]"
@@ -558,42 +799,72 @@ export function ValidationDashboard({
                     {/* Row 1: Missing ID + missing answer */}
                     <tr className="hover:bg-destructive-light/30">
                       <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-destructive-light/60">
-                        <span className="text-red-400 italic font-sans">???</span>
+                        <span className="text-red-400 italic font-sans">
+                          ???
+                        </span>
                       </td>
                       <td className="border border-[#D1D5DB] px-2.5 py-1.5 max-w-[90px] truncate text-[#374151]">
                         What is 2+2?
                       </td>
                       <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-destructive-light/60">
-                        <span className="text-red-400 italic font-sans">[empty]</span>
+                        <span className="text-red-400 italic font-sans">
+                          [empty]
+                        </span>
                       </td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">4</td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">5</td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        4
+                      </td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        5
+                      </td>
                       <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-warning-light">
                         <span className="text-warning font-sans">mcq???</span>
                       </td>
                     </tr>
                     {/* Row 2: Missing stem */}
                     <tr className="hover:bg-destructive-light/30">
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">Q_002</td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-destructive-light/60">
-                        <span className="text-red-400 italic font-sans">[MISSING]</span>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        Q_002
                       </td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">A</td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">True</td>
                       <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-destructive-light/60">
-                        <span className="text-red-400 italic font-sans">[empty]</span>
+                        <span className="text-red-400 italic font-sans">
+                          [MISSING]
+                        </span>
                       </td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">TF</td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        A
+                      </td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        True
+                      </td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-destructive-light/60">
+                        <span className="text-red-400 italic font-sans">
+                          [empty]
+                        </span>
+                      </td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        TF
+                      </td>
                     </tr>
                     {/* Row 3: Duplicate of row 1 */}
                     <tr className="hover:bg-warning-light/30">
                       <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-warning-light/70">
-                        <span className="text-warning line-through font-sans">Q_001</span>
+                        <span className="text-warning line-through font-sans">
+                          Q_001
+                        </span>
                       </td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">What is 2+2?</td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">4</td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">4</td>
-                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">5</td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        What is 2+2?
+                      </td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        4
+                      </td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        4
+                      </td>
+                      <td className="border border-[#D1D5DB] px-2.5 py-1.5 text-[#374151]">
+                        5
+                      </td>
                       <td className="border border-[#D1D5DB] px-2.5 py-1.5 bg-warning-light">
                         <span className="text-warning font-sans">MCQ</span>
                       </td>
@@ -604,17 +875,35 @@ export function ValidationDashboard({
                 {/* Error tags */}
                 <div className="mt-4 flex flex-wrap gap-1.5">
                   {[
-                    { label: "Missing ID", color: "bg-destructive-light text-destructive border-destructive" },
-                    { label: "Missing Answer", color: "bg-destructive-light text-destructive border-destructive" },
-                    { label: "Missing Stem", color: "bg-destructive-light text-destructive border-destructive" },
-                    { label: "Duplicate Row", color: "bg-warning-light text-warning border-warning" },
-                    { label: "Unknown Type", color: "bg-warning-light text-warning border-warning" },
+                    {
+                      label: "Missing ID",
+                      color:
+                        "bg-destructive-light text-destructive border-destructive",
+                    },
+                    {
+                      label: "Missing Answer",
+                      color:
+                        "bg-destructive-light text-destructive border-destructive",
+                    },
+                    {
+                      label: "Missing Stem",
+                      color:
+                        "bg-destructive-light text-destructive border-destructive",
+                    },
+                    {
+                      label: "Duplicate Row",
+                      color: "bg-warning-light text-warning border-warning",
+                    },
+                    {
+                      label: "Unknown Type",
+                      color: "bg-warning-light text-warning border-warning",
+                    },
                   ].map((tag) => (
                     <span
                       key={tag.label}
                       className={cn(
                         "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border",
-                        tag.color
+                        tag.color,
                       )}
                     >
                       ⚠ {tag.label}
@@ -629,7 +918,9 @@ export function ValidationDashboard({
               {/* Panel header */}
               <div className="bg-[#1E2D3D] border-b border-emerald-900/60 px-5 py-3 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#4ADE80]" />
-                <span className="text-sm font-bold text-[#4ADE80]">AFTER — QTI 2.1 Standard</span>
+                <span className="text-sm font-bold text-[#4ADE80]">
+                  AFTER — QTI 2.1 Standard
+                </span>
                 <span className="ml-auto text-[10px] text-[#4B5563] font-mono bg-[#111827] px-2 py-0.5 rounded">
                   assessmentItem.xml
                 </span>
@@ -666,12 +957,19 @@ export function ValidationDashboard({
         <section>
           <div
             className="rounded-2xl overflow-hidden shadow-xl"
-            style={{ background: "linear-gradient(135deg, #6B1E1E 0%, #3B1F7A 60%, #1E1B4B 100%)" }}
+            style={{
+              background:
+                "linear-gradient(135deg, #6B1E1E 0%, #3B1F7A 60%, #1E1B4B 100%)",
+            }}
           >
             <div className="px-10 py-12 text-primary-foreground text-center">
               {/* Brand */}
               <div className="flex items-center justify-center gap-2 mb-5">
-                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="w-5 h-5 rounded object-contain" />
+                <img
+                  src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
+                  alt="AssessmentCore logo"
+                  className="w-5 h-5 rounded object-contain"
+                />
                 <span className="text-sm font-bold text-red-200/60 uppercase tracking-widest">
                   AssessmentCore · Next Steps
                 </span>
@@ -683,8 +981,9 @@ export function ValidationDashboard({
                 <span className="text-[#FCD34D]">LMS-ready</span> question bank.
               </h2>
               <p className="text-lg text-primary-foreground/65 mt-4 max-w-xl mx-auto leading-relaxed">
-                {fmt(recoverableCount)} questions are recoverable right now. Approve the Remediation
-                Sprint and we will handle the rest — automatically.
+                {fmt(recoverableCount)} questions are recoverable right now.
+                Approve the Remediation Sprint and we will handle the rest —
+                automatically.
               </p>
 
               {/* CTA buttons */}
@@ -709,11 +1008,19 @@ export function ValidationDashboard({
               <div className="mt-10 pt-8 border-t border-white/15 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-lg mx-auto">
                 {[
                   { value: fmt(readyNowCount), label: "Export Immediately" },
-                  { value: fmt(recoverableCount), label: "Questions Recoverable" },
-                  { value: `~${fmt(roiHoursSaved)}h`, label: "Expert Hours Saved" },
+                  {
+                    value: fmt(recoverableCount),
+                    label: "Questions Recoverable",
+                  },
+                  {
+                    value: `~${fmt(roiHoursSaved)}h`,
+                    label: "Expert Hours Saved",
+                  },
                 ].map((stat) => (
                   <div key={stat.label} className="text-center">
-                    <p className="text-3xl font-black text-primary-foreground tabular-nums">{stat.value}</p>
+                    <p className="text-3xl font-black text-primary-foreground tabular-nums">
+                      {stat.value}
+                    </p>
                     <p className="text-xs text-primary-foreground/45 mt-1.5 uppercase tracking-wide font-medium">
                       {stat.label}
                     </p>
@@ -728,7 +1035,8 @@ export function ValidationDashboard({
         <footer className="text-center pb-4">
           <p className="text-xs text-[#94A3B8]">
             Confidential · Generated by{" "}
-            <span className="font-bold text-[#6B1E1E]">AssessmentCore</span> · {date}
+            <span className="font-bold text-[#6B1E1E]">AssessmentCore</span> ·{" "}
+            {date}
           </p>
         </footer>
       </div>

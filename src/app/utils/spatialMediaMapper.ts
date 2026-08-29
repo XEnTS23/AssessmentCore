@@ -1,4 +1,4 @@
-import type { OCRResult } from '../../services/ocrService';
+import type { OCRResult } from "../../services/ocrService";
 
 // ── Public Types ────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ export interface SpatiallyMappedQuestion {
   stem: string;
   stem_box?: [number, number, number, number];
   options: string[];
-  diagrams: OCRResult['questions'][number]['diagrams'];
+  diagrams: OCRResult["questions"][number]["diagrams"];
   /** The auto-mapped media URL from spatial analysis. Null if no image matched. */
   media_url: string | null;
 }
@@ -98,7 +98,10 @@ export function mapImagesToQuestions(
  *   - If y is before the first text block's y_max, assign to block 0.
  *   - If y is after the last text block, assign to the last block.
  */
-function findOwnerTextBlockIndex(sortedTextBlocks: TextBlock[], y: number): number {
+function findOwnerTextBlockIndex(
+  sortedTextBlocks: TextBlock[],
+  y: number,
+): number {
   const len = sortedTextBlocks.length;
   if (len === 0) return -1;
 
@@ -158,7 +161,7 @@ export function mapOCRDiagramsToQuestions(
   const imageBlocks: ImageBlock[] = [];
   for (const q of questions) {
     for (const diagram of q.diagrams ?? []) {
-      const url = diagram.url || '';
+      const url = diagram.url || "";
       if (!url) continue; // Skip diagrams without URLs.
       if (diagram.box && diagram.box.length === 4) {
         imageBlocks.push({
@@ -265,4 +268,3 @@ export function sortByReadingOrder<T extends SortableElement>(
     return a.y_min - b.y_min;
   });
 }
-

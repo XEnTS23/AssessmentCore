@@ -3,11 +3,14 @@
  * Generates compliant QTI 2.1 XML for Text Entry Questions (Short Answer)
  */
 
-import { Question, QuestionBuilder, GenerationError } from '../../types';
-import { escapeXml } from '../../xmlUtils';
-import { validateXml } from '../../xmlValidator';
-import { convertTextWithMath, stripMath } from '../../../app/utils/mathmlConverter';
-import { IMG_SEPARATOR } from '../../../app/utils/mediaUtils';
+import { Question, QuestionBuilder, GenerationError } from "../../types";
+import { escapeXml } from "../../xmlUtils";
+import { validateXml } from "../../xmlValidator";
+import {
+  convertTextWithMath,
+  stripMath,
+} from "../../../app/utils/mathmlConverter";
+import { IMG_SEPARATOR } from "../../../app/utils/mediaUtils";
 
 class TextEntryBuilder implements QuestionBuilder {
   /**
@@ -25,16 +28,16 @@ class TextEntryBuilder implements QuestionBuilder {
    * Validate question has all required fields
    */
   private validateQuestion(question: Question): void {
-    if (!question.identifier || question.identifier.trim() === '') {
-      throw new Error('Question identifier is required');
+    if (!question.identifier || question.identifier.trim() === "") {
+      throw new Error("Question identifier is required");
     }
 
-    if (!question.stem || question.stem.trim() === '') {
-      throw new Error('Question stem is required');
+    if (!question.stem || question.stem.trim() === "") {
+      throw new Error("Question stem is required");
     }
 
-    if (!question.correct_answer || question.correct_answer.trim() === '') {
-      throw new Error('Correct answer is required');
+    if (!question.correct_answer || question.correct_answer.trim() === "") {
+      throw new Error("Correct answer is required");
     }
   }
 
@@ -47,15 +50,17 @@ class TextEntryBuilder implements QuestionBuilder {
 
     // Keep question text inline with the interaction to match strict QTI 2.1 template.
     const stemParts = question.stem.split(IMG_SEPARATOR);
-    const stemInlineParts = await Promise.all(stemParts.map(async part => {
-      const trimmed = part.trim();
-      if (!trimmed) return '';
-      if (trimmed.startsWith('<img') && trimmed.endsWith('/>')) {
-        return trimmed;
-      }
-      return await convertTextWithMath(trimmed);
-    }));
-    const stemInlineContent = stemInlineParts.filter(Boolean).join(' ');
+    const stemInlineParts = await Promise.all(
+      stemParts.map(async (part) => {
+        const trimmed = part.trim();
+        if (!trimmed) return "";
+        if (trimmed.startsWith("<img") && trimmed.endsWith("/>")) {
+          return trimmed;
+        }
+        return await convertTextWithMath(trimmed);
+      }),
+    );
+    const stemInlineContent = stemInlineParts.filter(Boolean).join(" ");
 
     const rawAnswer = question.correct_answer.trim();
     const answerCandidates = rawAnswer
@@ -67,20 +72,27 @@ class TextEntryBuilder implements QuestionBuilder {
     const escapedPrimaryAnswer = escapeXml(primaryAnswer);
 
     // Accept explicit length if present; otherwise derive from primary answer length.
-    const explicitLength = Number((question as any).expectedLength ?? (question as any).expected_length);
+    const explicitLength = Number(
+      (question as any).expectedLength ?? (question as any).expected_length,
+    );
     const answerLength = primaryAnswer.length;
-    const expectedLength = Number.isFinite(explicitLength) && explicitLength > 0
-      ? Math.round(explicitLength)
-      : Math.max(20, Math.min(answerLength + 10, 500));
+    const expectedLength =
+      Number.isFinite(explicitLength) && explicitLength > 0
+        ? Math.round(explicitLength)
+        : Math.max(20, Math.min(answerLength + 10, 500));
 
-    const mappingXml = uniqueAnswers.length > 1
-      ? `
+    const mappingXml =
+      uniqueAnswers.length > 1
+        ? `
     <mapping defaultValue="0">
 ${uniqueAnswers
-  .map((answer) => `      <mapEntry mapKey="${escapeXml(answer)}" mappedValue="1" caseSensitive="false"/>`)
-  .join('\n')}
+  .map(
+    (answer) =>
+      `      <mapEntry mapKey="${escapeXml(answer)}" mappedValue="1" caseSensitive="false"/>`,
+  )
+  .join("\n")}
     </mapping>`
-      : '';
+        : "";
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1"
@@ -92,12 +104,16 @@ ${uniqueAnswers
   adaptive="false"
   timeDependent="false">
 
-  ${escapedPrimaryAnswer ? `<responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string">
+  ${
+    escapedPrimaryAnswer
+      ? `<responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string">
     <correctResponse>
       <value>${escapedPrimaryAnswer}</value>
     </correctResponse>
 ${mappingXml}
-  </responseDeclaration>` : `<responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string"/>`}
+  </responseDeclaration>`
+      : `<responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string"/>`
+  }
 
   <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
     <defaultValue><value>0</value></defaultValue>
@@ -106,7 +122,9 @@ ${mappingXml}
   <itemBody>
     <p>${stemInlineContent} <textEntryInteraction responseIdentifier="RESPONSE" expectedLength="${expectedLength}"/></p>
   </itemBody>
-${escapedPrimaryAnswer ? `
+${
+  escapedPrimaryAnswer
+    ? `
   <responseProcessing>
     <responseCondition>
       <responseIf>
@@ -119,8 +137,10 @@ ${escapedPrimaryAnswer ? `
         </setOutcomeValue>
       </responseIf>
     </responseCondition>
-  </responseProcessing>` : `
-  <responseProcessing/>`}
+  </responseProcessing>`
+    : `
+  <responseProcessing/>`
+}
 
 </assessmentItem>`;
 
@@ -147,7 +167,9 @@ export function createTextEntryBuilder(): QuestionBuilder {
  * Generate QTI XML for a single Text Entry question
  * Throws error if generation fails
  */
-export async function generateTextEntryXml(question: Question): Promise<string> {
+export async function generateTextEntryXml(
+  question: Question,
+): Promise<string> {
   const builder = createTextEntryBuilder();
   return builder.generate(question);
 }
@@ -157,40 +179,52 @@ export async function generateTextEntryXml(question: Question): Promise<string> 
  * Returns error if validation fails
  */
 export async function generateAndValidateTextEntry(
-  question: Question
+  question: Question,
 ): Promise<{ xml: string } | { error: GenerationError }> {
   try {
     const xml = await generateTextEntryXml(question);
     const builder = createTextEntryBuilder();
 
     // Custom QTI 2.1 validation logic: check structural rules 1, 2, 5
-    if (xml.includes('<p><p>') || xml.includes('</p></p>')) {
+    if (xml.includes("<p><p>") || xml.includes("</p></p>")) {
       return {
-        error: { code: 'XML_VALIDATION_FAILED', message: 'Generated XML contains nested <p> tags' }
+        error: {
+          code: "XML_VALIDATION_FAILED",
+          message: "Generated XML contains nested <p> tags",
+        },
       };
     }
-    
+
     // Check missing response processing or outcome
-    if (!xml.includes('<responseProcessing') || !xml.includes('<outcomeDeclaration')) {
-       return {
-         error: { code: 'XML_VALIDATION_FAILED', message: 'Missing responseProcessing or outcomeDeclaration' }
-       };
+    if (
+      !xml.includes("<responseProcessing") ||
+      !xml.includes("<outcomeDeclaration")
+    ) {
+      return {
+        error: {
+          code: "XML_VALIDATION_FAILED",
+          message: "Missing responseProcessing or outcomeDeclaration",
+        },
+      };
     }
-    
+
     // Enforce <responseDeclaration> before <itemBody>
-    const rdIndex = xml.indexOf('<responseDeclaration');
-    const ibIndex = xml.indexOf('<itemBody');
+    const rdIndex = xml.indexOf("<responseDeclaration");
+    const ibIndex = xml.indexOf("<itemBody");
     if (rdIndex > -1 && ibIndex > -1 && rdIndex > ibIndex) {
       return {
-         error: { code: 'XML_VALIDATION_FAILED', message: 'responseDeclaration appears after itemBody' }
-       };
+        error: {
+          code: "XML_VALIDATION_FAILED",
+          message: "responseDeclaration appears after itemBody",
+        },
+      };
     }
 
     if (!builder.validate(xml)) {
       return {
         error: {
-          code: 'XML_VALIDATION_FAILED',
-          message: 'Generated XML failed base validation',
+          code: "XML_VALIDATION_FAILED",
+          message: "Generated XML failed base validation",
         },
       };
     }
@@ -199,7 +233,7 @@ export async function generateAndValidateTextEntry(
   } catch (error) {
     return {
       error: {
-        code: 'TEXTENTRY_GENERATION_ERROR',
+        code: "TEXTENTRY_GENERATION_ERROR",
         message: error instanceof Error ? error.message : String(error),
         details: error,
       },

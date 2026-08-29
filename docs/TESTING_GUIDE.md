@@ -3,6 +3,7 @@
 ## 🧪 Local Testing Setup
 
 ### Prerequisites
+
 - Node.js installed
 - npm/pnpm working
 - Supabase account created
@@ -41,22 +42,24 @@ npm run dev
 ### Scenario 1: Registration Flow
 
 **Expected Behavior:**
+
 1. User is not logged in
 2. Visit: http://localhost:5173/workspace
 3. Click "Batch QTI Creator" in sidebar
 4. Should see "Authentication Required" prompt
 
 **Test Steps:**
+
 ```
 1. Click "Create Account" button
    ✓ Should navigate to /auth/register
-   
+
 2. Fill registration form:
    - Name: "Test User"
    - Email: "test@example.com"
    - Password: "TestPass123!"
    - Confirm: "TestPass123!"
-   
+
 3. Click "Create Account"
    ✓ Loading spinner appears
    ✓ Success message shown
@@ -65,6 +68,7 @@ npm run dev
 
 **Backend Check:**
 Open Supabase dashboard:
+
 - Auth > Users: New user should appear
 - Database > user_profiles: New profile created
 
@@ -73,17 +77,18 @@ Open Supabase dashboard:
 ### Scenario 2: Email Verification
 
 **Test Steps:**
+
 ```
 1. On verification page:
    - Should see email address: "test@example.com"
-   
+
 2. In development, get OTP from Supabase:
    - Auth > Users > [your user] > Copy email_confirmed link
    - OR check email in test inbox
-   
+
 3. Enter 6-digit code
    ✓ "Verify Email" button enabled only after 6 digits
-   
+
 4. Click "Verify Email"
    ✓ Loading spinner appears
    ✓ Success message shown
@@ -91,11 +96,12 @@ Open Supabase dashboard:
 ```
 
 **Optional Features:**
+
 ```
-- Click "Resend Code": 
+- Click "Resend Code":
   ✓ Shows "Verification code sent!" message
   ✓ Button disabled for 60 seconds
-  
+
 - Wrong code:
   ✓ Error message: "Verification failed..."
 ```
@@ -105,6 +111,7 @@ Open Supabase dashboard:
 ### Scenario 3: Login
 
 **Test Steps:**
+
 ```
 1. Navigate to: http://localhost:5173/auth/login
 
@@ -127,6 +134,7 @@ Open Supabase dashboard:
 ### Scenario 4: Batch Creator - First Time (With Quota)
 
 **Test Steps:**
+
 ```
 1. Logged in, click "Batch QTI Creator"
    ✓ Should show full batch creator interface
@@ -153,6 +161,7 @@ Open Supabase dashboard:
 
 **Backend Check:**
 Supabase dashboard:
+
 - Database > user_usage > Check exports_count = 1
 - last_export_at = today's date
 
@@ -161,6 +170,7 @@ Supabase dashboard:
 ### Scenario 5: Batch Creator - Second Time (Quota Exhausted)
 
 **Test Steps:**
+
 ```
 1. Logged in, click "Batch QTI Creator"
    ✓ Should see "Upgrade Your Plan" modal
@@ -182,6 +192,7 @@ Supabase dashboard:
 ### Scenario 6: Logout
 
 **Test Steps:**
+
 ```
 1. Click profile/logout button
    ✓ Session cleared
@@ -202,7 +213,7 @@ Supabase dashboard:
 
 ```tsx
 // src/app/pages/TestPage.tsx
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/AuthContext";
 
 export function TestPage() {
   const { user, isAuthenticated, userUsage, loading } = useAuth();
@@ -212,11 +223,11 @@ export function TestPage() {
   return (
     <div>
       <h1>Auth Debug</h1>
-      <p>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</p>
-      <p>User Email: {user?.email || 'None'}</p>
-      <p>User ID: {user?.id || 'None'}</p>
+      <p>Authenticated: {isAuthenticated ? "Yes" : "No"}</p>
+      <p>User Email: {user?.email || "None"}</p>
+      <p>User ID: {user?.id || "None"}</p>
       <p>Exports Used: {userUsage?.exports_count || 0}</p>
-      <p>Last Export: {userUsage?.last_export_at || 'Never'}</p>
+      <p>Last Export: {userUsage?.last_export_at || "Never"}</p>
       <pre>{JSON.stringify({ user, userUsage }, null, 2)}</pre>
     </div>
   );
@@ -224,6 +235,7 @@ export function TestPage() {
 ```
 
 Then add route to `src/app/routes.ts`:
+
 ```tsx
 {
   path: "/test",
@@ -241,13 +253,14 @@ Visit: http://localhost:5173/test
 
 ```sql
 -- In Supabase SQL Editor
-SELECT id, email, created_at 
-FROM user_profiles 
-ORDER BY created_at DESC 
+SELECT id, email, created_at
+FROM user_profiles
+ORDER BY created_at DESC
 LIMIT 1;
 ```
 
 **Expected Result:**
+
 - One row with your test user email
 - created_at = today
 
@@ -261,6 +274,7 @@ WHERE user_id = 'user-uuid-from-above';
 ```
 
 **Expected Result:**
+
 - exports_count = 1
 - last_export_at = today after export
 
@@ -335,6 +349,7 @@ Try emails:
 ### View Database Changes
 
 1. Database > user_profiles > Data
+
    - Should see rows for each new user
 
 2. Database > user_usage > Data
@@ -347,12 +362,13 @@ Try emails:
 ### Enable Console Logging
 
 Add to `src/services/authService.ts`:
+
 ```tsx
 // At top of each function
-console.log('Auth Function Called:', {
-  functionName: 'login',
+console.log("Auth Function Called:", {
+  functionName: "login",
   email,
-  timestamp: new Date().toISOString()
+  timestamp: new Date().toISOString(),
 });
 ```
 
@@ -364,10 +380,10 @@ Then check browser console (F12) for logs.
 // In VerifyEmailPage, try:
 - Wrong OTP: "000000"
   ✓ Should show error message
-  
+
 - Invalid email format
   ✓ Should show validation error
-  
+
 - User already exists during signup
   ✓ Should show error message
 ```
@@ -379,6 +395,7 @@ Then check browser console (F12) for logs.
 Complete this checklist for full feature validation:
 
 ### Authentication
+
 - [ ] Register with new email
 - [ ] Receive verification email
 - [ ] Enter wrong OTP (should fail)
@@ -389,6 +406,7 @@ Complete this checklist for full feature validation:
 - [ ] Logout clears session
 
 ### Feature Gating
+
 - [ ] Unauthenticated user can't access batch creator
 - [ ] Authenticated user can access batch creator
 - [ ] Upload and validate questions
@@ -398,6 +416,7 @@ Complete this checklist for full feature validation:
 - [ ] Can navigate to pricing page
 
 ### Quota Management
+
 - [ ] Initial exports_count = 0
 - [ ] After export, exports_count = 1
 - [ ] Can't export when count > 0 on free tier
@@ -475,7 +494,7 @@ Environment: Local Development
 ## Test Steps:
 1. [Step 1]
 2. [Step 2]
-... 
+...
 
 ## Expected Results:
 - [ ] Step 1 result
@@ -509,7 +528,8 @@ Environment: Local Development
 ## ❓ FAQ
 
 **Q: How do I get the OTP for verification?**
-A: 
+A:
+
 1. Option 1: Check your email inbox for test message
 2. Option 2: In Supabase, Auth > Users > [your user] > See email confirmation details
 3. Option 3: Check the JavaScript console for test OTP
@@ -519,6 +539,7 @@ A: No, each email can only have one account. Use different emails for testing.
 
 **Q: How do I reset a user account?**
 A: In Supabase:
+
 1. Auth > Users
 2. Find the user
 3. Click delete icon
@@ -526,12 +547,14 @@ A: In Supabase:
 
 **Q: Page not updating after changes?**
 A: Try:
+
 1. Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)
 2. Clear browser cache: F12 > Network > "Disable cache"
 3. Restart dev server: Ctrl+C then npm run dev
 
 **Q: Getting "CORS" errors?**
 A: Supabase handles CORS automatically. Check:
+
 1. Correct Supabase URL in .env.local
 2. Anon key is valid
 3. Browser console for full error message

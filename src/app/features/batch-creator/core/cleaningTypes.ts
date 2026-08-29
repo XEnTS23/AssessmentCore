@@ -1,4 +1,4 @@
-import { QuestionRow } from './rowTypes';
+import { QuestionRow } from "./rowTypes";
 
 // ─── Cleaning Log ────────────────────────────────────────────────────
 
@@ -9,7 +9,7 @@ export interface CleaningLog {
   before: string;
   after: string;
   reversible: boolean;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
 }
 
 // ─── Cleaning Metrics ────────────────────────────────────────────────

@@ -3,27 +3,36 @@
  * Generates compliant QTI 2.1 XML for Multiple Choice Questions
  */
 
-import { Question, QuestionBuilder, GenerationError } from '../../types';
-import { escapeXml, isValidIdentifier } from '../../xmlUtils';
-import { validateXml } from '../../xmlValidator';
-import { convertTextWithMath, stripMath } from '../../../app/utils/mathmlConverter';
-import { IMG_SEPARATOR } from '../../../app/utils/mediaUtils';
+import { Question, QuestionBuilder, GenerationError } from "../../types";
+import { escapeXml, isValidIdentifier } from "../../xmlUtils";
+import { validateXml } from "../../xmlValidator";
+import {
+  convertTextWithMath,
+  stripMath,
+} from "../../../app/utils/mathmlConverter";
+import { IMG_SEPARATOR } from "../../../app/utils/mediaUtils";
 
 class MCQBuilder implements QuestionBuilder {
   private normalizeCorrectIdentifiers(question: Question): string[] {
-    const raw = String(question.correct_answer || '').trim().toUpperCase();
+    const raw = String(question.correct_answer || "")
+      .trim()
+      .toUpperCase();
     if (!raw) {
-      throw new Error('Correct answer is required');
+      throw new Error("Correct answer is required");
     }
 
-    const tokens = question.type === 'MSQ'
-      ? raw.split(/[;,|]/).map((s) => s.trim()).filter(Boolean)
-      : [raw];
+    const tokens =
+      question.type === "MSQ"
+        ? raw
+            .split(/[;,|]/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [raw];
 
     const identifiers = tokens.map((token) => {
       if (!isValidIdentifier(token)) {
         throw new Error(
-          `Invalid correct answer format: "${token}". Must be A-Z or 1-26`
+          `Invalid correct answer format: "${token}". Must be A-Z or 1-26`,
         );
       }
 
@@ -41,13 +50,13 @@ class MCQBuilder implements QuestionBuilder {
       const answerIndex = identifier.charCodeAt(0) - 65;
       if (answerIndex >= question.options.length || answerIndex < 0) {
         throw new Error(
-          `Correct answer "${identifier}" exceeds number of options (${question.options.length})`
+          `Correct answer "${identifier}" exceeds number of options (${question.options.length})`,
         );
       }
     });
 
-    if (question.type === 'MSQ' && uniqueIdentifiers.length < 2) {
-      throw new Error('MSQ requires at least two correct choices');
+    if (question.type === "MSQ" && uniqueIdentifiers.length < 2) {
+      throw new Error("MSQ requires at least two correct choices");
     }
 
     return uniqueIdentifiers;
@@ -71,24 +80,24 @@ class MCQBuilder implements QuestionBuilder {
    * Validate question has all required fields
    */
   private validateQuestion(question: Question): void {
-    if (!question.identifier || question.identifier.trim() === '') {
-      throw new Error('Question identifier is required');
+    if (!question.identifier || question.identifier.trim() === "") {
+      throw new Error("Question identifier is required");
     }
 
-    if (!question.stem || question.stem.trim() === '') {
-      throw new Error('Question stem is required');
+    if (!question.stem || question.stem.trim() === "") {
+      throw new Error("Question stem is required");
     }
 
     if (!question.options || !Array.isArray(question.options)) {
-      throw new Error('Question options must be an array');
+      throw new Error("Question options must be an array");
     }
 
     if (question.options.length < 2) {
-      throw new Error('Question must have at least 2 options');
+      throw new Error("Question must have at least 2 options");
     }
 
-    if (!question.correct_answer || question.correct_answer.trim() === '') {
-      throw new Error('Correct answer is required');
+    if (!question.correct_answer || question.correct_answer.trim() === "") {
+      throw new Error("Correct answer is required");
     }
   }
 
@@ -105,37 +114,44 @@ class MCQBuilder implements QuestionBuilder {
   private async buildXml(question: Question): Promise<string> {
     const escapedId = escapeXml(question.identifier);
     const escapedTitle = escapeXml(stripMath(question.stem).substring(0, 100));
-    const shuffle = String((question as any).shuffle ?? 'false').toLowerCase() === 'true' ? 'true' : 'false';
-    const isMSQ = question.type === 'MSQ';
-    
+    const shuffle =
+      String((question as any).shuffle ?? "false").toLowerCase() === "true"
+        ? "true"
+        : "false";
+    const isMSQ = question.type === "MSQ";
+
     // Process stem content handling image separators to avoid nested <p>
     const stemParts = question.stem.split(IMG_SEPARATOR);
-    const stemContentBlocks = await Promise.all(stemParts.map(async part => {
-      const trimmed = part.trim();
-      if (!trimmed) return '';
-      if (trimmed.startsWith('<img') && trimmed.endsWith('/>')) {
-        // It's a bare image tag, wrap in <p>
-        return `<p>${trimmed}</p>`;
-      }
-      // It's text/math content, convert and wrap in <p>
-      const converted = await convertTextWithMath(trimmed);
-      return `<p>${converted}</p>`;
-    }));
-    const stemContent = stemContentBlocks.filter(Boolean).join('<br/>');
+    const stemContentBlocks = await Promise.all(
+      stemParts.map(async (part) => {
+        const trimmed = part.trim();
+        if (!trimmed) return "";
+        if (trimmed.startsWith("<img") && trimmed.endsWith("/>")) {
+          // It's a bare image tag, wrap in <p>
+          return `<p>${trimmed}</p>`;
+        }
+        // It's text/math content, convert and wrap in <p>
+        const converted = await convertTextWithMath(trimmed);
+        return `<p>${converted}</p>`;
+      }),
+    );
+    const stemContent = stemContentBlocks.filter(Boolean).join("<br/>");
 
     const correctAnswers = this.normalizeCorrectIdentifiers(question);
-    const correctResponseXml = correctAnswers.map((answer) => `      <value>${answer}</value>`).join('\n');
+    const correctResponseXml = correctAnswers
+      .map((answer) => `      <value>${answer}</value>`)
+      .join("\n");
 
     // Build simpleChoice elements
     const simpleChoices = (
       await Promise.all(
         question.options.map(async (option: string, index: number) => {
-        const identifier = String.fromCharCode(65 + index); // A, B, C, D...
-        const optionContent = await convertTextWithMath(option);
-        return `      <simpleChoice identifier="${identifier}">${optionContent}</simpleChoice>`;
-        })
+          const identifier = String.fromCharCode(65 + index); // A, B, C, D...
+          const optionContent = await convertTextWithMath(option);
+          return `      <simpleChoice identifier="${identifier}">${optionContent}</simpleChoice>`;
+        }),
       )
-    ).join('\n');
+    ).join("\n");
 
     // Build the complete XML
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -148,7 +164,7 @@ class MCQBuilder implements QuestionBuilder {
   adaptive="false"
   timeDependent="false">
 
-  <responseDeclaration identifier="RESPONSE" cardinality="${isMSQ ? 'multiple' : 'single'}" baseType="identifier">
+  <responseDeclaration identifier="RESPONSE" cardinality="${isMSQ ? "multiple" : "single"}" baseType="identifier">
     <correctResponse>
 ${correctResponseXml}
     </correctResponse>
@@ -159,7 +175,7 @@ ${correctResponseXml}
   </outcomeDeclaration>
 
   <itemBody>
-    <choiceInteraction responseIdentifier="RESPONSE" shuffle="${shuffle}" maxChoices="${isMSQ ? '0' : '1'}">
+    <choiceInteraction responseIdentifier="RESPONSE" shuffle="${shuffle}" maxChoices="${isMSQ ? "0" : "1"}">
       <prompt>${stemContent}</prompt>
 ${simpleChoices}
     </choiceInteraction>
@@ -202,46 +218,66 @@ export async function generateMCQXml(question: Question): Promise<string> {
  * Returns error if validation fails
  */
 export async function generateAndValidateMCQ(
-  question: Question
+  question: Question,
 ): Promise<{ xml: string } | { error: GenerationError }> {
   try {
     const xml = await generateMCQXml(question);
     const builder = createMCQBuilder();
 
     // Custom QTI 2.1 validation logic: check structural rules 1, 2, 5
-    if (xml.includes('<p><p>') || xml.includes('</p></p>')) {
+    if (xml.includes("<p><p>") || xml.includes("</p></p>")) {
       return {
-        error: { code: 'XML_VALIDATION_FAILED', message: 'Generated XML contains nested <p> tags' }
+        error: {
+          code: "XML_VALIDATION_FAILED",
+          message: "Generated XML contains nested <p> tags",
+        },
       };
-    }
-    
-    // Check missing response processing or outcome
-    if (!xml.includes('<responseProcessing') || !xml.includes('<outcomeDeclaration')) {
-       return {
-         error: { code: 'XML_VALIDATION_FAILED', message: 'Missing responseProcessing or outcomeDeclaration' }
-       };
     }
 
-    if (!xml.includes('template="http://www.imsglobal.org/question/qti_v2p1/rptemplates/match_correct"')) {
+    // Check missing response processing or outcome
+    if (
+      !xml.includes("<responseProcessing") ||
+      !xml.includes("<outcomeDeclaration")
+    ) {
       return {
-        error: { code: 'XML_VALIDATION_FAILED', message: 'QTI 2.1 MCQ must use match_correct responseProcessing template' }
+        error: {
+          code: "XML_VALIDATION_FAILED",
+          message: "Missing responseProcessing or outcomeDeclaration",
+        },
       };
     }
-    
+
+    if (
+      !xml.includes(
+        'template="http://www.imsglobal.org/question/qti_v2p1/rptemplates/match_correct"',
+      )
+    ) {
+      return {
+        error: {
+          code: "XML_VALIDATION_FAILED",
+          message:
+            "QTI 2.1 MCQ must use match_correct responseProcessing template",
+        },
+      };
+    }
+
     // Enforce <responseDeclaration> before <itemBody>
-    const rdIndex = xml.indexOf('<responseDeclaration');
-    const ibIndex = xml.indexOf('<itemBody');
+    const rdIndex = xml.indexOf("<responseDeclaration");
+    const ibIndex = xml.indexOf("<itemBody");
     if (rdIndex > -1 && ibIndex > -1 && rdIndex > ibIndex) {
       return {
-         error: { code: 'XML_VALIDATION_FAILED', message: 'responseDeclaration appears after itemBody' }
-       };
+        error: {
+          code: "XML_VALIDATION_FAILED",
+          message: "responseDeclaration appears after itemBody",
+        },
+      };
     }
 
     if (!builder.validate(xml)) {
       return {
         error: {
-          code: 'XML_VALIDATION_FAILED',
-          message: 'Generated XML failed base validation',
+          code: "XML_VALIDATION_FAILED",
+          message: "Generated XML failed base validation",
         },
       };
     }
@@ -250,7 +286,7 @@ export async function generateAndValidateMCQ(
   } catch (error) {
     return {
       error: {
-        code: 'MCQ_GENERATION_ERROR',
+        code: "MCQ_GENERATION_ERROR",
         message: error instanceof Error ? error.message : String(error),
         details: error,
       },

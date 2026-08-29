@@ -28,12 +28,16 @@ import {
   SelectValue,
 } from "./ui/select";
 import { cn } from "./ui/utils";
-import type { AIValidationItem, AIValidationIssue, AIProvider } from "../../services/aiValidationService";
+import type {
+  AIValidationItem,
+  AIValidationIssue,
+  AIProvider,
+} from "../../services/aiValidationService";
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
 interface AIValidationReportProps {
-  phase: 'ready' | 'running' | 'done';
+  phase: "ready" | "running" | "done";
   items: AIValidationItem[];
   totalItems?: number;
   availableProviders: AIProvider[];
@@ -53,25 +57,27 @@ interface AIValidationReportProps {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function severityIcon(severity: AIValidationIssue['severity']) {
+function severityIcon(severity: AIValidationIssue["severity"]) {
   switch (severity) {
-    case 'error':
+    case "error":
       return <XCircle className="w-3.5 h-3.5 text-[#DC2626] flex-shrink-0" />;
-    case 'warning':
-      return <AlertTriangle className="w-3.5 h-3.5 text-[#D97706] flex-shrink-0" />;
-    case 'info':
+    case "warning":
+      return (
+        <AlertTriangle className="w-3.5 h-3.5 text-[#D97706] flex-shrink-0" />
+      );
+    case "info":
       return <Info className="w-3.5 h-3.5 text-[#111827] flex-shrink-0" />;
   }
 }
 
-function severityBg(severity: AIValidationIssue['severity']) {
+function severityBg(severity: AIValidationIssue["severity"]) {
   switch (severity) {
-    case 'error':
-      return 'bg-destructive-light border-destructive';
-    case 'warning':
-      return 'bg-warning-light border-warning';
-    case 'info':
-      return 'bg-muted border-border';
+    case "error":
+      return "bg-destructive-light border-destructive";
+    case "warning":
+      return "bg-warning-light border-warning";
+    case "info":
+      return "bg-muted border-border";
   }
 }
 
@@ -90,15 +96,15 @@ function ValidationRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
 
   // Ensure issues is an array
   const issues = Array.isArray(item.issues) ? item.issues : [];
-  const hasErrors = issues.some((i) => i && i.severity === 'error');
-  const hasWarnings = issues.some((i) => i && i.severity === 'warning');
+  const hasErrors = issues.some((i) => i && i.severity === "error");
+  const hasWarnings = issues.some((i) => i && i.severity === "warning");
 
   const startEdit = () => {
-    setEditValue(item.xmlContent ?? '');
+    setEditValue(item.xmlContent ?? "");
     setEditing(true);
   };
 
@@ -109,13 +115,14 @@ function ValidationRow({
 
   const cancelEdit = () => {
     setEditing(false);
-    setEditValue('');
+    setEditValue("");
   };
 
   // Truncate XML for display
-  const displayXml = (item.xmlContent ?? '').length > 120
-    ? (item.xmlContent ?? '').slice(0, 120) + '...'
-    : (item.xmlContent ?? '');
+  const displayXml =
+    (item.xmlContent ?? "").length > 120
+      ? (item.xmlContent ?? "").slice(0, 120) + "..."
+      : (item.xmlContent ?? "");
 
   return (
     <>
@@ -123,7 +130,9 @@ function ValidationRow({
       <tr
         className={cn(
           "border-b border-[#E2E8F0] transition-colors",
-          item.isValid ? "hover:bg-green-50/40" : "hover:bg-destructive-light/40",
+          item.isValid
+            ? "hover:bg-green-50/40"
+            : "hover:bg-destructive-light/40",
           !item.isValid && "bg-destructive-light/20",
         )}
       >
@@ -164,17 +173,28 @@ function ValidationRow({
             {hasErrors && (
               <span className="inline-flex items-center gap-1 text-xs text-[#DC2626]">
                 <XCircle className="w-3 h-3" />
-                {issues.filter((i) => i && i.severity === 'error').length} error{issues.filter((i) => i && i.severity === 'error').length > 1 ? 's' : ''}
+                {issues.filter((i) => i && i.severity === "error").length} error
+                {issues.filter((i) => i && i.severity === "error").length > 1
+                  ? "s"
+                  : ""}
               </span>
             )}
             {hasWarnings && (
               <span className="inline-flex items-center gap-1 text-xs text-[#D97706]">
                 <AlertTriangle className="w-3 h-3" />
-                {issues.filter((i) => i && i.severity === 'warning').length} warning{issues.filter((i) => i && i.severity === 'warning').length > 1 ? 's' : ''}
+                {
+                  issues.filter((i) => i && i.severity === "warning").length
+                }{" "}
+                warning
+                {issues.filter((i) => i && i.severity === "warning").length > 1
+                  ? "s"
+                  : ""}
               </span>
             )}
             {!hasErrors && !hasWarnings && (
-              <span className="text-xs text-[#16A34A] font-medium">{String(item.summary || 'Valid')}</span>
+              <span className="text-xs text-[#16A34A] font-medium">
+                {String(item.summary || "Valid")}
+              </span>
             )}
           </div>
         </td>
@@ -187,7 +207,9 @@ function ValidationRow({
             <div className="space-y-4">
               {/* XML Content Section */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-[#475569] uppercase">Raw XML</p>
+                <p className="text-xs font-semibold text-[#475569] uppercase">
+                  Raw XML
+                </p>
                 {!editing ? (
                   <div className="flex items-start gap-2 group">
                     <div className="flex-1 bg-card border border-[#E2E8F0] rounded p-3 overflow-x-auto">
@@ -217,7 +239,7 @@ function ValidationRow({
                             Fixing
                           </span>
                         ) : (
-                          'AI Fix'
+                          "AI Fix"
                         )}
                       </button>
                     </div>
@@ -229,7 +251,7 @@ function ValidationRow({
                       onChange={(e) => setEditValue(e.target.value)}
                       className="font-mono text-xs min-h-[150px] resize-y border-[#111827] focus-visible:ring-[#111827] bg-card"
                       onKeyDown={(e) => {
-                        if (e.key === 'Escape') cancelEdit();
+                        if (e.key === "Escape") cancelEdit();
                       }}
                     />
                     <div className="flex gap-2">
@@ -258,38 +280,47 @@ function ValidationRow({
               {/* Issues Section */}
               {issues.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[#475569] uppercase">Issues Found</p>
+                  <p className="text-xs font-semibold text-[#475569] uppercase">
+                    Issues Found
+                  </p>
                   <div className="space-y-2">
-                    {issues.map((issue, idx) => (
-                      issue && (
-                        <div
-                          key={idx}
-                          className={cn(
-                            "flex items-start gap-3 p-3 rounded border text-xs",
-                            severityBg(issue.severity),
-                          )}
-                        >
-                          {severityIcon(issue.severity)}
-                          <div className="flex-1">
-                            <p className="text-[#111827] font-medium">{String(issue.message || '')}</p>
-                            {issue.element && (
-                              <code className="text-[10px] text-[#475569] font-mono mt-1 block">
-                                {String(issue.element)}
-                              </code>
+                    {issues.map(
+                      (issue, idx) =>
+                        issue && (
+                          <div
+                            key={idx}
+                            className={cn(
+                              "flex items-start gap-3 p-3 rounded border text-xs",
+                              severityBg(issue.severity),
                             )}
+                          >
+                            {severityIcon(issue.severity)}
+                            <div className="flex-1">
+                              <p className="text-[#111827] font-medium">
+                                {String(issue.message || "")}
+                              </p>
+                              {issue.element && (
+                                <code className="text-[10px] text-[#475569] font-mono mt-1 block">
+                                  {String(issue.element)}
+                                </code>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )
-                    ))}
+                        ),
+                    )}
                   </div>
                 </div>
               )}
 
               {!hasErrors && !hasWarnings && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[#475569] uppercase">Validation Result</p>
+                  <p className="text-xs font-semibold text-[#475569] uppercase">
+                    Validation Result
+                  </p>
                   <div className="p-3 rounded bg-green-50 border border-green-200">
-                    <p className="text-xs text-[#16A34A] font-medium">{String(item.summary || 'Valid')}</p>
+                    <p className="text-xs text-[#16A34A] font-medium">
+                      {String(item.summary || "Valid")}
+                    </p>
                   </div>
                 </div>
               )}
@@ -329,7 +360,11 @@ function ReadyCard({
       <CardContent className="space-y-4">
         <div className="p-4 bg-card rounded-lg border border-[#E2E8F0]">
           <p className="text-sm text-[#475569]">
-            <span className="font-semibold text-[#111827]">{totalItems} questions</span> will be validated using AI to check for XML schema compliance and educational content quality.
+            <span className="font-semibold text-[#111827]">
+              {totalItems} questions
+            </span>{" "}
+            will be validated using AI to check for XML schema compliance and
+            educational content quality.
           </p>
         </div>
 
@@ -337,7 +372,10 @@ function ReadyCard({
           <label className="block text-sm font-medium text-[#475569]">
             Select AI Provider
           </label>
-          <Select value={currentProvider} onValueChange={(v) => onProviderChange(v as AIProvider)}>
+          <Select
+            value={currentProvider}
+            onValueChange={(v) => onProviderChange(v as AIProvider)}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Choose provider" />
             </SelectTrigger>
@@ -350,7 +388,9 @@ function ReadyCard({
             </SelectContent>
           </Select>
           <p className="text-xs text-[#94A3B8]">
-            {currentProvider === 'gemini' ? 'Using Google Gemini API' : 'Using Groq API'}
+            {currentProvider === "gemini"
+              ? "Using Google Gemini API"
+              : "Using Groq API"}
           </p>
         </div>
 
@@ -400,15 +440,17 @@ export function AIValidationReport({
   const isRunning = !!progress && progress.current < progress.total;
 
   // Ready state - show the initial validation prompt
-  if (phase === 'ready') {
-    return <ReadyCard
-      totalItems={totalItems || 0}
-      availableProviders={availableProviders}
-      currentProvider={currentProvider}
-      onProviderChange={onProviderChange}
-      onStartValidation={onStartValidation}
-      onCancel={onCancel}
-    />;
+  if (phase === "ready") {
+    return (
+      <ReadyCard
+        totalItems={totalItems || 0}
+        availableProviders={availableProviders}
+        currentProvider={currentProvider}
+        onProviderChange={onProviderChange}
+        onStartValidation={onStartValidation}
+        onCancel={onCancel}
+      />
+    );
   }
 
   // Running or Done state - show results table
@@ -428,7 +470,7 @@ export function AIValidationReport({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-[#475569]">
-                {isRevalidating ? 'Re-validating' : 'Validating'} items...
+                {isRevalidating ? "Re-validating" : "Validating"} items...
               </span>
               <span className="font-medium text-[#111827]">
                 {progress.current} / {progress.total}
@@ -480,7 +522,9 @@ export function AIValidationReport({
                     <ValidationRow
                       key={item.itemNo}
                       item={item}
-                      onXmlChange={(newXml) => onItemXmlChange(item.itemNo, newXml)}
+                      onXmlChange={(newXml) =>
+                        onItemXmlChange(item.itemNo, newXml)
+                      }
                       onAutoFix={() => onItemAutoFix(item.itemNo)}
                       isFixing={fixingItemNo === item.itemNo}
                     />

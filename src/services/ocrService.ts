@@ -1,13 +1,13 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import { supabase } from './supabaseClient';
+import * as pdfjsLib from "pdfjs-dist";
+import { supabase } from "./supabaseClient";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const processOcrFunctionUrl = `${supabaseUrl}/functions/v1/process-ocr`;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url
+  "pdfjs-dist/build/pdf.worker.mjs",
+  import.meta.url,
 ).toString();
 
 export type NormalizedBox = [number, number, number, number]; // [y_min, x_min, y_max, x_max]
@@ -16,8 +16,8 @@ export type CropCoordinates = [number, number, number, number]; // [y, x, h, w] 
 export interface ManualCrop {
   id: string;
   coordinates: CropCoordinates;
-  type: 'stem' | 'option';
-  optionLabel?: 'A' | 'B' | 'C' | 'D';
+  type: "stem" | "option";
+  optionLabel?: "A" | "B" | "C" | "D";
   /** 1-based question number for deterministic diagram assignment */
   questionNumber?: number;
   /**
@@ -32,9 +32,9 @@ export interface OCRDiagram {
   box: NormalizedBox;
   description: string;
   url?: string;
-  source?: 'manual_crop' | 'model';
-  role?: 'stem' | 'option';
-  optionLabel?: 'A' | 'B' | 'C' | 'D';
+  source?: "manual_crop" | "model";
+  role?: "stem" | "option";
+  optionLabel?: "A" | "B" | "C" | "D";
   pageIndex?: number;
   originalPageIndex?: number;
   assignment?: {
@@ -96,7 +96,10 @@ export interface OCRResult {
  * Inside the Edge Function, that page image is treated as pageIndex 0.
  * We preserve originalPageIndex so the frontend can still display the real PDF page.
  */
-function getCropsForPage(manualCrops: ManualCrop[], pageIndex: number): Array<ManualCrop & { originalPageIndex: number }> {
+function getCropsForPage(
+  manualCrops: ManualCrop[],
+  pageIndex: number,
+): Array<ManualCrop & { originalPageIndex: number }> {
   return (manualCrops || [])
     .filter((crop) => {
       const cropPage = crop.pageIndex ?? 0;
@@ -109,7 +112,10 @@ function getCropsForPage(manualCrops: ManualCrop[], pageIndex: number): Array<Ma
     }));
 }
 
-function applyRealPageIndexToResult(result: OCRResult, pageIndex: number): OCRResult {
+function applyRealPageIndexToResult(
+  result: OCRResult,
+  pageIndex: number,
+): OCRResult {
   const questions = (result.questions || []).map((question) => ({
     ...question,
     pageIndex,
@@ -120,11 +126,13 @@ function applyRealPageIndexToResult(result: OCRResult, pageIndex: number): OCRRe
     })),
   }));
 
-  const diagramReviewItems = (result.diagram_review_items || []).map((item) => ({
-    ...item,
-    pageIndex,
-    originalPageIndex: item.originalPageIndex ?? pageIndex,
-  }));
+  const diagramReviewItems = (result.diagram_review_items || []).map(
+    (item) => ({
+      ...item,
+      pageIndex,
+      originalPageIndex: item.originalPageIndex ?? pageIndex,
+    }),
+  );
 
   return {
     ...result,
@@ -136,7 +144,9 @@ function applyRealPageIndexToResult(result: OCRResult, pageIndex: number): OCRRe
 function mergeOCRResults(results: OCRResult[]): OCRResult {
   return {
     questions: results.flatMap((result) => result.questions || []),
-    diagram_review_items: results.flatMap((result) => result.diagram_review_items || []),
+    diagram_review_items: results.flatMap(
+      (result) => result.diagram_review_items || [],
+    ),
   };
 }
 
@@ -144,10 +154,12 @@ export const processOCRImage = async (
   imageBase64: string,
   filename: string,
   manualCrops: ManualCrop[] = [],
-  pageIndex = 0
+  pageIndex = 0,
 ): Promise<OCRResult> => {
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    throw new Error(
+      "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+    );
   }
 
   try {
@@ -159,9 +171,9 @@ export const processOCRImage = async (
     const pageCrops = getCropsForPage(manualCrops, pageIndex);
 
     const response = await fetch(processOcrFunctionUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         apikey: supabaseAnonKey,
         Authorization: `Bearer ${token}`,
       },
@@ -174,7 +186,10 @@ export const processOCRImage = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Edge Function Failed (Status ${response.status}):`, errorText);
+      console.error(
+        `Edge Function Failed (Status ${response.status}):`,
+        errorText,
+      );
       throw new Error(`Edge Function Error: ${errorText}`);
     }
 
@@ -197,24 +212,23 @@ export const processOCRImage = async (
  */
 export const processOCRFile = async (
   file: File,
-  manualCrops: ManualCrop[] = []
+  manualCrops: ManualCrop[] = [],
 ): Promise<OCRResult> => {
   const isPdf =
-    file.type === 'application/pdf' ||
-    file.name.toLowerCase().endsWith('.pdf');
+    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
   if (isPdf) {
     const pageImages = await convertPDFToImages(file);
     const pageResults: OCRResult[] = [];
 
     for (let pageIndex = 0; pageIndex < pageImages.length; pageIndex += 1) {
-      const pageFilename = `${file.name.replace(/\.pdf$/i, '')}_page_${pageIndex + 1}.jpg`;
+      const pageFilename = `${file.name.replace(/\.pdf$/i, "")}_page_${pageIndex + 1}.jpg`;
 
       const pageResult = await processOCRImage(
         pageImages[pageIndex],
         pageFilename,
         manualCrops,
-        pageIndex
+        pageIndex,
       );
 
       pageResults.push(pageResult);
@@ -240,8 +254,8 @@ export const convertPDFToImages = async (file: File): Promise<string[]> => {
     const page = await pdfDocument.getPage(pageNumber);
     const viewport = page.getViewport({ scale: 2.0 });
 
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
 
     if (!context) continue;
 
@@ -254,7 +268,7 @@ export const convertPDFToImages = async (file: File): Promise<string[]> => {
       canvas,
     }).promise;
 
-    const base64Data = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+    const base64Data = canvas.toDataURL("image/jpeg", 0.92).split(",")[1];
     images.push(base64Data);
   }
 
@@ -270,7 +284,7 @@ export const convertImageToBase64 = (file: File): Promise<string> => {
 
     reader.onload = () => {
       const result = reader.result as string;
-      resolve(result.split(',')[1]);
+      resolve(result.split(",")[1]);
     };
 
     reader.onerror = (error) => reject(error);
@@ -324,8 +338,10 @@ export interface OCRExtractedDiagramUpload {
   blob: Blob;
 }
 
-const OCR_EXPORT_BUCKET = import.meta.env.VITE_SUPABASE_OCR_BUCKET || 'ocr-exports';
-const OCR_DIAGRAM_BUCKET = import.meta.env.VITE_SUPABASE_OCR_DIAGRAM_BUCKET || 'ocr-diagrams';
+const OCR_EXPORT_BUCKET =
+  import.meta.env.VITE_SUPABASE_OCR_BUCKET || "ocr-exports";
+const OCR_DIAGRAM_BUCKET =
+  import.meta.env.VITE_SUPABASE_OCR_DIAGRAM_BUCKET || "ocr-diagrams";
 
 function getOCRExportPath(userId: string): string {
   return `${userId}/latest.xlsx`;
@@ -336,9 +352,9 @@ function getOCRDiagramBasePath(userId: string): string {
 }
 
 function sanitizeStorageSegment(value: string): string {
-  const cleaned = String(value || '')
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9._-]/g, '_');
+  const cleaned = String(value || "")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9._-]/g, "_");
 
   return cleaned || `asset_${Date.now()}`;
 }
@@ -346,11 +362,11 @@ function sanitizeStorageSegment(value: string): string {
 async function clearLatestOCRDiagrams(userId: string) {
   try {
     await supabase
-      .from('ocr_extracted_diagrams')
+      .from("ocr_extracted_diagrams")
       .delete()
-      .eq('user_id', userId);
+      .eq("user_id", userId);
   } catch (error) {
-    console.warn('Could not clear old OCR diagram metadata:', error);
+    console.warn("Could not clear old OCR diagram metadata:", error);
   }
 
   try {
@@ -363,7 +379,7 @@ async function clearLatestOCRDiagrams(userId: string) {
       });
 
     if (error) {
-      console.warn('Could not list old OCR diagram files:', error.message);
+      console.warn("Could not list old OCR diagram files:", error.message);
       return;
     }
 
@@ -377,11 +393,14 @@ async function clearLatestOCRDiagrams(userId: string) {
         .remove(filePaths);
 
       if (removeError) {
-        console.warn('Could not remove old OCR diagram files:', removeError.message);
+        console.warn(
+          "Could not remove old OCR diagram files:",
+          removeError.message,
+        );
       }
     }
   } catch (error) {
-    console.warn('Failed while cleaning OCR diagram files:', error);
+    console.warn("Failed while cleaning OCR diagram files:", error);
   }
 }
 
@@ -391,13 +410,13 @@ async function clearLatestOCRDiagrams(userId: string) {
 export const getUserOCRStats = async (userId: string): Promise<OCRStats> => {
   try {
     const { data, error } = await supabase
-      .from('ocr_history')
-      .select('total_pages, total_questions_extracted')
-      .eq('user_id', userId)
-      .eq('extraction_status', 'completed');
+      .from("ocr_history")
+      .select("total_pages, total_questions_extracted")
+      .eq("user_id", userId)
+      .eq("extraction_status", "completed");
 
     if (error) {
-      console.error('Error fetching OCR stats:', error);
+      console.error("Error fetching OCR stats:", error);
       return {
         total_pages: 0,
         total_questions: 0,
@@ -414,15 +433,16 @@ export const getUserOCRStats = async (userId: string): Promise<OCRStats> => {
     return data.reduce(
       (acc, record) => ({
         total_pages: acc.total_pages + (record.total_pages || 0),
-        total_questions: acc.total_questions + (record.total_questions_extracted || 0),
+        total_questions:
+          acc.total_questions + (record.total_questions_extracted || 0),
       }),
       {
         total_pages: 0,
         total_questions: 0,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error in getUserOCRStats:', error);
+    console.error("Error in getUserOCRStats:", error);
 
     return {
       total_pages: 0,
@@ -431,20 +451,22 @@ export const getUserOCRStats = async (userId: string): Promise<OCRStats> => {
   }
 };
 
-export const getLatestOCRExport = async (userId: string): Promise<OCRHistoryRecord | null> => {
+export const getLatestOCRExport = async (
+  userId: string,
+): Promise<OCRHistoryRecord | null> => {
   try {
     const { data, error } = await supabase
-      .from('ocr_history')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('extraction_status', 'completed')
-      .order('updated_at', {
+      .from("ocr_history")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("extraction_status", "completed")
+      .order("updated_at", {
         ascending: false,
       })
       .limit(1);
 
     if (error) {
-      console.error('Error fetching latest OCR export:', error);
+      console.error("Error fetching latest OCR export:", error);
       return null;
     }
 
@@ -460,46 +482,52 @@ export const getLatestOCRExport = async (userId: string): Promise<OCRHistoryReco
 
     return latest;
   } catch (error) {
-    console.error('Error in getLatestOCRExport:', error);
+    console.error("Error in getLatestOCRExport:", error);
     return null;
   }
 };
 
-async function insertOrReplaceLatestOCRRecord(payload: Record<string, unknown>) {
-  console.log('=== Attempting OCR Record Insert/Replace ===');
-  console.log('Payload:', payload);
-  console.log('User ID in payload:', payload.user_id);
+async function insertOrReplaceLatestOCRRecord(
+  payload: Record<string, unknown>,
+) {
+  console.log("=== Attempting OCR Record Insert/Replace ===");
+  console.log("Payload:", payload);
+  console.log("User ID in payload:", payload.user_id);
 
   const insertResult = await supabase
-    .from('ocr_history')
+    .from("ocr_history")
     .insert(payload)
-    .select('*')
+    .select("*")
     .single();
 
   if (!insertResult.error) {
-    console.log('✓ Insert succeeded');
+    console.log("✓ Insert succeeded");
     return insertResult;
   }
 
-  console.error('Insert failed with error:', insertResult.error);
+  console.error("Insert failed with error:", insertResult.error);
 
-  if (!/duplicate key|violates unique constraint/i.test(insertResult.error.message)) {
+  if (
+    !/duplicate key|violates unique constraint/i.test(
+      insertResult.error.message,
+    )
+  ) {
     return insertResult;
   }
 
-  console.log('Detected duplicate key, attempting UPDATE...');
+  console.log("Detected duplicate key, attempting UPDATE...");
 
   const updateResult = await supabase
-    .from('ocr_history')
+    .from("ocr_history")
     .update(payload)
-    .eq('user_id', payload.user_id)
-    .select('*')
+    .eq("user_id", payload.user_id)
+    .select("*")
     .single();
 
   if (!updateResult.error) {
-    console.log('✓ Update succeeded');
+    console.log("✓ Update succeeded");
   } else {
-    console.error('Update also failed:', updateResult.error);
+    console.error("Update also failed:", updateResult.error);
   }
 
   return updateResult;
@@ -520,7 +548,7 @@ export const saveOCRHistory = async (params: {
     source_file_type: params.sourceFileType ?? null,
     total_pages: params.totalPages,
     total_questions_extracted: params.totalQuestions,
-    extraction_status: 'completed',
+    extraction_status: "completed",
     updated_at: now,
   };
 
@@ -531,7 +559,12 @@ export const saveOCRHistory = async (params: {
     storage_path: null,
   });
 
-  if (error && /schema cache|export_file_name|storage_bucket|storage_path/i.test(error.message)) {
+  if (
+    error &&
+    /schema cache|export_file_name|storage_bucket|storage_path/i.test(
+      error.message,
+    )
+  ) {
     ({ data, error } = await insertOrReplaceLatestOCRRecord(basePayload));
   }
 
@@ -557,7 +590,8 @@ export const saveLatestOCRExport = async (params: {
   const { error: uploadError } = await supabase.storage
     .from(OCR_EXPORT_BUCKET)
     .upload(storagePath, params.blob, {
-      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      contentType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       upsert: true,
     });
 
@@ -574,7 +608,7 @@ export const saveLatestOCRExport = async (params: {
     source_file_type: params.sourceFileType ?? null,
     total_pages: params.totalPages,
     total_questions_extracted: params.totalQuestions,
-    extraction_status: 'completed',
+    extraction_status: "completed",
     updated_at: now,
   });
 
@@ -590,7 +624,7 @@ export const saveLatestOCRExtractedDiagrams = async (params: {
   diagrams: OCRExtractedDiagramUpload[];
 }): Promise<OCRExtractedDiagramRecord[]> => {
   if (!params.userId) {
-    throw new Error('userId is required to save OCR diagrams');
+    throw new Error("userId is required to save OCR diagrams");
   }
 
   await clearLatestOCRDiagrams(params.userId);
@@ -606,17 +640,19 @@ export const saveLatestOCRExtractedDiagrams = async (params: {
   for (let index = 0; index < params.diagrams.length; index += 1) {
     const diagram = params.diagrams[index];
     const safeFileName = sanitizeStorageSegment(diagram.fileName);
-    const storagePath = `${basePath}/${String(index + 1).padStart(4, '0')}_${safeFileName}`;
+    const storagePath = `${basePath}/${String(index + 1).padStart(4, "0")}_${safeFileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from(OCR_DIAGRAM_BUCKET)
       .upload(storagePath, diagram.blob, {
-        contentType: diagram.blob.type || 'image/jpeg',
+        contentType: diagram.blob.type || "image/jpeg",
         upsert: true,
       });
 
     if (uploadError) {
-      throw new Error(`Failed to upload OCR diagram ${diagram.fileName}: ${uploadError.message}`);
+      throw new Error(
+        `Failed to upload OCR diagram ${diagram.fileName}: ${uploadError.message}`,
+      );
     }
 
     const { data: publicData } = supabase.storage
@@ -639,55 +675,57 @@ export const saveLatestOCRExtractedDiagrams = async (params: {
   }
 
   const insertedData: OCRExtractedDiagramRecord[] = [];
-  
+
   for (const row of rowsToInsert) {
     const { data, error } = await supabase
-      .from('ocr_extracted_diagrams')
+      .from("ocr_extracted_diagrams")
       .insert(row)
-      .select('*')
+      .select("*")
       .single();
 
     if (error) {
-      console.error('Individual diagram insert failed:', error);
+      console.error("Individual diagram insert failed:", error);
       continue;
     }
 
     if (data) {
       insertedData.push(data as OCRExtractedDiagramRecord);
     }
-    
+
     // Stagger webhook firing to prevent overwhelming the microservice
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
   return insertedData;
 };
 
 export const getLatestOCRExtractedDiagrams = async (
-  userId: string
+  userId: string,
 ): Promise<OCRExtractedDiagramRecord[]> => {
   const { data, error } = await supabase
-    .from('ocr_extracted_diagrams')
-    .select('*')
-    .eq('user_id', userId)
-    .order('question_number', {
+    .from("ocr_extracted_diagrams")
+    .select("*")
+    .eq("user_id", userId)
+    .order("question_number", {
       ascending: true,
     })
-    .order('diagram_index', {
+    .order("diagram_index", {
       ascending: true,
     });
 
   if (error) {
-    console.error('Failed to fetch OCR extracted diagrams:', error);
+    console.error("Failed to fetch OCR extracted diagrams:", error);
     return [];
   }
 
   return (data || []) as OCRExtractedDiagramRecord[];
 };
 
-export const downloadOCRExport = async (record: OCRHistoryRecord): Promise<Blob> => {
+export const downloadOCRExport = async (
+  record: OCRHistoryRecord,
+): Promise<Blob> => {
   if (!record.storage_bucket || !record.storage_path) {
-    throw new Error('OCR export is missing storage references.');
+    throw new Error("OCR export is missing storage references.");
   }
 
   const { data, error } = await supabase.storage

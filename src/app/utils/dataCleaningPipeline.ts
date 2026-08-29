@@ -21,7 +21,7 @@ import {
   type QuestionData,
   type ValidationResult,
   type ValidationProfile,
-} from './questionValidator.js';
+} from "./questionValidator.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,30 +29,37 @@ import {
 
 export const CleanType = {
   // PASS 1 — character-level
-  INVISIBLE_CHAR_REMOVAL:              'INVISIBLE_CHAR_REMOVAL',
-  LINE_BREAK_NORMALIZATION:            'LINE_BREAK_NORMALIZATION',
-  TRIM:                                'TRIM',
-  WHITESPACE_NORMALIZATION:            'WHITESPACE_NORMALIZATION',
-  DELIMITER_NORMALIZATION:             'DELIMITER_NORMALIZATION',
-  QUOTE_NORMALIZATION:                 'QUOTE_NORMALIZATION',
-  NULL_COERCION:                       'NULL_COERCION',
+  INVISIBLE_CHAR_REMOVAL: "INVISIBLE_CHAR_REMOVAL",
+  LINE_BREAK_NORMALIZATION: "LINE_BREAK_NORMALIZATION",
+  TRIM: "TRIM",
+  WHITESPACE_NORMALIZATION: "WHITESPACE_NORMALIZATION",
+  DELIMITER_NORMALIZATION: "DELIMITER_NORMALIZATION",
+  QUOTE_NORMALIZATION: "QUOTE_NORMALIZATION",
+  NULL_COERCION: "NULL_COERCION",
   // PASS 2 — structural
-  COLUMN_FALLBACK:                     'COLUMN_FALLBACK',
-  STRUCTURE_FIX:                       'STRUCTURE_FIX',
-  OPTION_CLEANUP:                      'OPTION_CLEANUP',
-  ANSWER_ALIGNMENT:                    'ANSWER_ALIGNMENT',
+  COLUMN_FALLBACK: "COLUMN_FALLBACK",
+  STRUCTURE_FIX: "STRUCTURE_FIX",
+  OPTION_CLEANUP: "OPTION_CLEANUP",
+  ANSWER_ALIGNMENT: "ANSWER_ALIGNMENT",
   /** Emitted when a rule matched but safety check blocked the change. */
-  SKIPPED_UNSAFE_TRANSFORMATION:       'SKIPPED_UNSAFE_TRANSFORMATION',
+  SKIPPED_UNSAFE_TRANSFORMATION: "SKIPPED_UNSAFE_TRANSFORMATION",
 } as const;
 
-export type CleanType = typeof CleanType[keyof typeof CleanType];
-export type Pass1CleanType = typeof CleanType.INVISIBLE_CHAR_REMOVAL
-  | typeof CleanType.LINE_BREAK_NORMALIZATION | typeof CleanType.TRIM
-  | typeof CleanType.WHITESPACE_NORMALIZATION | typeof CleanType.DELIMITER_NORMALIZATION
-  | typeof CleanType.QUOTE_NORMALIZATION | typeof CleanType.NULL_COERCION;
-export type Pass2CleanType = typeof CleanType.COLUMN_FALLBACK
-  | typeof CleanType.STRUCTURE_FIX | typeof CleanType.OPTION_CLEANUP
-  | typeof CleanType.ANSWER_ALIGNMENT | typeof CleanType.SKIPPED_UNSAFE_TRANSFORMATION;
+export type CleanType = (typeof CleanType)[keyof typeof CleanType];
+export type Pass1CleanType =
+  | typeof CleanType.INVISIBLE_CHAR_REMOVAL
+  | typeof CleanType.LINE_BREAK_NORMALIZATION
+  | typeof CleanType.TRIM
+  | typeof CleanType.WHITESPACE_NORMALIZATION
+  | typeof CleanType.DELIMITER_NORMALIZATION
+  | typeof CleanType.QUOTE_NORMALIZATION
+  | typeof CleanType.NULL_COERCION;
+export type Pass2CleanType =
+  | typeof CleanType.COLUMN_FALLBACK
+  | typeof CleanType.STRUCTURE_FIX
+  | typeof CleanType.OPTION_CLEANUP
+  | typeof CleanType.ANSWER_ALIGNMENT
+  | typeof CleanType.SKIPPED_UNSAFE_TRANSFORMATION;
 
 /** Strict execution order — do not reorder. */
 const CLEANING_PIPELINE_ORDER: CleanType[] = [
@@ -66,66 +73,66 @@ const CLEANING_PIPELINE_ORDER: CleanType[] = [
 ];
 
 export interface CleanLog {
-  rowKey:    string;
-  rowIndex:  number;
-  field:     string;
+  rowKey: string;
+  rowIndex: number;
+  field: string;
   cleanType: CleanType;
-  before:    string;
-  after:     string;
-  pass:      'PASS_1' | 'PASS_2';
+  before: string;
+  after: string;
+  pass: "PASS_1" | "PASS_2";
 }
 
 export interface RowImprovementRecord {
-  rowKey:       string;
-  statusBefore: ValidationResult['status'];
-  statusAfter:  ValidationResult['status'];
-  improved:     boolean;
-  unchanged:    boolean;
-  degraded:     boolean;
+  rowKey: string;
+  statusBefore: ValidationResult["status"];
+  statusAfter: ValidationResult["status"];
+  improved: boolean;
+  unchanged: boolean;
+  degraded: boolean;
 }
 
 export interface ImprovementMetrics {
-  totalRows:              number;
-  totalIssuesBefore:      number;
-  totalIssuesAfter:       number;
-  issuesResolved:         number;
-  issuesRevealed:         number;
-  rowsImproved:           number;
-  rowsUnchanged:          number;
-  rowsDegraded:           number;
+  totalRows: number;
+  totalIssuesBefore: number;
+  totalIssuesAfter: number;
+  issuesResolved: number;
+  issuesRevealed: number;
+  rowsImproved: number;
+  rowsUnchanged: number;
+  rowsDegraded: number;
   /** Rows where no CleanLog was emitted (already clean). */
-  rowsUnmodified:         number;
-  percentRowsImproved:    number;
+  rowsUnmodified: number;
+  percentRowsImproved: number;
   /**
    * issuesResolved / totalIssuesBefore, rounded to 2 decimal places.
    * null when totalIssuesBefore === 0 (metric is not meaningful).
    */
-  cleaningEffectiveness:  number | null;
-  issueReductionByType:   Record<string, number>;
-  cleanLogCount:          number;
+  cleaningEffectiveness: number | null;
+  issueReductionByType: Record<string, number>;
+  cleanLogCount: number;
 }
 
 /** Safety metrics specific to PASS 2. */
 export interface Pass2SafetyMetrics {
   /** Rows skipped entirely because raw validation status was already 'valid'. */
-  rowsSkippedDueToSafety:     number;
+  rowsSkippedDueToSafety: number;
   /** Rows where PASS 2 tried changes but single-row re-validation showed degradation → rolled back. */
   rowsAttemptedButRolledBack: number;
 }
 
 export interface DualValidationResult {
-  rawResults:           Record<string, ValidationResult>;
+  rawResults: Record<string, ValidationResult>;
   /** Rows after PASS 1 (character cleaning) + PASS 2 (structural cleaning). */
-  cleanedRows:          QuestionData[];
+  cleanedRows: QuestionData[];
   /** All logs from both PASS 1 and PASS 2, in order. */
-  cleanLogs:            CleanLog[];
-  pass2Logs:            CleanLog[];
-  cleanResults:         Record<string, ValidationResult>;
-  rowImprovements:      RowImprovementRecord[];
-  metrics:              ImprovementMetrics;
-  pass2SafetyMetrics:   Pass2SafetyMetrics;
+  cleanLogs: CleanLog[];
+  pass2Logs: CleanLog[];
+  cleanResults: Record<string, ValidationResult>;
+  rowImprovements: RowImprovementRecord[];
+  metrics: ImprovementMetrics;
+  pass2SafetyMetrics: Pass2SafetyMetrics;
   /** PASS 3 — suggestion-only remediation for remaining issues. */
-  pass3Result:          Pass3RemediationResult;
+  pass3Result: Pass3RemediationResult;
   /** PASS 3 Execution — applied fixes with rollback safety. */
   pass3ExecutionResult: Pass3ExecutionResult;
 }
@@ -141,22 +148,23 @@ export interface DualValidationResult {
  * also the mapped answerCol / orderCol / optionCols.
  */
 const KNOWN_ALIAS_PATTERNS: RegExp[] = [
-  /^option[_\s-]?[a-z0-9]+$/i,   // option_a, optionA, option1, option_two
-  /^choice[_\s-]?[a-z0-9]+$/i,   // choice_a, choiceA, choice1, choiceTwo
+  /^option[_\s-]?[a-z0-9]+$/i, // option_a, optionA, option1, option_two
+  /^choice[_\s-]?[a-z0-9]+$/i, // choice_a, choiceA, choice1, choiceTwo
   /^answer([_\s-]?[a-z0-9]+)?$/i, // answer, answer_key, answerKey, answerCol
-  /^opt[_\s-]?[a-z0-9]+$/i,      // opt_a, optA, opt1
+  /^opt[_\s-]?[a-z0-9]+$/i, // opt_a, optA, opt1
 ];
 
-
 /** Collect every column name that appears as a *value* in the mapping object. */
-function getMappedColumnNames(columnMapping: Record<string, unknown>): Set<string> {
+function getMappedColumnNames(
+  columnMapping: Record<string, unknown>,
+): Set<string> {
   const names = new Set<string>();
   for (const value of Object.values(columnMapping)) {
-    if (typeof value === 'string' && value.trim()) {
+    if (typeof value === "string" && value.trim()) {
       names.add(value.trim());
     } else if (Array.isArray(value)) {
       for (const v of value) {
-        if (typeof v === 'string' && v.trim()) names.add(v.trim());
+        if (typeof v === "string" && v.trim()) names.add(v.trim());
       }
     }
   }
@@ -173,8 +181,11 @@ function getMappedColumnNames(columnMapping: Record<string, unknown>): Set<strin
  * - Fields starting with "__".
  * - Everything else.
  */
-export function shouldCleanField(fieldName: string, columnMapping: Record<string, unknown>): boolean {
-  if (fieldName.startsWith('__')) return false;
+export function shouldCleanField(
+  fieldName: string,
+  columnMapping: Record<string, unknown>,
+): boolean {
+  if (fieldName.startsWith("__")) return false;
   const mapped = getMappedColumnNames(columnMapping);
   if (mapped.has(fieldName)) return true;
   return KNOWN_ALIAS_PATTERNS.some((re) => re.test(fieldName));
@@ -186,15 +197,17 @@ function getScopedColumns(columnMapping: Record<string, unknown>): Set<string> {
   const cm = columnMapping as Record<string, unknown>;
 
   const answerCol = cm.answerCol;
-  if (typeof answerCol === 'string' && answerCol.trim()) scoped.add(answerCol.trim());
+  if (typeof answerCol === "string" && answerCol.trim())
+    scoped.add(answerCol.trim());
 
   const orderCol = cm.orderCol;
-  if (typeof orderCol === 'string' && orderCol.trim()) scoped.add(orderCol.trim());
+  if (typeof orderCol === "string" && orderCol.trim())
+    scoped.add(orderCol.trim());
 
   const optionCols = cm.optionCols;
   if (Array.isArray(optionCols)) {
     for (const col of optionCols) {
-      if (typeof col === 'string' && col.trim()) scoped.add(col.trim());
+      if (typeof col === "string" && col.trim()) scoped.add(col.trim());
     }
   }
 
@@ -204,18 +217,23 @@ function getScopedColumns(columnMapping: Record<string, unknown>): Set<string> {
 /** Return the idCol column name (if any). */
 function getIdCol(columnMapping: Record<string, unknown>): string | null {
   const cm = columnMapping as Record<string, unknown>;
-  return typeof cm.idCol === 'string' && cm.idCol.trim() ? cm.idCol.trim() : null;
+  return typeof cm.idCol === "string" && cm.idCol.trim()
+    ? cm.idCol.trim()
+    : null;
 }
 
 /** Normalized persistent row key, matching questionValidator rowKey scheme. */
 function getRowKey(row: QuestionData, index: number): string {
   // Take existing __rowKey when present (ensured by BatchCreator.ensureInternalRowKeys).
-  if (typeof row.__rowKey === 'string' && row.__rowKey.trim()) {
+  if (typeof row.__rowKey === "string" && row.__rowKey.trim()) {
     return row.__rowKey.trim();
   }
 
   // Fall back to explicit id-derived row key.
-  const sourceId = row.id != null && String(row.id).trim() ? String(row.id).trim() : `row_${index + 1}`;
+  const sourceId =
+    row.id != null && String(row.id).trim()
+      ? String(row.id).trim()
+      : `row_${index + 1}`;
   return `${sourceId}#${index + 1}`;
 }
 
@@ -230,21 +248,28 @@ const SMART_QUOTE_RE = /[\u201C\u201D]/g;
 const SMART_APOS_RE = /[\u2018\u2019]/g;
 
 const NULL_COERCION_VALUES = new Set([
-  'null', 'undefined', 'na', 'n/a', '-', '',
+  "null",
+  "undefined",
+  "na",
+  "n/a",
+  "-",
+  "",
 ]);
 
 /** Normalise delimiter spacing: "A , B" → "A,B", "A | B" → "A|B". */
-function normalizeDelimiters(value: string, isMsqOrOrder: boolean, isAnswerOrOrderField: boolean): string {
+function normalizeDelimiters(
+  value: string,
+  isMsqOrOrder: boolean,
+  isAnswerOrOrderField: boolean,
+): string {
   // Space-padded comma/pipe: remove the surrounding spaces.
-  let ans = value
-    .replace(/\s*,\s*/g, ',')
-    .replace(/\s*\|\s*/g, '|');
+  let ans = value.replace(/\s*,\s*/g, ",").replace(/\s*\|\s*/g, "|");
 
   if (isMsqOrOrder && isAnswerOrOrderField) {
-    ans = ans.replace(/,/g, '|'); // convert commas to pipes
-    ans = ans.replace(/\|{2,}/g, '|'); // collapse double pipes
-    ans = ans.replace(/^\|+/, ''); // strip leading
-    ans = ans.replace(/\|+$/, ''); // strip trailing
+    ans = ans.replace(/,/g, "|"); // convert commas to pipes
+    ans = ans.replace(/\|{2,}/g, "|"); // collapse double pipes
+    ans = ans.replace(/^\|+/, ""); // strip leading
+    ans = ans.replace(/\|+$/, ""); // strip trailing
   }
   return ans;
 }
@@ -255,14 +280,14 @@ function applyRule(
   isScoped: boolean,
   isIdField: boolean,
   isMsqOrOrder: boolean,
-  isAnswerOrOrderField: boolean
+  isAnswerOrOrderField: boolean,
 ): string {
   switch (rule) {
     case CleanType.INVISIBLE_CHAR_REMOVAL:
-      return value.replace(INVISIBLE_CHARS_RE, '');
+      return value.replace(INVISIBLE_CHARS_RE, "");
 
     case CleanType.LINE_BREAK_NORMALIZATION:
-      return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      return value.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
     case CleanType.TRIM:
       return value.trim();
@@ -270,7 +295,7 @@ function applyRule(
     case CleanType.WHITESPACE_NORMALIZATION:
       // Only for answer/option/order fields (scoped). Never for stems or IDs.
       if (!isScoped || isIdField) return value;
-      return value.replace(/[ \t\u00A0]+/g, ' ');
+      return value.replace(/[ \t\u00A0]+/g, " ");
 
     case CleanType.DELIMITER_NORMALIZATION:
       // Only for answer/option/order fields (scoped).
@@ -279,15 +304,13 @@ function applyRule(
 
     case CleanType.QUOTE_NORMALIZATION:
       if (isIdField) return value; // preserve IDs as-is except trim
-      return value
-        .replace(SMART_QUOTE_RE, '"')
-        .replace(SMART_APOS_RE, "'");
+      return value.replace(SMART_QUOTE_RE, '"').replace(SMART_APOS_RE, "'");
 
     case CleanType.NULL_COERCION:
       // Only for answer/option/order fields (scoped). Never for stems/IDs/metadata.
       if (!isScoped || isIdField) return value;
       // Checked after all prior transforms (especially trim).
-      if (NULL_COERCION_VALUES.has(value.toLowerCase())) return '\x00NULL\x00';
+      if (NULL_COERCION_VALUES.has(value.toLowerCase())) return "\x00NULL\x00";
       return value;
 
     default:
@@ -300,12 +323,12 @@ function applyRule(
 // ---------------------------------------------------------------------------
 
 function toStableString(value: unknown): string {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) return "";
   return String(value);
 }
 
 /** Convert the sentinel back to actual null. */
-const NULL_SENTINEL = '\x00NULL\x00';
+const NULL_SENTINEL = "\x00NULL\x00";
 
 /**
  * Clean a single row.
@@ -317,19 +340,29 @@ export function cleanRow(
   rowIndex: number,
   rowKey: string,
   columnMapping: Record<string, unknown>,
-  rawResult?: ValidationResult
+  rawResult?: ValidationResult,
 ): { cleanedRow: QuestionData; logs: CleanLog[] } {
   const logs: CleanLog[] = [];
   const cleanedRow: Record<string, unknown> = { ...row };
 
   const scopedCols = getScopedColumns(columnMapping);
   const idCol = getIdCol(columnMapping);
-  const answerCol = typeof columnMapping.answerCol === 'string' ? columnMapping.answerCol.trim() : null;
-  const orderCol = typeof columnMapping.orderCol === 'string' ? columnMapping.orderCol.trim() : null;
+  const answerCol =
+    typeof columnMapping.answerCol === "string"
+      ? columnMapping.answerCol.trim()
+      : null;
+  const orderCol =
+    typeof columnMapping.orderCol === "string"
+      ? columnMapping.orderCol.trim()
+      : null;
 
   // Use the raw baseline result to safely determine if this row needs MSQ delimiter rules
-  const detectedType = rawResult?.detectedType || String(row.type || '').toLowerCase();
-  const isMsqOrOrder = detectedType === 'msq' || detectedType === 'multi_select' || detectedType === 'order';
+  const detectedType =
+    rawResult?.detectedType || String(row.type || "").toLowerCase();
+  const isMsqOrOrder =
+    detectedType === "msq" ||
+    detectedType === "multi_select" ||
+    detectedType === "order";
 
   for (const fieldName of Object.keys(row)) {
     if (!shouldCleanField(fieldName, columnMapping)) continue;
@@ -337,27 +370,35 @@ export function cleanRow(
     const rawValue = row[fieldName];
     if (rawValue === null || rawValue === undefined) continue;
     // Only clean string values; other types (numbers, booleans) are preserved.
-    if (typeof rawValue !== 'string') continue;
+    if (typeof rawValue !== "string") continue;
 
-    const isScoped   = scopedCols.has(fieldName);
-    const isIdField  = idCol === fieldName;
-    const isAnswerOrOrderField = fieldName === answerCol || fieldName === orderCol;
+    const isScoped = scopedCols.has(fieldName);
+    const isIdField = idCol === fieldName;
+    const isAnswerOrOrderField =
+      fieldName === answerCol || fieldName === orderCol;
 
     let current = rawValue;
 
     for (const rule of CLEANING_PIPELINE_ORDER) {
-      const next = applyRule(current, rule, isScoped, isIdField, isMsqOrOrder, isAnswerOrOrderField);
+      const next = applyRule(
+        current,
+        rule,
+        isScoped,
+        isIdField,
+        isMsqOrOrder,
+        isAnswerOrOrderField,
+      );
       if (next !== current) {
-        const actualBefore = current === NULL_SENTINEL ? 'null' : current;
-        const actualAfter  = next   === NULL_SENTINEL ? 'null' : next;
+        const actualBefore = current === NULL_SENTINEL ? "null" : current;
+        const actualAfter = next === NULL_SENTINEL ? "null" : next;
         logs.push({
           rowKey,
           rowIndex,
-          field:     fieldName,
+          field: fieldName,
           cleanType: rule,
-          before:    actualBefore,
-          after:     actualAfter,
-          pass:      'PASS_1',
+          before: actualBefore,
+          after: actualAfter,
+          pass: "PASS_1",
         });
         current = next;
       }
@@ -377,7 +418,7 @@ export function cleanRow(
 export function cleanRows(
   rows: QuestionData[],
   columnMapping: Record<string, unknown>,
-  rawResults?: Record<string, ValidationResult>
+  rawResults?: Record<string, ValidationResult>,
 ): { cleanedRows: QuestionData[]; logs: CleanLog[] } {
   const allLogs: CleanLog[] = [];
   const cleanedRows: QuestionData[] = [];
@@ -386,9 +427,19 @@ export function cleanRows(
     // Derive a stable row key the same way questionValidator does.
     const rowKey = getRowKey(row, index);
 
-    const rawResult = rawResults?.[rowKey] ?? (typeof row.__rowKey === 'string' ? rawResults?.[row.__rowKey] : undefined);
-    const { cleanedRow, logs } = cleanRow(row, index + 1, rowKey, columnMapping, rawResult);
-    
+    const rawResult =
+      rawResults?.[rowKey] ??
+      (typeof row.__rowKey === "string"
+        ? rawResults?.[row.__rowKey]
+        : undefined);
+    const { cleanedRow, logs } = cleanRow(
+      row,
+      index + 1,
+      rowKey,
+      columnMapping,
+      rawResult,
+    );
+
     cleanedRows.push(cleanedRow);
     allLogs.push(...logs);
   });
@@ -400,13 +451,15 @@ export function cleanRows(
 // Metrics computation
 // ---------------------------------------------------------------------------
 
-function statusRank(status: ValidationResult['status']): number {
-  if (status === 'valid')    return 2;
-  if (status === 'caution')  return 1;
+function statusRank(status: ValidationResult["status"]): number {
+  if (status === "valid") return 2;
+  if (status === "caution") return 1;
   return 0; // rejected
 }
 
-function buildResultsMap(results: ValidationResult[]): Record<string, ValidationResult> {
+function buildResultsMap(
+  results: ValidationResult[],
+): Record<string, ValidationResult> {
   const map: Record<string, ValidationResult> = {};
   for (const r of results) {
     map[r.rowKey] = r;
@@ -434,20 +487,20 @@ function issueCountByCode(results: ValidationResult[]): Record<string, number> {
  * Compute improvement metrics from raw and clean result sets.
  */
 export function computeImprovementMetrics(
-  rawResults:  ValidationResult[],
+  rawResults: ValidationResult[],
   cleanResults: ValidationResult[],
-  cleanLogs:   CleanLog[],
+  cleanLogs: CleanLog[],
 ): ImprovementMetrics {
-  const rawMap   = buildResultsMap(rawResults);
+  const rawMap = buildResultsMap(rawResults);
   const cleanMap = buildResultsMap(cleanResults);
 
   const totalRows = rawResults.length;
   const totalIssuesBefore = totalIssueCount(rawResults);
-  const totalIssuesAfter  = totalIssueCount(cleanResults);
+  const totalIssuesAfter = totalIssueCount(cleanResults);
 
   // Per-code reduction
   const beforeByCode = issueCountByCode(rawResults);
-  const afterByCode  = issueCountByCode(cleanResults);
+  const afterByCode = issueCountByCode(cleanResults);
   const issueReductionByType: Record<string, number> = {};
   for (const code of Object.keys(beforeByCode)) {
     const reduction = (beforeByCode[code] ?? 0) - (afterByCode[code] ?? 0);
@@ -458,9 +511,9 @@ export function computeImprovementMetrics(
   const rowImprovements: RowImprovementRecord[] = [];
   let issuesResolved = 0;
   let issuesRevealed = 0;
-  let rowsImproved  = 0;
+  let rowsImproved = 0;
   let rowsUnchanged = 0;
-  let rowsDegraded  = 0;
+  let rowsDegraded = 0;
 
   for (const rawResult of rawResults) {
     const { rowKey } = rawResult;
@@ -468,32 +521,41 @@ export function computeImprovementMetrics(
     if (!cleanResult) continue;
 
     const before = rawResult.status;
-    const after  = cleanResult.status;
+    const after = cleanResult.status;
     const rankBefore = statusRank(before);
-    const rankAfter  = statusRank(after);
+    const rankAfter = statusRank(after);
 
-    const improved  = rankAfter > rankBefore;
-    const degraded  = rankAfter < rankBefore;
+    const improved = rankAfter > rankBefore;
+    const degraded = rankAfter < rankBefore;
     const unchanged = !improved && !degraded;
 
     const countBefore = (rawResult.issues || []).length;
-    const countAfter  = (cleanResult.issues || []).length;
+    const countAfter = (cleanResult.issues || []).length;
 
     if (countAfter < countBefore) {
-      issuesResolved += (countBefore - countAfter);
+      issuesResolved += countBefore - countAfter;
     } else if (countAfter > countBefore && !degraded) {
-      issuesRevealed += (countAfter - countBefore);
+      issuesRevealed += countAfter - countBefore;
     }
 
-    rowImprovements.push({ rowKey, statusBefore: before, statusAfter: after, improved, unchanged, degraded });
-    if (improved)  rowsImproved  += 1;
+    rowImprovements.push({
+      rowKey,
+      statusBefore: before,
+      statusAfter: after,
+      improved,
+      unchanged,
+      degraded,
+    });
+    if (improved) rowsImproved += 1;
     else if (degraded) rowsDegraded += 1;
     else rowsUnchanged += 1;
   }
 
   // Rows that received no clean log at all
   const modifiedRowKeys = new Set(cleanLogs.map((l) => l.rowKey));
-  const rowsUnmodified = rawResults.filter((r) => !modifiedRowKeys.has(r.rowKey)).length;
+  const rowsUnmodified = rawResults.filter(
+    (r) => !modifiedRowKeys.has(r.rowKey),
+  ).length;
 
   const percentRowsImproved =
     totalRows > 0 ? Math.round((rowsImproved / totalRows) * 1000) / 10 : 0;
@@ -536,14 +598,19 @@ function tokenizeOrderString(value: string): string[] {
 }
 
 /** Resolve columnMapping key helpers. */
-function cm(columnMapping: Record<string, unknown>, key: string): string | null {
+function cm(
+  columnMapping: Record<string, unknown>,
+  key: string,
+): string | null {
   const v = (columnMapping as Record<string, unknown>)[key];
-  return typeof v === 'string' && v.trim() ? v.trim() : null;
+  return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 function cmArr(columnMapping: Record<string, unknown>, key: string): string[] {
   const v = (columnMapping as Record<string, unknown>)[key];
   if (!Array.isArray(v)) return [];
-  return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map((x) => x.trim());
+  return v
+    .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    .map((x) => x.trim());
 }
 
 /**
@@ -552,15 +619,17 @@ function cmArr(columnMapping: Record<string, unknown>, key: string): string[] {
  */
 function looksLikeDelimitedList(value: string): boolean {
   const tokens = tokenizeOrderString(value);
-  return tokens.length >= 2 && tokens.every((t) => t.length > 0 && t.length < 200);
+  return (
+    tokens.length >= 2 && tokens.every((t) => t.length > 0 && t.length < 200)
+  );
 }
 
 /** normalise a string for case-insensitive comparison (similar to questionValidator). */
 function normalizeForMatch(value: string): string {
   return value
-    .replace(/[\u200B\u200C\u200D\uFEFF\u00AD]/g, '')
+    .replace(/[\u200B\u200C\u200D\uFEFF\u00AD]/g, "")
     .toLowerCase()
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -581,20 +650,26 @@ export function applyPass2StructuralCleaning(
   rows: QuestionData[],
   columnMapping: Record<string, unknown>,
   rawResults?: Record<string, ValidationResult>,
-): { updatedRows: QuestionData[]; pass2Logs: CleanLog[]; pass2SafetyMetrics: Pass2SafetyMetrics } {
+): {
+  updatedRows: QuestionData[];
+  pass2Logs: CleanLog[];
+  pass2SafetyMetrics: Pass2SafetyMetrics;
+} {
   const allLogs: CleanLog[] = [];
   const updatedRows: QuestionData[] = [];
   const safetyMetrics: Pass2SafetyMetrics = {
-    rowsSkippedDueToSafety:     0,
+    rowsSkippedDueToSafety: 0,
     rowsAttemptedButRolledBack: 0,
   };
 
   // Mapping keys resolved once for the whole batch
-  const answerColName   = cm(columnMapping, 'answerCol');
-  const orderColName    = cm(columnMapping, 'orderCol');
-  const questionColName = cm(columnMapping, 'questionCol');
-  const optionColNames  = cmArr(columnMapping, 'optionCols');
-  const allMappedCols   = new Set<string>([...getMappedColumnNames(columnMapping)]);
+  const answerColName = cm(columnMapping, "answerCol");
+  const orderColName = cm(columnMapping, "orderCol");
+  const questionColName = cm(columnMapping, "questionCol");
+  const optionColNames = cmArr(columnMapping, "optionCols");
+  const allMappedCols = new Set<string>([
+    ...getMappedColumnNames(columnMapping),
+  ]);
 
   rows.forEach((row, index) => {
     // Derive a stable lookup key (mirrors what validateAllQuestions produces).
@@ -605,12 +680,14 @@ export function applyPass2StructuralCleaning(
 
     // ── FIX 1: Skip rows that are already valid ──────────────────────────────
     // Look up by computed key OR by __rowKey directly (validator may use either).
-    const rawResult: ValidationResult | undefined =
-      rawResults
-        ? (rawResults[rowKey] ?? (typeof row.__rowKey === 'string' ? rawResults[row.__rowKey] : undefined))
-        : undefined;
+    const rawResult: ValidationResult | undefined = rawResults
+      ? (rawResults[rowKey] ??
+        (typeof row.__rowKey === "string"
+          ? rawResults[row.__rowKey]
+          : undefined))
+      : undefined;
 
-    if (rawResult?.status === 'valid') {
+    if (rawResult?.status === "valid") {
       safetyMetrics.rowsSkippedDueToSafety++;
       updatedRows.push(row);
       return; // never touch valid rows
@@ -620,8 +697,21 @@ export function applyPass2StructuralCleaning(
     const candidate: Record<string, unknown> = { ...row };
     const candidateLogs: CleanLog[] = [];
 
-    const emit = (field: string, cleanType: CleanType, before: string, after: string) => {
-      candidateLogs.push({ rowKey, rowIndex, field, cleanType, before, after, pass: 'PASS_2' });
+    const emit = (
+      field: string,
+      cleanType: CleanType,
+      before: string,
+      after: string,
+    ) => {
+      candidateLogs.push({
+        rowKey,
+        rowIndex,
+        field,
+        cleanType,
+        before,
+        after,
+        pass: "PASS_2",
+      });
     };
 
     // ── RULE 1: Column fallback (CONSERVATIVE) ────────────────────────────────
@@ -630,15 +720,22 @@ export function applyPass2StructuralCleaning(
 
     if (orderColName) {
       const orderVal = candidate[orderColName];
-      const isEmpty = orderVal === null || orderVal === undefined ||
-                      (typeof orderVal === 'string' && orderVal.trim() === '');
+      const isEmpty =
+        orderVal === null ||
+        orderVal === undefined ||
+        (typeof orderVal === "string" && orderVal.trim() === "");
       if (isEmpty) {
         for (const col of allMappedCols) {
-          if (col === orderColName || col === answerColName || col === questionColName) continue;
+          if (
+            col === orderColName ||
+            col === answerColName ||
+            col === questionColName
+          )
+            continue;
           const v = candidate[col];
-          if (typeof v !== 'string') continue;
+          if (typeof v !== "string") continue;
           if (looksLikeDelimitedList(v)) {
-            emit(orderColName, CleanType.COLUMN_FALLBACK, '', v);
+            emit(orderColName, CleanType.COLUMN_FALLBACK, "", v);
             candidate[orderColName] = v;
             break;
           }
@@ -649,18 +746,23 @@ export function applyPass2StructuralCleaning(
     // Answer fallback: only if answer is empty AND a short, non-stem sibling exists.
     if (answerColName) {
       const answerVal = candidate[answerColName];
-      const isEmpty = answerVal === null || answerVal === undefined ||
-                      (typeof answerVal === 'string' && answerVal.trim() === '');
+      const isEmpty =
+        answerVal === null ||
+        answerVal === undefined ||
+        (typeof answerVal === "string" && answerVal.trim() === "");
       if (isEmpty) {
         const skipCols = new Set<string>([
-          answerColName, questionColName ?? '', orderColName ?? '', ...optionColNames,
+          answerColName,
+          questionColName ?? "",
+          orderColName ?? "",
+          ...optionColNames,
         ]);
         for (const col of allMappedCols) {
           if (skipCols.has(col)) continue;
           const v = candidate[col];
-          if (typeof v !== 'string' || v.trim() === '') continue;
+          if (typeof v !== "string" || v.trim() === "") continue;
           if (v.trim().length <= 100) {
-            emit(answerColName, CleanType.COLUMN_FALLBACK, '', v.trim());
+            emit(answerColName, CleanType.COLUMN_FALLBACK, "", v.trim());
             candidate[answerColName] = v.trim();
             break;
           }
@@ -674,9 +776,9 @@ export function applyPass2StructuralCleaning(
 
     if (orderColName) {
       const orderVal = candidate[orderColName];
-      if (typeof orderVal === 'string' && orderVal.trim().length > 0) {
+      if (typeof orderVal === "string" && orderVal.trim().length > 0) {
         const tokens = tokenizeOrderString(orderVal);
-        const rebuilt = tokens.join(',');
+        const rebuilt = tokens.join(",");
         if (rebuilt !== orderVal && tokens.length >= 2) {
           emit(orderColName, CleanType.STRUCTURE_FIX, orderVal, rebuilt);
           candidate[orderColName] = rebuilt;
@@ -693,13 +795,13 @@ export function applyPass2StructuralCleaning(
       const originalValues: Array<string | null> = optionColNames.map((col) => {
         const v = candidate[col];
         if (v === null || v === undefined) return null;
-        return typeof v === 'string' ? v : String(v);
+        return typeof v === "string" ? v : String(v);
       });
 
       const seen = new Set<string>();
       const compacted: Array<string | null> = [];
       for (const val of originalValues) {
-        if (val === null || val.trim() === '') continue;
+        if (val === null || val.trim() === "") continue;
         const norm = normalizeForMatch(val);
         if (seen.has(norm)) continue;
         seen.add(norm);
@@ -711,9 +813,13 @@ export function applyPass2StructuralCleaning(
       let answerSlotSafe = true;
       if (answerColName) {
         const answerVal = candidate[answerColName];
-        if (typeof answerVal === 'string' && /^[A-Za-z]$/.test(answerVal.trim())) {
+        if (
+          typeof answerVal === "string" &&
+          /^[A-Za-z]$/.test(answerVal.trim())
+        ) {
           const slotIdx = answerVal.trim().toUpperCase().charCodeAt(0) - 65;
-          answerSlotSafe = slotIdx < compacted.length && compacted[slotIdx] !== null;
+          answerSlotSafe =
+            slotIdx < compacted.length && compacted[slotIdx] !== null;
         }
       }
 
@@ -721,8 +827,8 @@ export function applyPass2StructuralCleaning(
         optionColNames.forEach((col, idx) => {
           const newVal = idx < compacted.length ? compacted[idx] : null;
           const oldVal = originalValues[idx];
-          const oldStr = oldVal ?? 'null';
-          const newStr = newVal ?? 'null';
+          const oldStr = oldVal ?? "null";
+          const newStr = newVal ?? "null";
           if (newStr !== oldStr) {
             emit(col, CleanType.OPTION_CLEANUP, oldStr, newStr);
             candidate[col] = newVal;
@@ -737,23 +843,33 @@ export function applyPass2StructuralCleaning(
 
     if (answerColName && optionColNames.length > 0) {
       const answerVal = candidate[answerColName];
-      if (typeof answerVal === 'string' && answerVal.trim().length > 0) {
+      if (typeof answerVal === "string" && answerVal.trim().length > 0) {
         const answerNorm = normalizeForMatch(answerVal);
-        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const optionTexts = optionColNames
           .map((col, idx) => {
             const v = candidate[col];
-            if (typeof v !== 'string' || v.trim() === '') return null;
-            return { label: letters[idx] ?? String(idx + 1), norm: normalizeForMatch(v) };
+            if (typeof v !== "string" || v.trim() === "") return null;
+            return {
+              label: letters[idx] ?? String(idx + 1),
+              norm: normalizeForMatch(v),
+            };
           })
           .filter((x): x is { label: string; norm: string } => x !== null);
 
-        const alreadyLabel = /^[A-Za-z]$/.test(answerVal.trim()) &&
-          optionColNames.length > (answerVal.trim().toUpperCase().charCodeAt(0) - 65);
+        const alreadyLabel =
+          /^[A-Za-z]$/.test(answerVal.trim()) &&
+          optionColNames.length >
+            answerVal.trim().toUpperCase().charCodeAt(0) - 65;
         const matchedOption = optionTexts.find((o) => o.norm === answerNorm);
 
         if (!alreadyLabel && matchedOption) {
-          emit(answerColName, CleanType.ANSWER_ALIGNMENT, answerVal, matchedOption.label);
+          emit(
+            answerColName,
+            CleanType.ANSWER_ALIGNMENT,
+            answerVal,
+            matchedOption.label,
+          );
           candidate[answerColName] = matchedOption.label;
         }
       }
@@ -768,19 +884,20 @@ export function applyPass2StructuralCleaning(
         [candidate as QuestionData],
         columnMapping as any,
       );
-      const newRank = statusRank(candidateResult?.status ?? 'rejected');
-      const oldRank = statusRank(rawResult?.status ?? 'rejected');
+      const newRank = statusRank(candidateResult?.status ?? "rejected");
+      const oldRank = statusRank(rawResult?.status ?? "rejected");
 
       if (newRank < oldRank) {
         // Rollback: discard all candidate changes
         safetyMetrics.rowsAttemptedButRolledBack++;
         allLogs.push({
-          rowKey, rowIndex,
-          field:     '__row__',
+          rowKey,
+          rowIndex,
+          field: "__row__",
           cleanType: CleanType.SKIPPED_UNSAFE_TRANSFORMATION,
-          before:    rawResult?.status ?? 'unknown',
-          after:     candidateResult?.status ?? 'unknown',
-          pass:      'PASS_2',
+          before: rawResult?.status ?? "unknown",
+          after: candidateResult?.status ?? "unknown",
+          pass: "PASS_2",
         });
         updatedRows.push(row); // original row, not candidate
         return;
@@ -795,83 +912,82 @@ export function applyPass2StructuralCleaning(
   return { updatedRows, pass2Logs: allLogs, pass2SafetyMetrics: safetyMetrics };
 }
 
-
 // ---------------------------------------------------------------------------
 // PASS 3: Suggestion-Based Remediation
 // ---------------------------------------------------------------------------
 
 export type RemediationType =
-  | 'MISSING_ANSWER_SINGLE_OPTION'
-  | 'MISSING_ANSWER_MULTIPLE_OPTIONS'
-  | 'PLACEHOLDER_ANSWER'
-  | 'ORDER_MISMATCH'
-  | 'CASE_ALIGNMENT'
-  | 'FUZZY_MATCH'
-  | 'ANSWER_NOT_IN_OPTIONS'
-  | 'MANUAL_EDIT';
+  | "MISSING_ANSWER_SINGLE_OPTION"
+  | "MISSING_ANSWER_MULTIPLE_OPTIONS"
+  | "PLACEHOLDER_ANSWER"
+  | "ORDER_MISMATCH"
+  | "CASE_ALIGNMENT"
+  | "FUZZY_MATCH"
+  | "ANSWER_NOT_IN_OPTIONS"
+  | "MANUAL_EDIT";
 
-export type RemediationConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
+export type RemediationConfidence = "HIGH" | "MEDIUM" | "LOW";
 
 export interface RemediationSuggestion {
-  rowKey:         string;
-  rowIndex:       number;
-  field:          string;
-  type:           RemediationType;
-  message:        string;
+  rowKey: string;
+  rowIndex: number;
+  field: string;
+  type: RemediationType;
+  message: string;
   suggestedValue: string;
-  confidence:     RemediationConfidence;
+  confidence: RemediationConfidence;
 }
 
 export interface Pass3Metrics {
-  suggestionsGenerated:        number;
-  highConfidenceSuggestions:   number;
+  suggestionsGenerated: number;
+  highConfidenceSuggestions: number;
   mediumConfidenceSuggestions: number;
-  rowsPotentiallyFixable:      number;
+  rowsPotentiallyFixable: number;
   /** Alias for rowsPotentiallyFixable — rows that received at least one suggestion. */
-  rowsWithSuggestions:         number;
+  rowsWithSuggestions: number;
   /** Percentage of non-valid rows that received at least one suggestion (0–100). */
-  suggestionCoverage:          number;
-  skippedRows:                 number;
-  suggestionsByType:           Record<string, number>;
+  suggestionCoverage: number;
+  skippedRows: number;
+  suggestionsByType: Record<string, number>;
 }
 
 export interface Pass3RemediationResult {
   /** Same rows as input — PASS 3 is suggestion-only, no mutations. */
-  updatedRows:  QuestionData[];
-  suggestions:  RemediationSuggestion[];
+  updatedRows: QuestionData[];
+  suggestions: RemediationSuggestion[];
   pass3Metrics: Pass3Metrics;
 }
 
 export interface Pass3ExecutionLog {
-  rowKey:         string;
-  rowIndex:       number;
-  field:          string;
+  rowKey: string;
+  rowIndex: number;
+  field: string;
   suggestionType: RemediationType;
-  before:         string;
-  after:          string;
+  before: string;
+  after: string;
   /** true when the change was accepted (validation did not regress). */
-  applied:        boolean;
+  applied: boolean;
   /** true when the change was reverted after single-row re-validation. */
-  rolledBack:     boolean;
+  rolledBack: boolean;
 }
 
 export interface Pass3ExecutionMetrics {
-  suggestionsAttempted:    number;
-  suggestionsApplied:      number;
+  suggestionsAttempted: number;
+  suggestionsApplied: number;
   /** Of those applied, how many were HIGH confidence (should equal suggestionsApplied since only HIGH is executed). */
-  highConfidenceApplied:   number;
-  suggestionsRolledBack:   number;
+  highConfidenceApplied: number;
+  suggestionsRolledBack: number;
   /** Suggestions skipped: non-actionable type, MEDIUM confidence, or no suggestedValue. */
-  suggestionsSkipped:      number;
-  rowsFixedByPass3:        number;
-  rejectedBefore:          number;
-  rejectedAfter:           number;
+  suggestionsSkipped: number;
+  rowsFixedByPass3: number;
+  rejectedBefore: number;
+  rejectedAfter: number;
 }
 
 export interface Pass3ExecutionResult {
   /** Rows after PASS 3 execution (may be identical to pass2Rows if no fixes applied). */
-  executedRows:     QuestionData[];
-  executionLogs:    Pass3ExecutionLog[];
+  executedRows: QuestionData[];
+  executionLogs: Pass3ExecutionLog[];
   /** Validation results after executing PASS 3 suggestions. */
   executionResults: Record<string, ValidationResult>;
   executionMetrics: Pass3ExecutionMetrics;
@@ -883,7 +999,10 @@ export interface Pass3ExecutionResult {
  * Does NOT include '' (empty string) — that is a MISSING_ANSWER case.
  */
 const PLACEHOLDER_NULL_COERCION_TOKENS = new Set([
-  'null', 'undefined', 'na', 'n/a',
+  "null",
+  "undefined",
+  "na",
+  "n/a",
 ]);
 
 /**
@@ -930,16 +1049,20 @@ function trigramSimilarity(a: string, b: string): number {
  *
  * Result is capped at 1.0.
  */
-function computeFuzzySimilarity(answerNorm: string, optionNorm: string): number {
+function computeFuzzySimilarity(
+  answerNorm: string,
+  optionNorm: string,
+): number {
   const base = trigramSimilarity(answerNorm, optionNorm);
 
   const answerWords = answerNorm.split(/\s+/).filter((w) => w.length > 2);
   const optionWords = optionNorm.split(/\s+/).filter((w) => w.length > 2);
 
   const hasWordOverlap =
-    answerWords.length > 0 && optionWords.length > 0 &&
+    answerWords.length > 0 &&
+    optionWords.length > 0 &&
     (answerWords.some((w) => optionWords.includes(w)) ||
-     optionWords.some((w) => answerWords.includes(w)));
+      optionWords.some((w) => answerWords.includes(w)));
 
   return Math.min(1.0, base + (hasWordOverlap ? 0.15 : 0));
 }
@@ -978,17 +1101,17 @@ function computeFuzzySimilarity(answerNorm: string, optionNorm: string): number 
  * a placeholder token was null-coerced so the original value is recoverable.
  */
 export function applyPass3Remediation(
-  rows:              QuestionData[],
-  columnMapping:     Record<string, unknown>,
+  rows: QuestionData[],
+  columnMapping: Record<string, unknown>,
   validationResults: Record<string, ValidationResult>,
-  cleanLogs?:        CleanLog[],
+  cleanLogs?: CleanLog[],
 ): Pass3RemediationResult {
   const suggestions: RemediationSuggestion[] = [];
   const rowsWithSuggestion = new Set<string>();
 
-  const answerColName  = cm(columnMapping, 'answerCol');
-  const optionColNames = cmArr(columnMapping, 'optionCols');
-  const LETTERS        = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const answerColName = cm(columnMapping, "answerCol");
+  const optionColNames = cmArr(columnMapping, "optionCols");
+  const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   let skippedRows = 0;
 
@@ -1010,15 +1133,17 @@ export function applyPass3Remediation(
   }
 
   rows.forEach((row, index) => {
-    const rowKey  = getRowKey(row, index);
+    const rowKey = getRowKey(row, index);
     const rowIndex = index + 1;
 
     // Resolve result — try computed key first, then __rowKey directly.
     const result =
       validationResults[rowKey] ??
-      (typeof row.__rowKey === 'string' ? validationResults[row.__rowKey] : undefined);
+      (typeof row.__rowKey === "string"
+        ? validationResults[row.__rowKey]
+        : undefined);
 
-    if (!result || result.status === 'valid') {
+    if (!result || result.status === "valid") {
       skippedRows++;
       return;
     }
@@ -1027,16 +1152,19 @@ export function applyPass3Remediation(
 
     const answerRaw = row[answerColName];
     const answerStr =
-      answerRaw === null || answerRaw === undefined ? null : String(answerRaw).trim();
-    const answerIsEmpty = answerStr === null || answerStr === '';
+      answerRaw === null || answerRaw === undefined
+        ? null
+        : String(answerRaw).trim();
+    const answerIsEmpty = answerStr === null || answerStr === "";
 
     // Collect non-null, non-empty option texts with letter labels.
-    const validOptions: Array<{ label: string; text: string; norm: string }> = [];
+    const validOptions: Array<{ label: string; text: string; norm: string }> =
+      [];
     for (let i = 0; i < optionColNames.length; i++) {
       const val = row[optionColNames[i]];
       if (val === null || val === undefined) continue;
       const text = String(val).trim();
-      if (text === '') continue;
+      if (text === "") continue;
       validOptions.push({
         label: LETTERS[i] ?? String(i + 1),
         text,
@@ -1047,11 +1175,13 @@ export function applyPass3Remediation(
     // ── RULE 1: Missing Answer — exactly one option (HIGH) ─────────────────
     if (answerIsEmpty && validOptions.length === 1) {
       suggestions.push({
-        rowKey, rowIndex, field: answerColName,
-        type:           'MISSING_ANSWER_SINGLE_OPTION',
-        message:        `Answer is empty but only one option exists ("${validOptions[0].text}"). This is likely the correct answer.`,
+        rowKey,
+        rowIndex,
+        field: answerColName,
+        type: "MISSING_ANSWER_SINGLE_OPTION",
+        message: `Answer is empty but only one option exists ("${validOptions[0].text}"). This is likely the correct answer.`,
         suggestedValue: validOptions[0].label,
-        confidence:     'HIGH',
+        confidence: "HIGH",
       });
       rowsWithSuggestion.add(rowKey);
       return;
@@ -1066,13 +1196,13 @@ export function applyPass3Remediation(
     // ── RULE 4: ORDER_MISMATCH ───────────────────────────────────────
     // Removed. Validation already flags this.
     const ORDER_ISSUE_CODES = new Set([
-      'INVALID_ORDER_ITEMS',
-      'INVALID_ORDER_ANSWER',
-      'ORDER_SEQUENCE_INCOMPLETE',
-      'MISSING_ORDER_ITEMS',
+      "INVALID_ORDER_ITEMS",
+      "INVALID_ORDER_ANSWER",
+      "ORDER_SEQUENCE_INCOMPLETE",
+      "MISSING_ORDER_ITEMS",
     ]);
-    const orderIssues = (result.issues ?? []).filter(
-      (i) => ORDER_ISSUE_CODES.has((i as any).code as string),
+    const orderIssues = (result.issues ?? []).filter((i) =>
+      ORDER_ISSUE_CODES.has((i as any).code as string),
     );
     if (orderIssues.length > 0) {
       return; // option-based rules are not applicable to ORDER type rows
@@ -1094,11 +1224,13 @@ export function applyPass3Remediation(
       const caseMatches = validOptions.filter((o) => o.norm === answerNorm);
       if (caseMatches.length === 1 && answerStr !== caseMatches[0].label) {
         suggestions.push({
-          rowKey, rowIndex, field: answerColName,
-          type:           'CASE_ALIGNMENT',
-          message:        `Answer "${answerStr}" matches option ${caseMatches[0].label} ("${caseMatches[0].text}") after case normalisation.`,
+          rowKey,
+          rowIndex,
+          field: answerColName,
+          type: "CASE_ALIGNMENT",
+          message: `Answer "${answerStr}" matches option ${caseMatches[0].label} ("${caseMatches[0].text}") after case normalisation.`,
           suggestedValue: caseMatches[0].label,
-          confidence:     'HIGH',
+          confidence: "HIGH",
         });
         rowsWithSuggestion.add(rowKey);
         return;
@@ -1115,20 +1247,28 @@ export function applyPass3Remediation(
       // The HIGH band requires a stricter gap (0.25) to prevent ambiguous
       // near-ties even when the raw score is above 0.75.
       const scored = validOptions
-        .map((o) => ({ ...o, score: computeFuzzySimilarity(answerNorm, o.norm) }))
+        .map((o) => ({
+          ...o,
+          score: computeFuzzySimilarity(answerNorm, o.norm),
+        }))
         .sort((a, b) => b.score - a.score);
 
-      const best       = scored[0];
+      const best = scored[0];
       const secondBest = scored[1];
-      const gap        = secondBest !== undefined ? (best?.score ?? 0) - secondBest.score : Infinity;
+      const gap =
+        secondBest !== undefined
+          ? (best?.score ?? 0) - secondBest.score
+          : Infinity;
 
       if (best && best.score > 0.7 && gap > 0.2) {
         const fuzzyConfidence: RemediationConfidence =
-          (best.score > 0.75 && gap > 0.25) ? 'HIGH' : 'MEDIUM';
+          best.score > 0.75 && gap > 0.25 ? "HIGH" : "MEDIUM";
         suggestions.push({
-          rowKey, rowIndex, field: answerColName,
-          type:       'FUZZY_MATCH',
-          message:    `Answer "${answerStr}" closely matches option ${best.label} ("${best.text}") with ${Math.round(best.score * 100)}% similarity. Possible typo or near-match.`,
+          rowKey,
+          rowIndex,
+          field: answerColName,
+          type: "FUZZY_MATCH",
+          message: `Answer "${answerStr}" closely matches option ${best.label} ("${best.text}") with ${Math.round(best.score * 100)}% similarity. Possible typo or near-match.`,
           suggestedValue: best.label,
           confidence: fuzzyConfidence,
         });
@@ -1140,23 +1280,22 @@ export function applyPass3Remediation(
       // This rule previously added a suggestion when the answer was not in options,
       // but since it has no automated fix and the row is already flagged by validation,
       // it was removed to avoid cluttering the UI with unactionable suggestions.
-
     }
   });
 
   // ── Aggregate metrics ─────────────────────────────────────────────────────
   const suggestionsByType: Record<string, number> = {};
-  let highConfidenceSuggestions   = 0;
+  let highConfidenceSuggestions = 0;
   let mediumConfidenceSuggestions = 0;
   for (const s of suggestions) {
     suggestionsByType[s.type] = (suggestionsByType[s.type] ?? 0) + 1;
-    if (s.confidence === 'HIGH')   highConfidenceSuggestions++;
-    if (s.confidence === 'MEDIUM') mediumConfidenceSuggestions++;
+    if (s.confidence === "HIGH") highConfidenceSuggestions++;
+    if (s.confidence === "MEDIUM") mediumConfidenceSuggestions++;
   }
 
   // suggestionCoverage = % of non-valid rows that received a suggestion.
   const totalNonValidRows = Object.values(validationResults).filter(
-    (r) => r.status !== 'valid',
+    (r) => r.status !== "valid",
   ).length;
   const rowsWithSuggestionsCount = rowsWithSuggestion.size;
   const suggestionCoverage =
@@ -1165,14 +1304,14 @@ export function applyPass3Remediation(
       : 0;
 
   return {
-    updatedRows:  rows,
+    updatedRows: rows,
     suggestions,
     pass3Metrics: {
-      suggestionsGenerated:        suggestions.length,
+      suggestionsGenerated: suggestions.length,
       highConfidenceSuggestions,
       mediumConfidenceSuggestions,
-      rowsPotentiallyFixable:      rowsWithSuggestionsCount,
-      rowsWithSuggestions:         rowsWithSuggestionsCount,
+      rowsPotentiallyFixable: rowsWithSuggestionsCount,
+      rowsWithSuggestions: rowsWithSuggestionsCount,
       suggestionCoverage,
       skippedRows,
       suggestionsByType,
@@ -1189,9 +1328,9 @@ export function applyPass3Remediation(
  * All other types are informational only and produce no row mutation.
  */
 const ACTIONABLE_SUGGESTION_TYPES = new Set<RemediationType>([
-  'MISSING_ANSWER_SINGLE_OPTION',
-  'CASE_ALIGNMENT',
-  'FUZZY_MATCH',
+  "MISSING_ANSWER_SINGLE_OPTION",
+  "CASE_ALIGNMENT",
+  "FUZZY_MATCH",
 ]);
 
 /**
@@ -1212,9 +1351,9 @@ const ACTIONABLE_SUGGESTION_TYPES = new Set<RemediationType>([
  * @param validationResults Clean validation results (after PASS 1 + PASS 2).
  */
 export function applySuggestions(
-  rows:              QuestionData[],
-  suggestions:       RemediationSuggestion[],
-  columnMapping:     Record<string, unknown>,
+  rows: QuestionData[],
+  suggestions: RemediationSuggestion[],
+  columnMapping: Record<string, unknown>,
   validationResults: Record<string, ValidationResult>,
 ): Pass3ExecutionResult {
   // Index suggestions by rowKey for O(1) lookup.
@@ -1226,36 +1365,43 @@ export function applySuggestions(
     }
   }
 
-  const executionLogs:  Pass3ExecutionLog[] = [];
-  const executedRows:   QuestionData[]      = [];
+  const executionLogs: Pass3ExecutionLog[] = [];
+  const executedRows: QuestionData[] = [];
 
-  let suggestionsAttempted    = 0;
-  let suggestionsApplied      = 0;
-  let highConfidenceApplied   = 0;
-  let suggestionsRolledBack   = 0;
-  let suggestionsSkipped      = 0;
+  let suggestionsAttempted = 0;
+  let suggestionsApplied = 0;
+  let highConfidenceApplied = 0;
+  let suggestionsRolledBack = 0;
+  let suggestionsSkipped = 0;
 
   const rejectedBefore = Object.values(validationResults).filter(
-    (r) => r.status === 'rejected',
+    (r) => r.status === "rejected",
   ).length;
 
   rows.forEach((row, index) => {
-    const rowKey  = getRowKey(row, index);
+    const rowKey = getRowKey(row, index);
     const rowIndex = index + 1;
 
     // Resolve suggestion — same double-lookup pattern as PASS 3 generation.
     const suggestion =
       suggestionByRowKey.get(rowKey) ??
-      (typeof row.__rowKey === 'string' ? suggestionByRowKey.get(row.__rowKey) : undefined);
+      (typeof row.__rowKey === "string"
+        ? suggestionByRowKey.get(row.__rowKey)
+        : undefined);
 
     // No suggestion, type does not produce a field change, or not HIGH confidence → pass through.
-    if (!suggestion || !ACTIONABLE_SUGGESTION_TYPES.has(suggestion.type) || !suggestion.suggestedValue) {
-      if (suggestion && !ACTIONABLE_SUGGESTION_TYPES.has(suggestion.type)) suggestionsSkipped++;
+    if (
+      !suggestion ||
+      !ACTIONABLE_SUGGESTION_TYPES.has(suggestion.type) ||
+      !suggestion.suggestedValue
+    ) {
+      if (suggestion && !ACTIONABLE_SUGGESTION_TYPES.has(suggestion.type))
+        suggestionsSkipped++;
       executedRows.push(row);
       return;
     }
     // Only auto-apply HIGH confidence. MEDIUM suggestions remain informational only.
-    if (suggestion.confidence !== 'HIGH') {
+    if (suggestion.confidence !== "HIGH") {
       suggestionsSkipped++;
       executedRows.push(row);
       return;
@@ -1265,44 +1411,56 @@ export function applySuggestions(
 
     const beforeStr = (() => {
       const v = row[suggestion.field];
-      return v === null || v === undefined ? '' : String(v);
+      return v === null || v === undefined ? "" : String(v);
     })();
 
     // Apply the suggested value to a candidate copy.
-    const candidate = { ...row, [suggestion.field]: suggestion.suggestedValue } as QuestionData;
+    const candidate = {
+      ...row,
+      [suggestion.field]: suggestion.suggestedValue,
+    } as QuestionData;
 
     // Validate candidate in isolation.
-    const [candidateResult] = validateAllQuestions([candidate], columnMapping as any);
+    const [candidateResult] = validateAllQuestions(
+      [candidate],
+      columnMapping as any,
+    );
 
     // Resolve current status — same double-lookup as above.
     const currentResult =
       validationResults[rowKey] ??
-      (typeof row.__rowKey === 'string' ? validationResults[row.__rowKey] : undefined);
+      (typeof row.__rowKey === "string"
+        ? validationResults[row.__rowKey]
+        : undefined);
 
-    const currentRank  = statusRank(currentResult?.status ?? 'rejected');
-    const newRank      = statusRank(candidateResult?.status ?? 'rejected');
+    const currentRank = statusRank(currentResult?.status ?? "rejected");
+    const newRank = statusRank(candidateResult?.status ?? "rejected");
 
     if (newRank >= currentRank) {
       // Accept: validation did not regress.
       executionLogs.push({
-        rowKey, rowIndex, field: suggestion.field,
+        rowKey,
+        rowIndex,
+        field: suggestion.field,
         suggestionType: suggestion.type,
-        before:     beforeStr,
-        after:      suggestion.suggestedValue,
-        applied:    true,
+        before: beforeStr,
+        after: suggestion.suggestedValue,
+        applied: true,
         rolledBack: false,
       });
       suggestionsApplied++;
-      if (suggestion.confidence === 'HIGH') highConfidenceApplied++;
+      if (suggestion.confidence === "HIGH") highConfidenceApplied++;
       executedRows.push(candidate);
     } else {
       // Rollback: discard change, keep original row.
       executionLogs.push({
-        rowKey, rowIndex, field: suggestion.field,
+        rowKey,
+        rowIndex,
+        field: suggestion.field,
         suggestionType: suggestion.type,
-        before:     beforeStr,
-        after:      suggestion.suggestedValue,
-        applied:    false,
+        before: beforeStr,
+        after: suggestion.suggestedValue,
+        applied: false,
         rolledBack: true,
       });
       suggestionsRolledBack++;
@@ -1311,11 +1469,14 @@ export function applySuggestions(
   });
 
   // Re-validate all rows after execution (includes unchanged rows).
-  const executedValidationArr = validateAllQuestions(executedRows, columnMapping as any);
-  const executionResults      = buildResultsMap(executedValidationArr);
+  const executedValidationArr = validateAllQuestions(
+    executedRows,
+    columnMapping as any,
+  );
+  const executionResults = buildResultsMap(executedValidationArr);
 
-  const rejectedAfter  = Object.values(executionResults).filter(
-    (r) => r.status === 'rejected',
+  const rejectedAfter = Object.values(executionResults).filter(
+    (r) => r.status === "rejected",
   ).length;
 
   return {
@@ -1351,52 +1512,85 @@ export function applySuggestions(
  * `validateAllQuestions(rows, columnMapping, profileInput)` directly.
  */
 export function runDualValidation(
-  rows:          QuestionData[],
+  rows: QuestionData[],
   columnMapping: Record<string, unknown>,
   profileInput?: Partial<ValidationProfile>,
 ): DualValidationResult {
   // Baseline: validate raw rows (untouched)
-  const rawValidationResults = validateAllQuestions(rows, columnMapping as any, profileInput);
+  const rawValidationResults = validateAllQuestions(
+    rows,
+    columnMapping as any,
+    profileInput,
+  );
   const rawResults = buildResultsMap(rawValidationResults);
 
   // PASS 1: character-level cleaning
-  const { cleanedRows: pass1Rows, logs: pass1Logs } = cleanRows(rows, columnMapping, rawResults);
+  const { cleanedRows: pass1Rows, logs: pass1Logs } = cleanRows(
+    rows,
+    columnMapping,
+    rawResults,
+  );
 
   // PASS 2: structural cleaning (safe, with valid-row skip + per-row rollback)
-  const { updatedRows: pass2Rows, pass2Logs, pass2SafetyMetrics } =
-    applyPass2StructuralCleaning(pass1Rows, columnMapping, rawResults);
+  const {
+    updatedRows: pass2Rows,
+    pass2Logs,
+    pass2SafetyMetrics,
+  } = applyPass2StructuralCleaning(pass1Rows, columnMapping, rawResults);
 
   // Merged log set (PASS 1 first, then PASS 2)
   const allLogs: CleanLog[] = [...pass1Logs, ...pass2Logs];
 
   // Final validation on fully cleaned rows
-  const cleanValidationResults = validateAllQuestions(pass2Rows, columnMapping as any, profileInput);
+  const cleanValidationResults = validateAllQuestions(
+    pass2Rows,
+    columnMapping as any,
+    profileInput,
+  );
   const cleanResults = buildResultsMap(cleanValidationResults);
 
   // Metrics compare raw → fully-cleaned
-  const metrics = computeImprovementMetrics(rawValidationResults, cleanValidationResults, allLogs);
+  const metrics = computeImprovementMetrics(
+    rawValidationResults,
+    cleanValidationResults,
+    allLogs,
+  );
 
-  const rowImprovements: RowImprovementRecord[] = rawValidationResults.map((raw) => {
-    const clean = cleanResults[raw.rowKey];
-    if (!clean) {
-      return { rowKey: raw.rowKey, statusBefore: raw.status, statusAfter: raw.status, improved: false, unchanged: true, degraded: false };
-    }
-    const rankBefore = statusRank(raw.status);
-    const rankAfter  = statusRank(clean.status);
-    return {
-      rowKey:       raw.rowKey,
-      statusBefore: raw.status,
-      statusAfter:  clean.status,
-      improved:     rankAfter > rankBefore,
-      unchanged:    rankAfter === rankBefore,
-      degraded:     rankAfter < rankBefore,
-    };
-  });
+  const rowImprovements: RowImprovementRecord[] = rawValidationResults.map(
+    (raw) => {
+      const clean = cleanResults[raw.rowKey];
+      if (!clean) {
+        return {
+          rowKey: raw.rowKey,
+          statusBefore: raw.status,
+          statusAfter: raw.status,
+          improved: false,
+          unchanged: true,
+          degraded: false,
+        };
+      }
+      const rankBefore = statusRank(raw.status);
+      const rankAfter = statusRank(clean.status);
+      return {
+        rowKey: raw.rowKey,
+        statusBefore: raw.status,
+        statusAfter: clean.status,
+        improved: rankAfter > rankBefore,
+        unchanged: rankAfter === rankBefore,
+        degraded: rankAfter < rankBefore,
+      };
+    },
+  );
 
   // PASS 3: suggestion-based remediation on the fully-cleaned rows.
   // Pass allLogs so PASS 3 can detect which answers were null-coerced from
   // placeholder tokens (and recover the original value for the suggestion).
-  const pass3Result = applyPass3Remediation(pass2Rows, columnMapping, cleanResults, allLogs);
+  const pass3Result = applyPass3Remediation(
+    pass2Rows,
+    columnMapping,
+    cleanResults,
+    allLogs,
+  );
 
   // PASS 3 Execution: apply actionable suggestions with rollback safety.
   const pass3ExecutionResult = applySuggestions(
@@ -1408,8 +1602,8 @@ export function runDualValidation(
 
   return {
     rawResults,
-    cleanedRows:          pass2Rows,
-    cleanLogs:            allLogs,
+    cleanedRows: pass2Rows,
+    cleanLogs: allLogs,
     pass2Logs,
     cleanResults,
     rowImprovements,

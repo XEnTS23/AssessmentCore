@@ -1,14 +1,36 @@
 import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Activity, ArrowRight, Download, FileJson, ShieldCheck, Sparkles, Upload, ScanText, Wrench } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  Download,
+  FileJson,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+  ScanText,
+  Wrench,
+} from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getUserOCRStats } from "../../../services/ocrService";
 
-function StatCard({ label, value, caption }: { label: string; value: string | number; caption: string }) {
+function StatCard({
+  label,
+  value,
+  caption,
+}: {
+  label: string;
+  value: string | number;
+  caption: string;
+}) {
   return (
     <div className="rounded-lg border border-border bg-card p-4 transition-colors duration-200">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{value}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
+        {value}
+      </div>
       <div className="mt-1 text-xs text-muted-foreground">{caption}</div>
     </div>
   );
@@ -29,12 +51,16 @@ function ToolCard({
 }) {
   return (
     <div className="relative rounded-lg border border-border bg-card p-4 transition-colors duration-200">
-      <div className={`${!comingSoon && "hover:border-primary/50"} ${comingSoon ? "blur-sm" : ""}`}>
+      <div
+        className={`${!comingSoon && "hover:border-primary/50"} ${comingSoon ? "blur-sm" : ""}`}
+      >
         <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
           <span className="text-muted-foreground">{icon}</span>
           {title}
         </div>
-        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{description}</p>
+        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
         <button
           type="button"
           onClick={onClick}
@@ -52,7 +78,9 @@ function ToolCard({
       {comingSoon && (
         <div className="absolute inset-0 flex items-center justify-center rounded-lg">
           <div className="bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">
-            <span className="text-sm font-semibold text-white">Coming Soon</span>
+            <span className="text-sm font-semibold text-white">
+              Coming Soon
+            </span>
           </div>
         </div>
       )}
@@ -63,7 +91,10 @@ function ToolCard({
 export function DashboardPage() {
   const navigate = useNavigate();
   const { userUsage, user } = useAuth();
-  const [ocrStats, setOcrStats] = useState({ total_pages: 0, total_questions: 0 });
+  const [ocrStats, setOcrStats] = useState({
+    total_pages: 0,
+    total_questions: 0,
+  });
   const [isLoadingOcr, setIsLoadingOcr] = useState(false);
 
   useEffect(() => {
@@ -75,7 +106,7 @@ export function DashboardPage() {
         const stats = await getUserOCRStats(user.id);
         setOcrStats(stats);
       } catch (error) {
-        console.error('Failed to fetch OCR stats:', error);
+        console.error("Failed to fetch OCR stats:", error);
       } finally {
         setIsLoadingOcr(false);
       }
@@ -103,9 +134,12 @@ export function DashboardPage() {
             <Sparkles className="h-3 w-3" />
             Workspace overview
           </div>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+            Dashboard
+          </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Start from any pipeline tool and monitor conversion readiness before final LMS export.
+            Start from any pipeline tool and monitor conversion readiness before
+            final LMS export.
           </p>
         </div>
         <span className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
@@ -122,12 +156,20 @@ export function DashboardPage() {
         <StatCard
           label="Account Status"
           value={usageSummary.isPremium ? "Premium" : "Free Tier"}
-          caption={usageSummary.isPremium ? "Full access enabled." : "Limited to basic cleaning."}
+          caption={
+            usageSummary.isPremium
+              ? "Full access enabled."
+              : "Limited to basic cleaning."
+          }
         />
         <StatCard
           label="Current Plan"
           value={usageSummary.isPremium ? "Unlimited" : "Restricted"}
-          caption={usageSummary.isPremium ? "All premium features available." : "Upgrade for AI audit and LMS export."}
+          caption={
+            usageSummary.isPremium
+              ? "All premium features available."
+              : "Upgrade for AI audit and LMS export."
+          }
         />
       </div>
 
@@ -199,58 +241,88 @@ export function DashboardPage() {
       {!usageSummary.isPremium && (
         <div className="space-y-4 pt-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">Upgrade Your Workflow</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
+              Upgrade Your Workflow
+            </h2>
             <div className="h-px flex-1 bg-border" />
           </div>
-          
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Free Card */}
             <div className="relative flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-colors duration-200">
               <div className="mb-4">
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Current Plan</span>
-                <h3 className="mt-2 text-xl font-bold text-foreground">Free Tier</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Perfect for exploring and basic cleaning.</p>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Current Plan
+                </span>
+                <h3 className="mt-2 text-xl font-bold text-foreground">
+                  Free Tier
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Perfect for exploring and basic cleaning.
+                </p>
               </div>
               <div className="mb-6 flex-1 space-y-3">
                 <div className="flex items-center gap-2 text-sm text-foreground">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Standard Data Validation
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Standard
+                  Data Validation
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Auto-cleaning & Manual Fixing
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" />{" "}
+                  Auto-cleaning & Manual Fixing
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Excel Export (100 row limit)
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Excel
+                  Export (100 row limit)
                 </div>
               </div>
-              <div className="mt-auto pt-4 text-2xl font-bold text-foreground">$0<span className="text-sm font-normal text-muted-foreground"> / month</span></div>
+              <div className="mt-auto pt-4 text-2xl font-bold text-foreground">
+                $0
+                <span className="text-sm font-normal text-muted-foreground">
+                  {" "}
+                  / month
+                </span>
+              </div>
             </div>
 
             {/* Premium Card */}
             <div className="relative flex flex-col rounded-xl border-2 border-primary bg-card p-6 shadow-md ring-4 ring-primary/10 transition-colors duration-200">
-              <div className="absolute -top-3 right-6 rounded-full bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground uppercase tracking-wider">Most Popular</div>
+              <div className="absolute -top-3 right-6 rounded-full bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground uppercase tracking-wider">
+                Most Popular
+              </div>
               <div className="mb-4">
-                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">Premium Tier</span>
-                <h3 className="mt-2 text-xl font-bold text-foreground">Professional</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Full power for large scale assessment teams.</p>
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  Premium Tier
+                </span>
+                <h3 className="mt-2 text-xl font-bold text-foreground">
+                  Professional
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Full power for large scale assessment teams.
+                </p>
               </div>
               <div className="mb-6 flex-1 space-y-3">
                 <div className="flex items-center gap-2 text-sm text-foreground font-medium">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> AI-Powered Pedagogy Audit
+                  <Sparkles className="h-4 w-4 text-amber-500" /> AI-Powered
+                  Pedagogy Audit
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground font-medium">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> Unlimited Rows & Questions
+                  <Sparkles className="h-4 w-4 text-amber-500" /> Unlimited Rows
+                  & Questions
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground font-medium">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> Full LMS Export (QTI, Canvas, etc.)
+                  <Sparkles className="h-4 w-4 text-amber-500" /> Full LMS
+                  Export (QTI, Canvas, etc.)
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground font-medium">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> Advanced XML/Configuration
+                  <Sparkles className="h-4 w-4 text-amber-500" /> Advanced
+                  XML/Configuration
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground font-medium">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> Image & MathML Conversion
+                  <Sparkles className="h-4 w-4 text-amber-500" /> Image & MathML
+                  Conversion
                 </div>
               </div>
-              <a 
+              <a
                 href="mailto:hello@assessmentcore.in?subject=Upgrade to Premium"
                 className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
               >

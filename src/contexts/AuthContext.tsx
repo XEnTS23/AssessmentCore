@@ -1,17 +1,29 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
-import { authService } from '../services/authService';
-import { supabase } from '../services/supabaseClient';
-import { AuthContextType, AuthResponse, UserProfile, UserUsage } from '../types/auth';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { User } from "@supabase/supabase-js";
+import { authService } from "../services/authService";
+import { supabase } from "../services/supabaseClient";
+import {
+  AuthContextType,
+  AuthResponse,
+  UserProfile,
+  UserUsage,
+} from "../types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_INIT_TIMEOUT_MS = 15000;
 const PROFILE_FETCH_TIMEOUT_MS = 15000;
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+    const timeoutId = setTimeout(
+      () => reject(new Error(timeoutMessage)),
+      timeoutMs,
+    );
     promise
       .then((value) => {
         clearTimeout(timeoutId);
@@ -46,17 +58,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               authService.getUserUsage(currentUser.id),
             ]),
             AUTH_INIT_TIMEOUT_MS,
-            'Auth initialization timeout'
+            "Auth initialization timeout",
           );
-          
+
           setUserProfile(profile);
-          
-          const metadataUnlimited = 
-            currentUser.app_metadata?.is_unlimited === true || 
-            currentUser.app_metadata?.is_unlimited === 'true' ||
+
+          const metadataUnlimited =
+            currentUser.app_metadata?.is_unlimited === true ||
+            currentUser.app_metadata?.is_unlimited === "true" ||
             currentUser.user_metadata?.is_unlimited === true ||
-            currentUser.user_metadata?.is_unlimited === 'true';
-          
+            currentUser.user_metadata?.is_unlimited === "true";
+
           if (metadataUnlimited && usage) {
             setUserUsage({ ...usage, is_premium: true });
           } else {
@@ -64,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error("Error initializing auth:", error);
         // Even on error/timeout, we continue with unauthenticated state
         setUser(null);
         setUserProfile(null);
@@ -81,17 +93,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       // Redirect to reset password page when user clicks the email link
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === "PASSWORD_RECOVERY") {
         setUser(session?.user || null);
         // Expose user to window
         (window as any).user = session?.user || null;
-        window.location.href = '/auth/reset-password';
+        window.location.href = "/auth/reset-password";
         return;
       }
 
       // Only clear user on explicit sign-out — not on transient events
       // like TOKEN_REFRESHED where the session can briefly be null
-      if (event === 'SIGNED_OUT') {
+      if (event === "SIGNED_OUT") {
         setUser(null);
         setUserProfile(null);
         setUserUsage(null);
@@ -101,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Token refresh — just update the user object, skip re-fetching profile/usage
-      if (event === 'TOKEN_REFRESHED') {
+      if (event === "TOKEN_REFRESHED") {
         if (session?.user) setUser(session.user);
         // Update window user
         (window as any).user = session?.user || null;
@@ -119,24 +131,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               authService.getUserUsage(session.user.id),
             ]),
             PROFILE_FETCH_TIMEOUT_MS,
-            'Profile fetch timeout'
+            "Profile fetch timeout",
           );
-          
+
           setUserProfile(profile);
-          
-          const metadataUnlimited = 
-            session.user.app_metadata?.is_unlimited === true || 
-            session.user.app_metadata?.is_unlimited === 'true' ||
+
+          const metadataUnlimited =
+            session.user.app_metadata?.is_unlimited === true ||
+            session.user.app_metadata?.is_unlimited === "true" ||
             session.user.user_metadata?.is_unlimited === true ||
-            session.user.user_metadata?.is_unlimited === 'true';
-          
+            session.user.user_metadata?.is_unlimited === "true";
+
           if (metadataUnlimited && usage) {
             setUserUsage({ ...usage, is_premium: true });
           } else {
             setUserUsage(usage);
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error("Error fetching user data:", error);
           // Keep existing profile/usage data instead of nulling on timeout
         }
       }
@@ -147,7 +159,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string): Promise<AuthResponse> => {
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<AuthResponse> => {
     const response = await authService.login(email, password);
 
     if (response.success && response.user) {
@@ -158,12 +173,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserProfile(profile);
 
       const usage = await authService.getUserUsage(response.user.id);
-      
-      const metadataUnlimited = 
-        response.user.app_metadata?.is_unlimited === true || 
-        response.user.app_metadata?.is_unlimited === 'true' ||
+
+      const metadataUnlimited =
+        response.user.app_metadata?.is_unlimited === true ||
+        response.user.app_metadata?.is_unlimited === "true" ||
         response.user.user_metadata?.is_unlimited === true ||
-        response.user.user_metadata?.is_unlimited === 'true';
+        response.user.user_metadata?.is_unlimited === "true";
 
       if (metadataUnlimited && usage) {
         setUserUsage({ ...usage, is_premium: true });
@@ -175,7 +190,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response;
   };
 
-  const register = async (email: string, password: string, name: string): Promise<AuthResponse> => {
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<AuthResponse> => {
     const response = await authService.register(email, password, name);
 
     if (response.success && response.user) {
@@ -201,7 +220,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response;
   };
 
-  const verifyEmail = async (email: string, token: string): Promise<AuthResponse> => {
+  const verifyEmail = async (
+    email: string,
+    token: string,
+  ): Promise<AuthResponse> => {
     const response = await authService.verifyEmail(email, token);
 
     if (response.success && response.user) {
@@ -219,12 +241,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       await authService.trackExport(user.id);
       const usage = await authService.getUserUsage(user.id);
-      
-      const metadataUnlimited = 
-        user.app_metadata?.is_unlimited === true || 
-        user.app_metadata?.is_unlimited === 'true' ||
+
+      const metadataUnlimited =
+        user.app_metadata?.is_unlimited === true ||
+        user.app_metadata?.is_unlimited === "true" ||
         user.user_metadata?.is_unlimited === true ||
-        user.user_metadata?.is_unlimited === 'true';
+        user.user_metadata?.is_unlimited === "true";
 
       if (metadataUnlimited && usage) {
         setUserUsage({ ...usage, is_premium: true });
@@ -238,12 +260,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       await authService.trackQuestionsConverted(user.id, count);
       const usage = await authService.getUserUsage(user.id);
-      
-      const metadataUnlimited = 
-        user.app_metadata?.is_unlimited === true || 
-        user.app_metadata?.is_unlimited === 'true' ||
+
+      const metadataUnlimited =
+        user.app_metadata?.is_unlimited === true ||
+        user.app_metadata?.is_unlimited === "true" ||
         user.user_metadata?.is_unlimited === true ||
-        user.user_metadata?.is_unlimited === 'true';
+        user.user_metadata?.is_unlimited === "true";
 
       if (metadataUnlimited && usage) {
         setUserUsage({ ...usage, is_premium: true });
@@ -256,12 +278,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUsage = async () => {
     if (user) {
       const usage = await authService.getUserUsage(user.id);
-      
-      const metadataUnlimited = 
-        user.app_metadata?.is_unlimited === true || 
-        user.app_metadata?.is_unlimited === 'true' ||
+
+      const metadataUnlimited =
+        user.app_metadata?.is_unlimited === true ||
+        user.app_metadata?.is_unlimited === "true" ||
         user.user_metadata?.is_unlimited === true ||
-        user.user_metadata?.is_unlimited === 'true';
+        user.user_metadata?.is_unlimited === "true";
 
       if (metadataUnlimited && usage) {
         setUserUsage({ ...usage, is_premium: true });
@@ -271,7 +293,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetPasswordForEmail = async (email: string): Promise<AuthResponse> => {
+  const resetPasswordForEmail = async (
+    email: string,
+  ): Promise<AuthResponse> => {
     return authService.resetPasswordForEmail(email);
   };
 
@@ -303,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

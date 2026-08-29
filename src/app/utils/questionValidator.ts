@@ -4,28 +4,28 @@ import {
   type Issue as RuleIssue,
   type RuleAppliesTo,
   type ValidationResultV2,
-} from './validationRuleEngine.js';
+} from "./validationRuleEngine.js";
 
-export type ValidationStatus = 'valid' | 'caution' | 'rejected';
-export type ErrorLevel = 'critical' | 'warning';
+export type ValidationStatus = "valid" | "caution" | "rejected";
+export type ErrorLevel = "critical" | "warning";
 
-export type ValidationDecision = 'pass' | 'review' | 'block';
+export type ValidationDecision = "pass" | "review" | "block";
 export type ValidationCategory =
-  | 'normalization'
-  | 'structural'
-  | 'mapping'
-  | 'duplicate'
-  | 'content_quality'
-  | 'export_readiness';
+  | "normalization"
+  | "structural"
+  | "mapping"
+  | "duplicate"
+  | "content_quality"
+  | "export_readiness";
 
 export type CanonicalQuestionType =
-  | 'single_choice'
-  | 'multi_select'
-  | 'true_false'
-  | 'text_entry'
-  | 'numeric'
-  | 'order'
-  | 'unknown';
+  | "single_choice"
+  | "multi_select"
+  | "true_false"
+  | "text_entry"
+  | "numeric"
+  | "order"
+  | "unknown";
 
 export interface ValidationError {
   field: string;
@@ -38,7 +38,7 @@ export interface ValidationIssue {
   category: ValidationCategory;
   field: string;
   message: string;
-  severity: 'block' | 'review';
+  severity: "block" | "review";
 }
 
 export type Issue = ValidationIssue;
@@ -46,8 +46,8 @@ export type Issue = ValidationIssue;
 export interface TypeResolution {
   type: CanonicalQuestionType;
   detectedType: string;
-  confidence: 'high' | 'medium' | 'low' | 'none';
-  source: 'explicit' | 'detected' | 'unknown';
+  confidence: "high" | "medium" | "low" | "none";
+  source: "explicit" | "detected" | "unknown";
   explicitTypeRaw?: string;
 }
 
@@ -66,7 +66,7 @@ export interface CanonicalItem {
   canonicalId: string;
   canonicalType: CanonicalQuestionType;
   detectedType: string;
-  confidence: TypeResolution['confidence'];
+  confidence: TypeResolution["confidence"];
   stem: string;
   normalizedStem: string;
   rawStem: unknown;
@@ -77,9 +77,9 @@ export interface CanonicalItem {
   orderItems: string[];
   tolerance?: number;
   numericAnswer?: number;
-  textEntryMode: 'exact' | 'case_insensitive' | 'numeric';
+  textEntryMode: "exact" | "case_insensitive" | "numeric";
   metadata: Record<string, string>;
-  exportTargets: Array<'xml' | 'json'>;
+  exportTargets: Array<"xml" | "json">;
   rawRow: Record<string, unknown>;
   normalizedRow: Record<string, unknown>;
 }
@@ -100,7 +100,7 @@ export interface ValidationResult {
   legacyIssues?: ValidationIssue[];
   ruleIssues?: RuleIssue[];
   detectedType?: string;
-  typeConfidence?: TypeResolution['confidence'];
+  typeConfidence?: TypeResolution["confidence"];
   canonicalItem?: CanonicalItem;
   exportReady: boolean;
   errorCount: number;
@@ -120,21 +120,21 @@ export interface ValidationProfile {
   supportedTypes: CanonicalQuestionType[];
   allowAutoDetectType: boolean;
   requiredMetadataFields: string[];
-  duplicatePolicy: 'allow' | 'review' | 'block';
+  duplicatePolicy: "allow" | "review" | "block";
   requireSolution: boolean;
   requireNumericTolerance: boolean;
   allowTwoChoiceSingleChoice: boolean;
-  exportTargets: Array<'xml' | 'json'>;
-  textEntryMode: 'exact' | 'case_insensitive' | 'numeric' | 'auto';
+  exportTargets: Array<"xml" | "json">;
+  textEntryMode: "exact" | "case_insensitive" | "numeric" | "auto";
   strictTypeColumn: boolean;
 }
 
 export interface BuildProfileInput {
   outputFormat?: string;
   exportMode?: string;
-  hasTemplateXml?: 'yes' | 'no' | '';
-  containsMath?: 'yes' | 'no' | '';
-  containsImages?: 'yes' | 'no' | '';
+  hasTemplateXml?: "yes" | "no" | "";
+  containsMath?: "yes" | "no" | "";
+  containsImages?: "yes" | "no" | "";
 }
 
 export interface ValidationEngineInput {
@@ -144,7 +144,12 @@ export interface ValidationEngineInput {
 
 export interface ValidationEngineOptions {
   defaultConfidence?: ValidationEngineInput;
-  rowConfidence?: (input: { row: QuestionData; canonical: CanonicalItem; result: ValidationResult; rowType: TypeResolution }) => ValidationEngineInput;
+  rowConfidence?: (input: {
+    row: QuestionData;
+    canonical: CanonicalItem;
+    result: ValidationResult;
+    rowType: TypeResolution;
+  }) => ValidationEngineInput;
 }
 
 export interface ValidationSummary {
@@ -202,9 +207,13 @@ export interface ValidationDebugRow {
     normalized: string[];
   };
   isAnswerInOptions: boolean;
-  issues: Array<{ code: string; message: string; severity: ValidationIssue['severity'] }>;
+  issues: Array<{
+    code: string;
+    message: string;
+    severity: ValidationIssue["severity"];
+  }>;
   validationV2: {
-    status: ValidationResultV2['status'];
+    status: ValidationResultV2["status"];
     confidence: number;
     coverage: number;
     passedRules: string[];
@@ -249,76 +258,85 @@ export interface DatasetRecoveryMetrics {
 }
 
 const TYPE_ALIASES: Record<string, CanonicalQuestionType> = {
-  mcq: 'single_choice',
-  singlechoice: 'single_choice',
-  single_choice: 'single_choice',
-  singleanswer: 'single_choice',
-  multiplechoice: 'single_choice',
-  choice: 'single_choice',
+  mcq: "single_choice",
+  singlechoice: "single_choice",
+  single_choice: "single_choice",
+  singleanswer: "single_choice",
+  multiplechoice: "single_choice",
+  choice: "single_choice",
 
-  msq: 'multi_select',
-  multiselect: 'multi_select',
-  multiple_select: 'multi_select',
-  multipleanswer: 'multi_select',
+  msq: "multi_select",
+  multiselect: "multi_select",
+  multiple_select: "multi_select",
+  multipleanswer: "multi_select",
 
-  truefalse: 'true_false',
-  true_false: 'true_false',
-  boolean: 'true_false',
-  tf: 'true_false',
+  truefalse: "true_false",
+  true_false: "true_false",
+  boolean: "true_false",
+  tf: "true_false",
 
-  shortanswer: 'text_entry',
-  short_answer: 'text_entry',
-  textentry: 'text_entry',
-  text_entry: 'text_entry',
-  fib: 'text_entry',
-  fillintheblank: 'text_entry',
+  shortanswer: "text_entry",
+  short_answer: "text_entry",
+  textentry: "text_entry",
+  text_entry: "text_entry",
+  fib: "text_entry",
+  fillintheblank: "text_entry",
 
-  numeric: 'numeric',
-  numerical: 'numeric',
-  number: 'numeric',
+  numeric: "numeric",
+  numerical: "numeric",
+  number: "numeric",
 
-  order: 'order',
-  ordering: 'order',
-  sequence: 'order',
-  arrange: 'order',
+  order: "order",
+  ordering: "order",
+  sequence: "order",
+  arrange: "order",
 };
 
-const TF_TRUE = new Set(['true', 't', 'yes', 'y', '1']);
-const TF_FALSE = new Set(['false', 'f', 'no', 'n', '0']);
+const TF_TRUE = new Set(["true", "t", "yes", "y", "1"]);
+const TF_FALSE = new Set(["false", "f", "no", "n", "0"]);
 
 export function createDefaultValidationProfile(): ValidationProfile {
   return {
-    name: 'default',
-    supportedTypes: ['single_choice', 'multi_select', 'true_false', 'text_entry', 'numeric', 'order'],
+    name: "default",
+    supportedTypes: [
+      "single_choice",
+      "multi_select",
+      "true_false",
+      "text_entry",
+      "numeric",
+      "order",
+    ],
     allowAutoDetectType: true,
     requiredMetadataFields: [],
-    duplicatePolicy: 'review',
+    duplicatePolicy: "review",
     requireSolution: false,
     requireNumericTolerance: false,
     allowTwoChoiceSingleChoice: true,
-    exportTargets: ['xml'],
-    textEntryMode: 'auto',
+    exportTargets: ["xml"],
+    textEntryMode: "auto",
     strictTypeColumn: true,
   };
 }
 
-export function buildValidationProfile(input: BuildProfileInput = {}): ValidationProfile {
+export function buildValidationProfile(
+  input: BuildProfileInput = {},
+): ValidationProfile {
   const profile = createDefaultValidationProfile();
-  profile.name = 'configuration-tab-profile';
+  profile.name = "configuration-tab-profile";
 
-  if (input.outputFormat && input.outputFormat.toLowerCase().includes('json')) {
-    profile.exportTargets = ['json'];
+  if (input.outputFormat && input.outputFormat.toLowerCase().includes("json")) {
+    profile.exportTargets = ["json"];
   }
 
-  if (input.exportMode && input.exportMode.toLowerCase().includes('xml')) {
-    profile.exportTargets = ['xml'];
+  if (input.exportMode && input.exportMode.toLowerCase().includes("xml")) {
+    profile.exportTargets = ["xml"];
   }
 
-  if (input.hasTemplateXml === 'yes') {
+  if (input.hasTemplateXml === "yes") {
     profile.requireSolution = true;
   }
 
-  if (input.containsMath === 'yes') {
+  if (input.containsMath === "yes") {
     profile.requireNumericTolerance = true;
   }
 
@@ -341,15 +359,15 @@ interface StructuralContext {
 
 function hasValue(value: unknown): boolean {
   if (value === null || value === undefined) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === "string") return value.trim().length > 0;
   return true;
 }
 
 function normalizeCellValue(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
+  if (typeof value !== "string") return value;
   const trimmed = value.trim();
-  if (trimmed === '') return '';
-  return trimmed.replace(/\s+/g, ' ');
+  if (trimmed === "") return "";
+  return trimmed.replace(/\s+/g, " ");
 }
 
 function normalizeData(data: Record<string, unknown>): Record<string, unknown> {
@@ -361,26 +379,40 @@ function normalizeData(data: Record<string, unknown>): Record<string, unknown> {
 }
 
 function toStableString(value: unknown): string {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) return "";
   return String(value).trim();
 }
 
 function normalizeTypeToken(value: string): string {
-  return value.toLowerCase().trim().replace(/[\s_-]+/g, '');
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_-]+/g, "");
 }
 
-function tokenizeWithDelimiterPattern(value: string, delimiterPattern: RegExp): string[] {
+function tokenizeWithDelimiterPattern(
+  value: string,
+  delimiterPattern: RegExp,
+): string[] {
   const entities: string[] = [];
-  const entitySafe = value.replace(/&(?:#\d+|#x[\da-fA-F]+|[a-zA-Z][a-zA-Z0-9]+);/g, (m) => {
-    const token = `__ENTITY_${entities.length}__`;
-    entities.push(m);
-    return token;
-  });
+  const entitySafe = value.replace(
+    /&(?:#\d+|#x[\da-fA-F]+|[a-zA-Z][a-zA-Z0-9]+);/g,
+    (m) => {
+      const token = `__ENTITY_${entities.length}__`;
+      entities.push(m);
+      return token;
+    },
+  );
 
   return entitySafe
     .split(delimiterPattern)
     .map((token) => token.trim())
-    .map((token) => token.replace(/__ENTITY_(\d+)__/g, (_, idx) => entities[Number(idx)] || ''))
+    .map((token) =>
+      token.replace(
+        /__ENTITY_(\d+)__/g,
+        (_, idx) => entities[Number(idx)] || "",
+      ),
+    )
     .filter((token) => token.length > 0);
 }
 
@@ -395,18 +427,21 @@ function parseNumber(value: unknown): number | null {
 }
 
 function normalizeTextFingerprint(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, ' ').trim();
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function normalizeChoiceMatchValue(value: string): string {
   return value
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .toLowerCase()
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .trim();
 }
 
-function normalizeRow(row: Record<string, unknown>, rowNumber: number): NormalizedRow {
+function normalizeRow(
+  row: Record<string, unknown>,
+  rowNumber: number,
+): NormalizedRow {
   const explicitInternalRowKey = toStableString(row.__rowKey);
   const sourceRowId = toStableString(row.id) || `row_${rowNumber}`;
   const rowKey = explicitInternalRowKey || `${sourceRowId}#${rowNumber}`;
@@ -424,18 +459,24 @@ function normalizeRow(row: Record<string, unknown>, rowNumber: number): Normaliz
 }
 
 function getExplicitType(row: NormalizedRow, columnMapping: any): string {
-  if (!columnMapping?.typeCol) return '';
+  if (!columnMapping?.typeCol) return "";
   return toStableString(row.normalizedRow[columnMapping.typeCol]);
 }
 
-function getOptionValues(row: NormalizedRow, columnMapping: any): Array<{ col: string; text: string }> {
-  const optionCols: string[] = Array.isArray(columnMapping?.optionCols) ? columnMapping.optionCols : [];
+function getOptionValues(
+  row: NormalizedRow,
+  columnMapping: any,
+): Array<{ col: string; text: string }> {
+  const optionCols: string[] = Array.isArray(columnMapping?.optionCols)
+    ? columnMapping.optionCols
+    : [];
   const values: Array<{ col: string; text: string }> = [];
 
   optionCols.forEach((col) => {
-    // FIX: Pull directly from rawRow to preserve empty cells and whitespace
-    const rawValue = row.rawRow[col];
-    const text = rawValue == null ? '' : String(rawValue);
+    // Canonical validation consumes normalized values. The untouched source
+    // remains available on rawRow for cleaning logs and audit reports.
+    const normalizedValue = row.normalizedRow[col];
+    const text = normalizedValue == null ? "" : String(normalizedValue);
     values.push({ col, text });
   });
 
@@ -447,15 +488,19 @@ function getOptionValues(row: NormalizedRow, columnMapping: any): Array<{ col: s
   if (values.length === 1) {
     const singleText = values[0].text;
     if (!singleText.trim()) return values;
-    
+
     const delimiterMatch = singleText.match(/[|;,]/g);
     const hasDelimiter = delimiterMatch && delimiterMatch.length >= 2;
 
     if (hasDelimiter) {
       const delimiter = delimiterMatch[0];
-      const splitTokens = singleText.split(delimiter).map(s => s.trim()).filter(Boolean);
-      
-      const avgTokenLength = splitTokens.reduce((sum, t) => sum + t.length, 0) / splitTokens.length;
+      const splitTokens = singleText
+        .split(delimiter)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const avgTokenLength =
+        splitTokens.reduce((sum, t) => sum + t.length, 0) / splitTokens.length;
       const uniqueTokens = new Set(splitTokens);
 
       if (avgTokenLength < 30 && uniqueTokens.size === splitTokens.length) {
@@ -474,16 +519,19 @@ function getOptionValues(row: NormalizedRow, columnMapping: any): Array<{ col: s
   return values;
 }
 
-function detectTypeFromStructure(row: NormalizedRow, columnMapping: any): TypeResolution {
+function detectTypeFromStructure(
+  row: NormalizedRow,
+  columnMapping: any,
+): TypeResolution {
   // ── Strict mode: if no type column is mapped in the sheet, we refuse to
   // guess the question type from structure (option count, answer format, etc.).
   // Every row will be classified as 'unknown' so the UI can surface the issue.
   if (!columnMapping?.typeCol) {
     return {
-      type: 'unknown',
-      detectedType: 'unknown',
-      confidence: 'none',
-      source: 'unknown',
+      type: "unknown",
+      detectedType: "unknown",
+      confidence: "none",
+      source: "unknown",
     };
   }
 
@@ -494,61 +542,79 @@ function detectTypeFromStructure(row: NormalizedRow, columnMapping: any): TypeRe
       return {
         type: alias,
         detectedType: alias,
-        confidence: 'high',
-        source: 'explicit',
+        confidence: "high",
+        source: "explicit",
         explicitTypeRaw: explicitRaw,
       };
     }
     return {
-      type: 'unknown',
-      detectedType: 'unknown',
-      confidence: 'none',
-      source: 'explicit',
+      type: "unknown",
+      detectedType: "unknown",
+      confidence: "none",
+      source: "explicit",
       explicitTypeRaw: explicitRaw,
     };
   }
 
   // typeCol is mapped but the cell is blank for this row — unknown, not a guess.
   return {
-    type: 'unknown',
-    detectedType: 'unknown',
-    confidence: 'none',
-    source: 'explicit',
-    explicitTypeRaw: '',
+    type: "unknown",
+    detectedType: "unknown",
+    confidence: "none",
+    source: "explicit",
+    explicitTypeRaw: "",
   };
 }
 
 function toLegacyDetectedType(type: CanonicalQuestionType): string {
   switch (type) {
-    case 'single_choice': return 'mcq';
-    case 'multi_select': return 'msq';
-    case 'true_false': return 'truefalse';
-    case 'text_entry': return 'shortanswer';
-    case 'numeric': return 'numeric';
-    case 'order': return 'order';
-    default: return 'unknown';
+    case "single_choice":
+      return "mcq";
+    case "multi_select":
+      return "msq";
+    case "true_false":
+      return "truefalse";
+    case "text_entry":
+      return "shortanswer";
+    case "numeric":
+      return "numeric";
+    case "order":
+      return "order";
+    default:
+      return "unknown";
   }
 }
 
 function toRuleType(type: CanonicalQuestionType): RuleAppliesTo {
   switch (type) {
-    case 'single_choice': return 'MCQ';
-    case 'multi_select': return 'MSQ';
-    case 'order': return 'ORDER';
-    case 'true_false': return 'TRUE_FALSE';
-    case 'text_entry': return 'TEXT_ENTRY';
-    case 'numeric': return 'NUMERIC';
-    default: return 'UNKNOWN';
+    case "single_choice":
+      return "MCQ";
+    case "multi_select":
+      return "MSQ";
+    case "order":
+      return "ORDER";
+    case "true_false":
+      return "TRUE_FALSE";
+    case "text_entry":
+      return "TEXT_ENTRY";
+    case "numeric":
+      return "NUMERIC";
+    default:
+      return "UNKNOWN";
   }
 }
 
-function confidenceToNumber(value: TypeResolution['confidence']): number {
+function confidenceToNumber(value: TypeResolution["confidence"]): number {
   switch (value) {
-    case 'high': return 0.95;
-    case 'medium': return 0.8;
-    case 'low': return 0.6;
-    case 'none':
-    default: return 0.3;
+    case "high":
+      return 0.95;
+    case "medium":
+      return 0.8;
+    case "low":
+      return 0.6;
+    case "none":
+    default:
+      return 0.3;
   }
 }
 
@@ -558,24 +624,29 @@ function toRuleIssue(issue: ValidationIssue): RuleIssue {
     category: issue.category,
     field: issue.field,
     message: issue.message,
-    severity: issue.severity as 'block' | 'review',
+    severity: issue.severity as "block" | "review",
   };
 }
 
 function toValidationIssueFromRuleIssue(issue: RuleIssue): ValidationIssue {
-  const category = (issue.category as ValidationCategory) || 'mapping';
+  const category = (issue.category as ValidationCategory) || "mapping";
   return {
     code: issue.code,
     category,
     field: issue.field,
     message: issue.message,
-    severity: issue.severity === 'warning' ? 'review' : issue.severity as 'block' | 'review',
+    severity:
+      issue.severity === "warning"
+        ? "review"
+        : (issue.severity as "block" | "review"),
   };
 }
 
 function typeIsAmbiguous(typeResolution: TypeResolution): boolean {
-  if (typeResolution.type === 'unknown') return true;
-  return typeResolution.source === 'detected' && typeResolution.confidence !== 'high';
+  if (typeResolution.type === "unknown") return true;
+  return (
+    typeResolution.source === "detected" && typeResolution.confidence !== "high"
+  );
 }
 
 function buildStructuralContext(rows: NormalizedRow[]): StructuralContext {
@@ -599,8 +670,10 @@ function addIssue(issues: ValidationIssue[], issue: ValidationIssue): void {
   issues.push(issue);
 }
 
-function buildChoices(optionValues: Array<{ col: string; text: string }>): CanonicalChoice[] {
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function buildChoices(
+  optionValues: Array<{ col: string; text: string }>,
+): CanonicalChoice[] {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   return optionValues.map((opt, idx) => ({
     identifier: `CHOICE_${idx + 1}`,
     displayLabel: letters[idx] || String(idx + 1),
@@ -611,31 +684,35 @@ function buildChoices(optionValues: Array<{ col: string; text: string }>): Canon
 }
 
 function getConfiguredOrderDelimiters(columnMapping: any): string[] {
-  const configuredDelimiters: string[] = Array.isArray(columnMapping?.orderDelimiters)
+  const configuredDelimiters: string[] = Array.isArray(
+    columnMapping?.orderDelimiters,
+  )
     ? columnMapping.orderDelimiters
-    : typeof columnMapping?.orderDelimiter === 'string' && columnMapping.orderDelimiter.trim()
+    : typeof columnMapping?.orderDelimiter === "string" &&
+        columnMapping.orderDelimiter.trim()
       ? [columnMapping.orderDelimiter]
       : [];
 
   return configuredDelimiters
-    .map((d) => String(d || '').trim())
+    .map((d) => String(d || "").trim())
     .filter((d) => d.length > 0);
 }
 
 function getOrderDelimiters(columnMapping: any): string[] {
   const configuredDelimiters = getConfiguredOrderDelimiters(columnMapping);
 
-  const delimiters = [',', ';', '|', '\\n', ...configuredDelimiters]
-    .map((d) => String(d || '').trim())
+  const delimiters = [",", ";", "|", "\\n", ...configuredDelimiters]
+    .map((d) => String(d || "").trim())
     .filter((d) => d.length > 0);
 
   return Array.from(new Set(delimiters));
 }
 
 function buildDelimiterPattern(delimiters: string[]): RegExp {
-  const escaped = delimiters
-    .map((d) => d === '\\n' ? '\\n' : d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  return new RegExp(escaped.join('|'), 'g');
+  const escaped = delimiters.map((d) =>
+    d === "\\n" ? "\\n" : d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+  );
+  return new RegExp(escaped.join("|"), "g");
 }
 
 function tokenizeOrderValue(value: unknown, columnMapping: any): string[] {
@@ -643,14 +720,17 @@ function tokenizeOrderValue(value: unknown, columnMapping: any): string[] {
   if (!raw) return [];
 
   const configuredDelimiters = getConfiguredOrderDelimiters(columnMapping);
-  const configuredPattern = configuredDelimiters.length > 0
-    ? buildDelimiterPattern(['\\n', ...configuredDelimiters])
-    : null;
-  const useConfiguredOnly = configuredPattern ? configuredPattern.test(raw) : false;
+  const configuredPattern =
+    configuredDelimiters.length > 0
+      ? buildDelimiterPattern(["\\n", ...configuredDelimiters])
+      : null;
+  const useConfiguredOnly = configuredPattern
+    ? configuredPattern.test(raw)
+    : false;
   if (configuredPattern) configuredPattern.lastIndex = 0;
 
   const delimiterPattern = useConfiguredOnly
-    ? buildDelimiterPattern(['\\n', ...configuredDelimiters])
+    ? buildDelimiterPattern(["\\n", ...configuredDelimiters])
     : buildDelimiterPattern(getOrderDelimiters(columnMapping));
   return tokenizeWithDelimiterPattern(raw, delimiterPattern);
 }
@@ -677,13 +757,14 @@ function parseOrderItems(row: NormalizedRow, columnMapping: any): string[] {
   const raw = toStableString(rawValue);
   if (!raw) return [];
 
-  if ((raw.startsWith('[') && raw.endsWith(']')) || (raw.startsWith('{') && raw.endsWith('}'))) {
+  if (
+    (raw.startsWith("[") && raw.endsWith("]")) ||
+    (raw.startsWith("{") && raw.endsWith("}"))
+  ) {
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed
-          .map((x) => toStableString(x))
-          .filter((x) => x.length > 0);
+        return parsed.map((x) => toStableString(x)).filter((x) => x.length > 0);
       }
     } catch {
       // Fall through to delimiter parsing.
@@ -691,30 +772,43 @@ function parseOrderItems(row: NormalizedRow, columnMapping: any): string[] {
   }
 
   const tokens = tokenizeOrderValue(raw, columnMapping);
-  const avgTokenLength = tokens.reduce((sum, t) => sum + t.length, 0) / tokens.length;
+  const avgTokenLength =
+    tokens.reduce((sum, t) => sum + t.length, 0) / tokens.length;
   const uniqueTokens = new Set(tokens);
-  
-  if (tokens.length >= 2 && avgTokenLength < 30 && uniqueTokens.size === tokens.length) {
+
+  if (
+    tokens.length >= 2 &&
+    avgTokenLength < 30 &&
+    uniqueTokens.size === tokens.length
+  ) {
     return tokens;
   }
-  
+
   return [raw];
 }
 
-function resolveChoiceToken(token: string, choices: CanonicalChoice[]): { id?: string; ambiguous?: boolean } {
+function resolveChoiceToken(
+  token: string,
+  choices: CanonicalChoice[],
+): { id?: string; ambiguous?: boolean } {
   const trimmed = token.trim();
   const upper = trimmed.toUpperCase();
   if (!upper) return {};
 
   const exactNormalized = normalizeChoiceMatchValue(trimmed);
-  const exactMatches = choices.filter((choice) => choice.normalizedText === exactNormalized);
+  const exactMatches = choices.filter(
+    (choice) => choice.normalizedText === exactNormalized,
+  );
   if (exactMatches.length === 1) return { id: exactMatches[0].identifier };
   if (exactMatches.length > 1) return { ambiguous: true };
 
   const originalNormalized = normalizeChoiceMatchValue(trimmed);
   if (exactNormalized !== originalNormalized) {
-    const originalTextMatches = choices.filter((choice) => choice.normalizedText === originalNormalized);
-    if (originalTextMatches.length === 1) return { id: originalTextMatches[0].identifier };
+    const originalTextMatches = choices.filter(
+      (choice) => choice.normalizedText === originalNormalized,
+    );
+    if (originalTextMatches.length === 1)
+      return { id: originalTextMatches[0].identifier };
     if (originalTextMatches.length > 1) return { ambiguous: true };
   }
 
@@ -722,7 +816,9 @@ function resolveChoiceToken(token: string, choices: CanonicalChoice[]): { id?: s
     const idx = upper.charCodeAt(0) - 65;
     if (idx >= 0 && idx < choices.length) {
       const aliasNormalized = normalizeChoiceMatchValue(choices[idx].text);
-      const aliasMatches = choices.filter((choice) => choice.normalizedText === aliasNormalized);
+      const aliasMatches = choices.filter(
+        (choice) => choice.normalizedText === aliasNormalized,
+      );
       if (aliasMatches.length === 1) return { id: aliasMatches[0].identifier };
       if (aliasMatches.length > 1) return { ambiguous: true };
     }
@@ -735,13 +831,17 @@ function resolveChoiceToken(token: string, choices: CanonicalChoice[]): { id?: s
 
   if (/^[A-Z]$/.test(upper)) {
     const idx = upper.charCodeAt(0) - 65;
-    if (idx >= 0 && idx < choices.length) return { id: choices[idx].identifier };
+    if (idx >= 0 && idx < choices.length)
+      return { id: choices[idx].identifier };
   }
 
   return {};
 }
 
-function resolveOrderToken(token: string, orderItems: string[]): { id?: string; ambiguous?: boolean } {
+function resolveOrderToken(
+  token: string,
+  orderItems: string[],
+): { id?: string; ambiguous?: boolean } {
   const trimmed = token.trim();
   if (!trimmed) return {};
 
@@ -776,97 +876,123 @@ function validateWithProfile(
   rowType: TypeResolution,
   columnMapping: any,
   context: StructuralContext,
-  profile: ValidationProfile
+  profile: ValidationProfile,
 ): { issues: ValidationIssue[]; canonical: CanonicalItem } {
   const issues: ValidationIssue[] = [];
 
-  // FIX: Read directly from rawRow to preserve required text characteristics
-  const stemRaw = columnMapping?.questionCol ? row.rawRow[columnMapping.questionCol] : '';
-  const stem = toStableString(stemRaw);
-  
-  const answerRaw = columnMapping?.answerCol ? row.rawRow[columnMapping.answerCol] : '';
-  const answerText = toStableString(answerRaw);
-  
+  // Preserve source values for audit, while validating the canonical revision.
+  const stemRaw = columnMapping?.questionCol
+    ? row.rawRow[columnMapping.questionCol]
+    : "";
+  const stem = toStableString(
+    columnMapping?.questionCol
+      ? row.normalizedRow[columnMapping.questionCol]
+      : "",
+  );
+
+  const answerRaw = columnMapping?.answerCol
+    ? row.rawRow[columnMapping.answerCol]
+    : "";
+  const answerText = toStableString(
+    columnMapping?.answerCol ? row.normalizedRow[columnMapping.answerCol] : "",
+  );
+
   let answerTokens = tokenize(answerText);
-  if (getOptionValues(row, columnMapping).some(opt => normalizeChoiceMatchValue(opt.text) === normalizeChoiceMatchValue(answerText))) {
+  if (
+    getOptionValues(row, columnMapping).some(
+      (opt) =>
+        normalizeChoiceMatchValue(opt.text) ===
+        normalizeChoiceMatchValue(answerText),
+    )
+  ) {
     answerTokens = [answerText];
   }
   const optionValues = getOptionValues(row, columnMapping);
   const choices = buildChoices(optionValues);
   const orderItems = parseOrderItems(row, columnMapping);
-  const tolerance = parseNumber(columnMapping?.toleranceCol ? row.normalizedRow[columnMapping.toleranceCol] : null) ?? undefined;
+  const tolerance =
+    parseNumber(
+      columnMapping?.toleranceCol
+        ? row.normalizedRow[columnMapping.toleranceCol]
+        : null,
+    ) ?? undefined;
 
   const explicitIdMissing =
     row.rawRow.__explicitIdMissing === true ||
-    toStableString(row.rawRow.__sourceIdRaw ?? row.rawRow.id) === '';
+    toStableString(row.rawRow.__sourceIdRaw ?? row.rawRow.id) === "";
   if (explicitIdMissing) {
     addIssue(issues, {
-      code: 'MISSING_ID',
-      category: 'normalization',
-      field: 'Identifier',
+      code: "MISSING_ID",
+      category: "normalization",
+      field: "Identifier",
       message: `Missing explicit identifier. Row is tracked internally as "${row.rowKey}" but export is blocked until id is provided.`,
-      severity: 'block',
+      severity: "block",
     });
   }
 
   if (!stem) {
     addIssue(issues, {
-      code: 'MISSING_STEM',
-      category: 'structural',
-      field: 'Question Stem',
-      message: 'Question text is required for export mapping.',
-      severity: 'block',
+      code: "MISSING_STEM",
+      category: "structural",
+      field: "Question Stem",
+      message: "Question text is required for export mapping.",
+      severity: "block",
     });
   }
 
   if (stem.length > 0 && stem.length < 5) {
     addIssue(issues, {
-      code: 'SHORT_STEM',
-      category: 'content_quality',
-      field: 'Question Stem',
-      message: 'Question text is very short (minimum 5 characters recommended).',
-      severity: 'review',
+      code: "SHORT_STEM",
+      category: "content_quality",
+      field: "Question Stem",
+      message:
+        "Question text is very short (minimum 5 characters recommended).",
+      severity: "review",
     });
   }
 
-  if (rowType.source === 'explicit' && rowType.type === 'unknown') {
+  if (rowType.source === "explicit" && rowType.type === "unknown") {
     addIssue(issues, {
-      code: 'UNKNOWN_EXPLICIT_TYPE',
-      category: 'structural',
-      field: 'Question Type',
+      code: "UNKNOWN_EXPLICIT_TYPE",
+      category: "structural",
+      field: "Question Type",
       message: `Unsupported explicit type "${rowType.explicitTypeRaw}". Use one of the supported types.`,
-      severity: 'block',
+      severity: "block",
     });
   }
 
-  if (rowType.source !== 'explicit' && !profile.allowAutoDetectType) {
+  if (rowType.source !== "explicit" && !profile.allowAutoDetectType) {
     addIssue(issues, {
-      code: 'TYPE_REQUIRED',
-      category: 'structural',
-      field: 'Question Type',
-      message: 'Question type is required by configuration. Auto-detection is disabled.',
-      severity: 'block',
+      code: "TYPE_REQUIRED",
+      category: "structural",
+      field: "Question Type",
+      message:
+        "Question type is required by configuration. Auto-detection is disabled.",
+      severity: "block",
     });
   }
 
-  if (!profile.supportedTypes.includes(rowType.type) && rowType.type !== 'unknown') {
+  if (
+    !profile.supportedTypes.includes(rowType.type) &&
+    rowType.type !== "unknown"
+  ) {
     addIssue(issues, {
-      code: 'TYPE_NOT_SUPPORTED_BY_PROFILE',
-      category: 'export_readiness',
-      field: 'Question Type',
+      code: "TYPE_NOT_SUPPORTED_BY_PROFILE",
+      category: "export_readiness",
+      field: "Question Type",
       message: `Type ${rowType.type} is not enabled in the selected configuration profile.`,
-      severity: 'block',
+      severity: "block",
     });
   }
 
   if (context.duplicateIds.has(row.canonicalId)) {
     const rowsForId = context.idToRows.get(row.canonicalId) || [];
     addIssue(issues, {
-      code: 'DUPLICATE_ID',
-      category: 'structural',
-      field: 'Identifier',
-      message: `Duplicate identifier detected (${row.canonicalId}). Appears in row(s): ${rowsForId.join(', ')}.`,
-      severity: 'block',
+      code: "DUPLICATE_ID",
+      category: "structural",
+      field: "Identifier",
+      message: `Duplicate identifier detected (${row.canonicalId}). Appears in row(s): ${rowsForId.join(", ")}.`,
+      severity: "block",
     });
   }
 
@@ -875,24 +1001,27 @@ function validateWithProfile(
     const value = mappedCol ? row.normalizedRow[mappedCol] : undefined;
     if (!hasValue(value)) {
       addIssue(issues, {
-        code: 'MISSING_REQUIRED_METADATA',
-        category: 'structural',
+        code: "MISSING_REQUIRED_METADATA",
+        category: "structural",
         field,
         message: `Required field ${field} is missing for this configuration.`,
-        severity: 'block',
+        severity: "block",
       });
     }
   });
 
   if (profile.requireSolution) {
-    const solutionValue = columnMapping?.solutionCol ? row.normalizedRow[columnMapping.solutionCol] : '';
+    const solutionValue = columnMapping?.solutionCol
+      ? row.normalizedRow[columnMapping.solutionCol]
+      : "";
     if (!hasValue(solutionValue)) {
       addIssue(issues, {
-        code: 'MISSING_SOLUTION',
-        category: 'export_readiness',
-        field: 'Solution',
-        message: 'Solution/explanation is required by the selected configuration.',
-        severity: 'block',
+        code: "MISSING_SOLUTION",
+        category: "export_readiness",
+        field: "Solution",
+        message:
+          "Solution/explanation is required by the selected configuration.",
+        severity: "block",
       });
     }
   }
@@ -901,44 +1030,45 @@ function validateWithProfile(
 
   if (!answerText) {
     addIssue(issues, {
-      code: 'MISSING_ANSWER',
-      category: 'structural',
-      field: 'Correct Answer',
-      message: 'Correct answer is missing.',
-      severity: 'block',
+      code: "MISSING_ANSWER",
+      category: "structural",
+      field: "Correct Answer",
+      message: "Correct answer is missing.",
+      severity: "block",
     });
   }
 
   switch (rowType.type) {
-    case 'single_choice': {
+    case "single_choice": {
       if (choices.length < 2) {
         addIssue(issues, {
-          code: 'INSUFFICIENT_OPTIONS',
-          category: 'structural',
-          field: 'Options',
+          code: "INSUFFICIENT_OPTIONS",
+          category: "structural",
+          field: "Options",
           message: `Single-choice requires at least 2 options. Found ${choices.length}.`,
-          severity: 'block',
+          severity: "block",
         });
         break;
       }
 
       if (!profile.allowTwoChoiceSingleChoice && choices.length === 2) {
         addIssue(issues, {
-          code: 'TWO_CHOICE_NOT_ALLOWED',
-          category: 'export_readiness',
-          field: 'Options',
-          message: 'Two-option single-choice items are disabled by configuration.',
-          severity: 'block',
+          code: "TWO_CHOICE_NOT_ALLOWED",
+          category: "export_readiness",
+          field: "Options",
+          message:
+            "Two-option single-choice items are disabled by configuration.",
+          severity: "block",
         });
       }
 
       if (answerTokens.length !== 1) {
         addIssue(issues, {
-          code: 'INVALID_FORMAT',
-          category: 'mapping',
-          field: 'Correct Answer',
+          code: "INVALID_FORMAT",
+          category: "mapping",
+          field: "Correct Answer",
           message: `MCQ requires exactly one answer token. Found ${answerTokens.length} values: "${answerText}".`,
-          severity: 'block',
+          severity: "block",
         });
         break;
       }
@@ -946,19 +1076,19 @@ function validateWithProfile(
       const resolved = resolveChoiceToken(answerTokens[0], choices);
       if (resolved.ambiguous) {
         addIssue(issues, {
-          code: 'AMBIGUOUS_ANSWER_MAPPING',
-          category: 'mapping',
-          field: 'Correct Answer',
+          code: "AMBIGUOUS_ANSWER_MAPPING",
+          category: "mapping",
+          field: "Correct Answer",
           message: `Answer "${answerTokens[0]}" matches multiple options. Use label (A/B/1/2) for deterministic mapping.`,
-          severity: 'block',
+          severity: "block",
         });
       } else if (!resolved.id) {
         addIssue(issues, {
-          code: 'ANSWER_NOT_IN_OPTIONS',
-          category: 'mapping',
-          field: 'Correct Answer',
+          code: "ANSWER_NOT_IN_OPTIONS",
+          category: "mapping",
+          field: "Correct Answer",
           message: `Answer "${answerTokens[0]}" could not be resolved to a valid option.`,
-          severity: 'block',
+          severity: "block",
         });
       } else {
         correctResponseIdentifiers.push(resolved.id);
@@ -966,25 +1096,25 @@ function validateWithProfile(
       break;
     }
 
-    case 'multi_select': {
+    case "multi_select": {
       if (choices.length < 2) {
         addIssue(issues, {
-          code: 'INSUFFICIENT_OPTIONS',
-          category: 'structural',
-          field: 'Options',
+          code: "INSUFFICIENT_OPTIONS",
+          category: "structural",
+          field: "Options",
           message: `Multi-select requires at least 2 options. Found ${choices.length}.`,
-          severity: 'block',
+          severity: "block",
         });
         break;
       }
 
       if (answerTokens.length < 1) {
         addIssue(issues, {
-          code: 'MISSING_MULTI_SELECT_ANSWERS',
-          category: 'mapping',
-          field: 'Correct Answers',
-          message: 'Multi-select requires one or more correct answers.',
-          severity: 'block',
+          code: "MISSING_MULTI_SELECT_ANSWERS",
+          category: "mapping",
+          field: "Correct Answers",
+          message: "Multi-select requires one or more correct answers.",
+          severity: "block",
         });
       }
 
@@ -993,31 +1123,31 @@ function validateWithProfile(
         const resolved = resolveChoiceToken(token, choices);
         if (resolved.ambiguous) {
           addIssue(issues, {
-            code: 'AMBIGUOUS_ANSWER_MAPPING',
-            category: 'mapping',
-            field: 'Correct Answers',
+            code: "AMBIGUOUS_ANSWER_MAPPING",
+            category: "mapping",
+            field: "Correct Answers",
             message: `Answer token "${token}" is ambiguous across options.`,
-            severity: 'block',
+            severity: "block",
           });
           return;
         }
         if (!resolved.id) {
           addIssue(issues, {
-            code: 'ANSWER_NOT_IN_OPTIONS',
-            category: 'mapping',
-            field: 'Correct Answers',
+            code: "ANSWER_NOT_IN_OPTIONS",
+            category: "mapping",
+            field: "Correct Answers",
             message: `Answer token "${token}" is not a valid option.`,
-            severity: 'block',
+            severity: "block",
           });
           return;
         }
         if (seen.has(resolved.id)) {
           addIssue(issues, {
-            code: 'DUPLICATE_ANSWER_TOKEN',
-            category: 'mapping',
-            field: 'Correct Answers',
+            code: "DUPLICATE_ANSWER_TOKEN",
+            category: "mapping",
+            field: "Correct Answers",
             message: `Duplicate answer token resolves to the same option (${token}).`,
-            severity: 'review',
+            severity: "review",
           });
           return;
         }
@@ -1027,122 +1157,132 @@ function validateWithProfile(
       break;
     }
 
-    case 'true_false': {
+    case "true_false": {
       const normalized = normalizeTextFingerprint(answerText);
       if (TF_TRUE.has(normalized)) {
-        correctResponseIdentifiers.push('TRUE');
+        correctResponseIdentifiers.push("TRUE");
       } else if (TF_FALSE.has(normalized)) {
-        correctResponseIdentifiers.push('FALSE');
+        correctResponseIdentifiers.push("FALSE");
       } else {
         addIssue(issues, {
-          code: 'INVALID_TRUE_FALSE_ANSWER',
-          category: 'mapping',
-          field: 'Correct Answer',
+          code: "INVALID_TRUE_FALSE_ANSWER",
+          category: "mapping",
+          field: "Correct Answer",
           message: `True/False answer "${answerText}" is invalid. Use true/false (or equivalent variants).`,
-          severity: 'block',
+          severity: "block",
         });
       }
       break;
     }
 
-    case 'text_entry': {
+    case "text_entry": {
       if (!answerText) {
         addIssue(issues, {
-          code: 'MISSING_TEXT_ENTRY_ANSWER',
-          category: 'mapping',
-          field: 'Correct Answer',
-          message: 'Text entry requires a non-empty answer.',
-          severity: 'block',
+          code: "MISSING_TEXT_ENTRY_ANSWER",
+          category: "mapping",
+          field: "Correct Answer",
+          message: "Text entry requires a non-empty answer.",
+          severity: "block",
         });
       }
 
       if (choices.length > 0) {
         addIssue(issues, {
-          code: 'TEXT_ENTRY_WITH_OPTIONS',
-          category: 'structural',
-          field: 'Options',
-          message: 'Text-entry rows should not include options.',
-          severity: 'block',
+          code: "TEXT_ENTRY_WITH_OPTIONS",
+          category: "structural",
+          field: "Options",
+          message: "Text-entry rows should not include options.",
+          severity: "block",
         });
       }
       break;
     }
 
-    case 'numeric': {
+    case "numeric": {
       const numeric = parseNumber(answerText);
       if (numeric === null) {
         addIssue(issues, {
-          code: 'INVALID_NUMERIC_ANSWER',
-          category: 'mapping',
-          field: 'Correct Answer',
+          code: "INVALID_NUMERIC_ANSWER",
+          category: "mapping",
+          field: "Correct Answer",
           message: `Numeric question requires a parseable number. Found "${answerText}".`,
-          severity: 'block',
+          severity: "block",
         });
       }
 
       if (profile.requireNumericTolerance && tolerance === undefined) {
         addIssue(issues, {
-          code: 'MISSING_NUMERIC_TOLERANCE',
-          category: 'export_readiness',
-          field: 'Tolerance',
-          message: 'Numeric tolerance is required by the selected configuration.',
-          severity: 'block',
+          code: "MISSING_NUMERIC_TOLERANCE",
+          category: "export_readiness",
+          field: "Tolerance",
+          message:
+            "Numeric tolerance is required by the selected configuration.",
+          severity: "block",
         });
       }
       break;
     }
 
-    case 'order': {
+    case "order": {
       const orderAnswerTokens = tokenizeOrderValue(answerText, columnMapping);
 
       if (orderItems.length < 2) {
         addIssue(issues, {
-          code: 'INVALID_ORDER_ITEMS',
-          category: 'mapping',
-          field: 'Order Items',
+          code: "INVALID_ORDER_ITEMS",
+          category: "mapping",
+          field: "Order Items",
           message: `Order question requires at least two items. Found ${orderItems.length}.`,
-          severity: 'block',
+          severity: "block",
         });
       }
 
       if (orderAnswerTokens.length < 2) {
         addIssue(issues, {
-          code: 'INVALID_ORDER_ANSWER',
-          category: 'mapping',
-          field: 'Correct Answer',
-          message: 'Order question answer must provide a sequence with at least two tokens.',
-          severity: 'block',
+          code: "INVALID_ORDER_ANSWER",
+          category: "mapping",
+          field: "Correct Answer",
+          message:
+            "Order question answer must provide a sequence with at least two tokens.",
+          severity: "block",
         });
       } else {
-        const resolvedOrder = orderAnswerTokens.map((token) => resolveOrderToken(token, orderItems));
+        const resolvedOrder = orderAnswerTokens.map((token) =>
+          resolveOrderToken(token, orderItems),
+        );
 
         if (resolvedOrder.some((value) => value.ambiguous)) {
           addIssue(issues, {
-            code: 'ORDER_ANSWER_AMBIGUOUS',
-            category: 'mapping',
-            field: 'Correct Answer',
-            message: 'Order answer contains tokens that map to multiple duplicate order items.',
-            severity: 'block',
+            code: "ORDER_ANSWER_AMBIGUOUS",
+            category: "mapping",
+            field: "Correct Answer",
+            message:
+              "Order answer contains tokens that map to multiple duplicate order items.",
+            severity: "block",
           });
         } else if (resolvedOrder.some((value) => !value.id)) {
           addIssue(issues, {
-            code: 'ORDER_ANSWER_MAPPING_FAILED',
-            category: 'mapping',
-            field: 'Correct Answer',
-            message: 'Order answer contains tokens that cannot be mapped to order items.',
-            severity: 'block',
+            code: "ORDER_ANSWER_MAPPING_FAILED",
+            category: "mapping",
+            field: "Correct Answer",
+            message:
+              "Order answer contains tokens that cannot be mapped to order items.",
+            severity: "block",
           });
         } else {
           const expected = new Set(orderItems.map((_, i) => `ORDER_${i + 1}`));
           const orderedIds = resolvedOrder.map((value) => value.id as string);
           const observed = new Set(orderedIds);
-          if (expected.size !== observed.size || orderedIds.length !== orderItems.length) {
+          if (
+            expected.size !== observed.size ||
+            orderedIds.length !== orderItems.length
+          ) {
             addIssue(issues, {
-              code: 'ORDER_SEQUENCE_INCOMPLETE',
-              category: 'mapping',
-              field: 'Correct Answer',
-              message: 'Order answer must include each order item exactly once.',
-              severity: 'block',
+              code: "ORDER_SEQUENCE_INCOMPLETE",
+              category: "mapping",
+              field: "Correct Answer",
+              message:
+                "Order answer must include each order item exactly once.",
+              severity: "block",
             });
           }
           correctResponseIdentifiers.push(...orderedIds);
@@ -1151,26 +1291,32 @@ function validateWithProfile(
       break;
     }
 
-    case 'unknown':
+    case "unknown":
     default:
       addIssue(issues, {
-        code: 'UNKNOWN_TYPE',
-        category: 'structural',
-        field: 'Question Type',
-        message: 'Could not determine a supported question type for this row.',
-        severity: 'block',
+        code: "UNKNOWN_TYPE",
+        category: "structural",
+        field: "Question Type",
+        message: "Could not determine a supported question type for this row.",
+        severity: "block",
       });
   }
 
   const textEntryMode =
-    profile.textEntryMode === 'auto'
-      ? rowType.type === 'numeric'
-        ? 'numeric'
-        : 'case_insensitive'
+    profile.textEntryMode === "auto"
+      ? rowType.type === "numeric"
+        ? "numeric"
+        : "case_insensitive"
       : profile.textEntryMode;
 
   const metadata: Record<string, string> = {};
-  const metadataFields = ['subjectCol', 'topicCol', 'difficultyCol', 'pointsCol', 'solutionCol'];
+  const metadataFields = [
+    "subjectCol",
+    "topicCol",
+    "difficultyCol",
+    "pointsCol",
+    "solutionCol",
+  ];
   metadataFields.forEach((field) => {
     const colName = columnMapping?.[field];
     if (!colName) return;
@@ -1203,20 +1349,23 @@ function validateWithProfile(
   };
 
   const shouldValidateAnswerInOptions =
-    rowType.type === 'single_choice' ||
-    rowType.type === 'multi_select' ||
-    rowType.type === 'true_false';
+    rowType.type === "single_choice" ||
+    rowType.type === "multi_select" ||
+    rowType.type === "true_false";
 
-  if (shouldValidateAnswerInOptions && !issues.some((issue) => issue.code === 'ANSWER_NOT_IN_OPTIONS')) {
+  if (
+    shouldValidateAnswerInOptions &&
+    !issues.some((issue) => issue.code === "ANSWER_NOT_IN_OPTIONS")
+  ) {
     const hasChoices = choices.length > 0;
     const hasAnswer = answerText.trim().length > 0;
     let answerInOptions = false;
 
-    if (rowType.type === 'true_false') {
+    if (rowType.type === "true_false") {
       const normalized = normalizeTextFingerprint(answerText);
       answerInOptions = TF_TRUE.has(normalized) || TF_FALSE.has(normalized);
     } else if (hasChoices && hasAnswer) {
-      if (rowType.type === 'single_choice') {
+      if (rowType.type === "single_choice") {
         if (answerTokens.length !== 1) {
           answerInOptions = false;
         } else {
@@ -1224,31 +1373,36 @@ function validateWithProfile(
           answerInOptions = !!resolved.id && !resolved.ambiguous;
         }
       } else {
-        answerInOptions = answerTokens.length > 0 && answerTokens.every((token) => {
-          const resolved = resolveChoiceToken(token, choices);
-          return !!resolved.id && !resolved.ambiguous;
-        });
+        answerInOptions =
+          answerTokens.length > 0 &&
+          answerTokens.every((token) => {
+            const resolved = resolveChoiceToken(token, choices);
+            return !!resolved.id && !resolved.ambiguous;
+          });
       }
     }
 
     if (!answerInOptions) {
       addIssue(issues, {
-        code: 'ANSWER_NOT_IN_OPTIONS',
-        category: 'mapping',
-        field: rowType.type === 'multi_select' ? 'Correct Answers' : 'Correct Answer',
-        message: 'Correct answer does not match any available option.',
-        severity: 'block',
+        code: "ANSWER_NOT_IN_OPTIONS",
+        category: "mapping",
+        field:
+          rowType.type === "multi_select"
+            ? "Correct Answers"
+            : "Correct Answer",
+        message: "Correct answer does not match any available option.",
+        severity: "block",
       });
     }
   }
 
   if (profile.exportTargets.length === 0) {
     addIssue(issues, {
-      code: 'NO_EXPORT_TARGET',
-      category: 'export_readiness',
-      field: 'Configuration',
-      message: 'No export target selected in configuration.',
-      severity: 'block',
+      code: "NO_EXPORT_TARGET",
+      category: "export_readiness",
+      field: "Configuration",
+      message: "No export target selected in configuration.",
+      severity: "block",
     });
   }
 
@@ -1258,7 +1412,7 @@ function validateWithProfile(
 function stemTokenSet(stem: string): Set<string> {
   const tokens = stem
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/g)
     .map((t) => t.trim())
     .filter((t) => t.length > 1);
@@ -1276,49 +1430,79 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
 }
 
 function fingerprintExact(item: CanonicalItem): string {
-  const options = item.choices.map((c) => c.normalizedText).join('||');
-  const orderItems = item.orderItems.map((x) => normalizeTextFingerprint(x)).join('||');
-  const answers = item.correctResponseIdentifiers.join('||');
-  return [item.canonicalType, item.normalizedStem, options, orderItems, answers, item.textEntryMode].join('::');
+  const options = item.choices.map((c) => c.normalizedText).join("||");
+  const orderItems = item.orderItems
+    .map((x) => normalizeTextFingerprint(x))
+    .join("||");
+  const answers = item.correctResponseIdentifiers.join("||");
+  return [
+    item.canonicalType,
+    item.normalizedStem,
+    options,
+    orderItems,
+    answers,
+    item.textEntryMode,
+  ].join("::");
 }
 
 function fingerprintConflict(item: CanonicalItem): string {
-  const options = item.canonicalType === 'order'
-    ? item.choices.map((c) => c.normalizedText).join('||')
-    : item.choices.map((c) => c.normalizedText).sort().join('||');
-  const orderItems = item.orderItems.map((x) => normalizeTextFingerprint(x)).join('||');
-  return [item.canonicalType, item.normalizedStem, options, orderItems].join('::');
+  const options =
+    item.canonicalType === "order"
+      ? item.choices.map((c) => c.normalizedText).join("||")
+      : item.choices
+          .map((c) => c.normalizedText)
+          .sort()
+          .join("||");
+  const orderItems = item.orderItems
+    .map((x) => normalizeTextFingerprint(x))
+    .join("||");
+  return [item.canonicalType, item.normalizedStem, options, orderItems].join(
+    "::",
+  );
 }
 
 function fingerprintConflictLoose(item: CanonicalItem): string {
-  const options = item.canonicalType === 'order'
-    ? item.choices.map((c) => c.normalizedText).join('||')
-    : item.choices.map((c) => c.normalizedText).sort().join('||');
-  const orderItems = item.orderItems.map((x) => normalizeTextFingerprint(x)).join('||');
-  const stemTokens = Array.from(stemTokenSet(item.normalizedStem)).sort().join(' ');
-  return [item.canonicalType, stemTokens || item.normalizedStem, options, orderItems].join('::');
+  const options =
+    item.canonicalType === "order"
+      ? item.choices.map((c) => c.normalizedText).join("||")
+      : item.choices
+          .map((c) => c.normalizedText)
+          .sort()
+          .join("||");
+  const orderItems = item.orderItems
+    .map((x) => normalizeTextFingerprint(x))
+    .join("||");
+  const stemTokens = Array.from(stemTokenSet(item.normalizedStem))
+    .sort()
+    .join(" ");
+  return [
+    item.canonicalType,
+    stemTokens || item.normalizedStem,
+    options,
+    orderItems,
+  ].join("::");
 }
 
 function semanticAnswerModel(item: CanonicalItem): string {
   const normalizedValues = item.correctResponseIdentifiers.map((identifier) => {
-    if (identifier.startsWith('ORDER_')) {
-      const orderIndex = Number(identifier.replace('ORDER_', '')) - 1;
-      const orderText = item.orderItems[orderIndex] || '';
+    if (identifier.startsWith("ORDER_")) {
+      const orderIndex = Number(identifier.replace("ORDER_", "")) - 1;
+      const orderText = item.orderItems[orderIndex] || "";
       return normalizeTextFingerprint(orderText);
     }
-    if (identifier.startsWith('CHOICE_')) {
-      const choiceIndex = Number(identifier.replace('CHOICE_', '')) - 1;
-      const choiceText = item.choices[choiceIndex]?.normalizedText || '';
+    if (identifier.startsWith("CHOICE_")) {
+      const choiceIndex = Number(identifier.replace("CHOICE_", "")) - 1;
+      const choiceText = item.choices[choiceIndex]?.normalizedText || "";
       return choiceText;
     }
     return normalizeTextFingerprint(identifier);
   });
-  return normalizedValues.join('|');
+  return normalizedValues.join("|");
 }
 
 function applyDuplicateAnalysis(
   rows: Array<{ result: ValidationResult; canonical: CanonicalItem }>,
-  profile: ValidationProfile
+  profile: ValidationProfile,
 ): void {
   const exactMap = new Map<string, number[]>();
   const conflictMap = new Map<string, number[]>();
@@ -1334,25 +1518,34 @@ function applyDuplicateAnalysis(
     conflictMap.get(conflictKey)!.push(index);
 
     const conflictLooseKey = fingerprintConflictLoose(entry.canonical);
-    if (!conflictLooseMap.has(conflictLooseKey)) conflictLooseMap.set(conflictLooseKey, []);
+    if (!conflictLooseMap.has(conflictLooseKey))
+      conflictLooseMap.set(conflictLooseKey, []);
     conflictLooseMap.get(conflictLooseKey)!.push(index);
   });
 
   exactMap.forEach((indices) => {
     if (indices.length < 2) return;
-    const sortedIndices = [...indices].sort((a, b) => rows[a].result.rowNumber - rows[b].result.rowNumber);
+    const sortedIndices = [...indices].sort(
+      (a, b) => rows[a].result.rowNumber - rows[b].result.rowNumber,
+    );
     const originalRowNumber = rows[sortedIndices[0]].result.rowNumber;
 
     for (let i = 1; i < sortedIndices.length; i++) {
       const row = rows[sortedIndices[i]];
-      if (row.result.issues.some(iss => iss.category === 'duplicate')) continue;
+      if (row.result.issues.some((iss) => iss.category === "duplicate"))
+        continue;
 
       row.result.issues.push({
-        code: 'DUPLICATE_EXACT',
-        category: 'duplicate',
-        field: 'Duplicate',
+        code: "DUPLICATE_EXACT",
+        category: "duplicate",
+        field: "Duplicate",
         message: `Exact duplicate detected. Original row: ${originalRowNumber}.`,
-        severity: profile.duplicatePolicy === 'block' ? 'block' : profile.duplicatePolicy === 'review' ? 'review' : 'review',
+        severity:
+          profile.duplicatePolicy === "block"
+            ? "block"
+            : profile.duplicatePolicy === "review"
+              ? "review"
+              : "review",
       });
     }
   });
@@ -1361,23 +1554,26 @@ function applyDuplicateAnalysis(
     if (indices.length < 2) return;
 
     const answerModels = new Set(
-      indices.map((idx) => semanticAnswerModel(rows[idx].canonical))
+      indices.map((idx) => semanticAnswerModel(rows[idx].canonical)),
     );
     if (answerModels.size <= 1) return;
 
-    const sortedIndices = [...indices].sort((a, b) => rows[a].result.rowNumber - rows[b].result.rowNumber);
+    const sortedIndices = [...indices].sort(
+      (a, b) => rows[a].result.rowNumber - rows[b].result.rowNumber,
+    );
     const originalRowNumber = rows[sortedIndices[0]].result.rowNumber;
 
     for (let i = 1; i < sortedIndices.length; i++) {
       const row = rows[sortedIndices[i]];
-      if (row.result.issues.some(iss => iss.category === 'duplicate')) continue;
+      if (row.result.issues.some((iss) => iss.category === "duplicate"))
+        continue;
 
       row.result.issues.push({
-        code: 'DUPLICATE_CONFLICT',
-        category: 'duplicate',
-        field: 'Duplicate',
+        code: "DUPLICATE_CONFLICT",
+        category: "duplicate",
+        field: "Duplicate",
         message: `Conflict duplicate detected (same/similar item model but different answer model). Original row: ${originalRowNumber}.`,
-        severity: 'review',
+        severity: "review",
       });
     }
   });
@@ -1385,37 +1581,44 @@ function applyDuplicateAnalysis(
   conflictLooseMap.forEach((indices) => {
     if (indices.length < 2) return;
 
-    const exactConflictBuckets = new Set(indices.map((idx) => fingerprintConflict(rows[idx].canonical)));
+    const exactConflictBuckets = new Set(
+      indices.map((idx) => fingerprintConflict(rows[idx].canonical)),
+    );
     if (exactConflictBuckets.size <= 1) return;
 
     const answerModels = new Set(
-      indices.map((idx) => semanticAnswerModel(rows[idx].canonical))
+      indices.map((idx) => semanticAnswerModel(rows[idx].canonical)),
     );
     if (answerModels.size <= 1) return;
 
-    const sortedIndices = [...indices].sort((a, b) => rows[a].result.rowNumber - rows[b].result.rowNumber);
+    const sortedIndices = [...indices].sort(
+      (a, b) => rows[a].result.rowNumber - rows[b].result.rowNumber,
+    );
     const originalRowNumber = rows[sortedIndices[0]].result.rowNumber;
 
     for (let i = 1; i < sortedIndices.length; i++) {
       const row = rows[sortedIndices[i]];
-      if (row.result.issues.some(iss => iss.category === 'duplicate')) continue;
+      if (row.result.issues.some((iss) => iss.category === "duplicate"))
+        continue;
 
       row.result.issues.push({
-        code: 'DUPLICATE_CONFLICT',
-        category: 'duplicate',
-        field: 'Duplicate',
+        code: "DUPLICATE_CONFLICT",
+        category: "duplicate",
+        field: "Duplicate",
         message: `Conflict duplicate detected (same/similar item model but different answer model). Original row: ${originalRowNumber}.`,
-        severity: 'review',
+        severity: "review",
       });
     }
   });
 
   const buckets = new Map<string, number[]>();
   rows.forEach((entry, index) => {
-    const stemSignature = Array.from(stemTokenSet(entry.canonical.normalizedStem))
+    const stemSignature = Array.from(
+      stemTokenSet(entry.canonical.normalizedStem),
+    )
       .sort()
       .slice(0, 10)
-      .join('|');
+      .join("|");
     const bucketKey = `${entry.canonical.canonicalType}:${stemSignature || entry.canonical.normalizedStem}`;
     if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
     buckets.get(bucketKey)!.push(index);
@@ -1430,23 +1633,41 @@ function applyDuplicateAnalysis(
 
         const similarity = jaccardSimilarity(
           stemTokenSet(left.canonical.normalizedStem),
-          stemTokenSet(right.canonical.normalizedStem)
+          stemTokenSet(right.canonical.normalizedStem),
         );
 
         if (left.canonical.canonicalType !== right.canonical.canonicalType) {
           continue;
         }
 
-        const leftModel = left.canonical.canonicalType === 'order'
-          ? new Set(left.canonical.orderItems.map((item) => normalizeTextFingerprint(item)))
-          : new Set(left.canonical.choices.map((choice) => choice.normalizedText));
-        const rightModel = right.canonical.canonicalType === 'order'
-          ? new Set(right.canonical.orderItems.map((item) => normalizeTextFingerprint(item)))
-          : new Set(right.canonical.choices.map((choice) => choice.normalizedText));
+        const leftModel =
+          left.canonical.canonicalType === "order"
+            ? new Set(
+                left.canonical.orderItems.map((item) =>
+                  normalizeTextFingerprint(item),
+                ),
+              )
+            : new Set(
+                left.canonical.choices.map((choice) => choice.normalizedText),
+              );
+        const rightModel =
+          right.canonical.canonicalType === "order"
+            ? new Set(
+                right.canonical.orderItems.map((item) =>
+                  normalizeTextFingerprint(item),
+                ),
+              )
+            : new Set(
+                right.canonical.choices.map((choice) => choice.normalizedText),
+              );
         const modelSimilarity = jaccardSimilarity(leftModel, rightModel);
 
-        const sameConflictModel = fingerprintConflict(left.canonical) === fingerprintConflict(right.canonical);
-        const sameAnswerModel = semanticAnswerModel(left.canonical) === semanticAnswerModel(right.canonical);
+        const sameConflictModel =
+          fingerprintConflict(left.canonical) ===
+          fingerprintConflict(right.canonical);
+        const sameAnswerModel =
+          semanticAnswerModel(left.canonical) ===
+          semanticAnswerModel(right.canonical);
 
         if (sameConflictModel) {
           continue;
@@ -1454,48 +1675,52 @@ function applyDuplicateAnalysis(
 
         if (similarity >= 0.92 && modelSimilarity >= 0.5 && !sameAnswerModel) {
           left.result.issues.push({
-            code: 'DUPLICATE_NEAR',
-            category: 'duplicate',
-            field: 'Duplicate',
+            code: "DUPLICATE_NEAR",
+            category: "duplicate",
+            field: "Duplicate",
             message: `Near duplicate with row ${right.result.rowNumber} (similar stem, different answer model).`,
-            severity: 'review',
+            severity: "review",
           });
           right.result.issues.push({
-            code: 'DUPLICATE_NEAR',
-            category: 'duplicate',
-            field: 'Duplicate',
+            code: "DUPLICATE_NEAR",
+            category: "duplicate",
+            field: "Duplicate",
             message: `Near duplicate with row ${left.result.rowNumber} (similar stem, different answer model).`,
-            severity: 'review',
+            severity: "review",
           });
         } else if (similarity >= 0.92 && modelSimilarity >= 0.5) {
           left.result.issues.push({
-            code: 'DUPLICATE_NEAR',
-            category: 'duplicate',
-            field: 'Duplicate',
+            code: "DUPLICATE_NEAR",
+            category: "duplicate",
+            field: "Duplicate",
             message: `Near duplicate with row ${right.result.rowNumber} (similar stem/item model).`,
-            severity: 'review',
+            severity: "review",
           });
           right.result.issues.push({
-            code: 'DUPLICATE_NEAR',
-            category: 'duplicate',
-            field: 'Duplicate',
+            code: "DUPLICATE_NEAR",
+            category: "duplicate",
+            field: "Duplicate",
             message: `Near duplicate with row ${left.result.rowNumber} (similar stem/item model).`,
-            severity: 'review',
+            severity: "review",
           });
-        } else if (similarity >= 0.85 && similarity < 0.92 && modelSimilarity >= 0.5) {
+        } else if (
+          similarity >= 0.85 &&
+          similarity < 0.92 &&
+          modelSimilarity >= 0.5
+        ) {
           left.result.issues.push({
-            code: 'DUPLICATE_SUSPICIOUS',
-            category: 'duplicate',
-            field: 'Duplicate',
+            code: "DUPLICATE_SUSPICIOUS",
+            category: "duplicate",
+            field: "Duplicate",
             message: `Suspiciously similar stem to row ${right.result.rowNumber}.`,
-            severity: 'review',
+            severity: "review",
           });
           right.result.issues.push({
-            code: 'DUPLICATE_SUSPICIOUS',
-            category: 'duplicate',
-            field: 'Duplicate',
+            code: "DUPLICATE_SUSPICIOUS",
+            category: "duplicate",
+            field: "Duplicate",
             message: `Suspiciously similar stem to row ${left.result.rowNumber}.`,
-            severity: 'review',
+            severity: "review",
           });
         }
       }
@@ -1504,31 +1729,36 @@ function applyDuplicateAnalysis(
 }
 
 function finalizeLegacyShape(result: ValidationResult): ValidationResult {
-  const blockIssues = result.issues.filter((i) => i.severity === 'block');
-  const reviewIssues = result.issues.filter((i) => i.severity === 'review');
+  const blockIssues = result.issues.filter((i) => i.severity === "block");
+  const reviewIssues = result.issues.filter((i) => i.severity === "review");
 
-  result.decision = blockIssues.length > 0 ? 'block' : reviewIssues.length > 0 ? 'review' : 'pass';
+  result.decision =
+    blockIssues.length > 0
+      ? "block"
+      : reviewIssues.length > 0
+        ? "review"
+        : "pass";
 
   result.status =
-    result.decision === 'block'
-      ? 'rejected'
-      : result.decision === 'review'
-        ? 'caution'
-        : 'valid';
+    result.decision === "block"
+      ? "rejected"
+      : result.decision === "review"
+        ? "caution"
+        : "valid";
 
   result.categories = Array.from(new Set(result.issues.map((i) => i.category)));
-  result.exportReady = result.decision !== 'block';
+  result.exportReady = result.decision !== "block";
 
   result.criticalErrors = blockIssues.map((issue) => ({
     field: issue.field,
     message: issue.message,
-    level: 'critical',
+    level: "critical",
   }));
 
   result.warnings = reviewIssues.map((issue) => ({
     field: issue.field,
     message: issue.message,
-    level: 'warning',
+    level: "warning",
   }));
 
   result.errorCount = result.criticalErrors.length;
@@ -1541,9 +1771,15 @@ function validateRowsCore(
   rows: QuestionData[],
   columnMapping: any,
   profileInput?: Partial<ValidationProfile>,
-  engineOptions?: ValidationEngineOptions
+  engineOptions?: ValidationEngineOptions,
 ): ValidationResult[] {
-  return validateRowsCoreInternal(rows, columnMapping, profileInput, engineOptions, null);
+  return validateRowsCoreInternal(
+    rows,
+    columnMapping,
+    profileInput,
+    engineOptions,
+    null,
+  );
 }
 
 function normalizeAnswerTokens(tokens: string[]): string[] {
@@ -1554,7 +1790,7 @@ function validateRowsCoreWithInsights(
   rows: QuestionData[],
   columnMapping: any,
   profileInput?: Partial<ValidationProfile>,
-  engineOptions?: ValidationEngineOptions
+  engineOptions?: ValidationEngineOptions,
 ): { results: ValidationResult[]; insights: ValidationDatasetInsights } {
   if (!rows || rows.length === 0) {
     return { results: [], insights: buildValidationDatasetInsights([]) };
@@ -1566,7 +1802,7 @@ function validateRowsCoreWithInsights(
     columnMapping,
     profileInput,
     engineOptions,
-    accumulator
+    accumulator,
   );
   const insights = finalizeDatasetInsights(accumulator);
   return { results, insights };
@@ -1577,7 +1813,7 @@ function validateRowsCoreInternal(
   columnMapping: any,
   profileInput: Partial<ValidationProfile> | undefined,
   engineOptions: ValidationEngineOptions | undefined,
-  accumulator: DatasetInsightsAccumulator | null
+  accumulator: DatasetInsightsAccumulator | null,
 ): ValidationResult[] {
   if (!rows || rows.length === 0) return [];
 
@@ -1586,7 +1822,9 @@ function validateRowsCoreInternal(
     ...(profileInput || {}),
   };
 
-  const normalizedRows = rows.map((row, idx) => normalizeRow((row || {}) as Record<string, unknown>, idx + 1));
+  const normalizedRows = rows.map((row, idx) =>
+    normalizeRow((row || {}) as Record<string, unknown>, idx + 1),
+  );
   const context = buildStructuralContext(normalizedRows);
 
   const resultsWithCanonical: Array<{
@@ -1596,15 +1834,21 @@ function validateRowsCoreInternal(
     canonical: CanonicalItem;
   }> = normalizedRows.map((row) => {
     const typeResolution = detectTypeFromStructure(row, columnMapping);
-    const { issues, canonical } = validateWithProfile(row, typeResolution, columnMapping, context, profile);
+    const { issues, canonical } = validateWithProfile(
+      row,
+      typeResolution,
+      columnMapping,
+      context,
+      profile,
+    );
 
     const result: ValidationResult = {
       rowId: row.rowKey,
       rowNumber: row.rowNumber,
       rowKey: row.rowKey,
       sourceItemId: toStableString(row.rawRow.__sourceIdRaw),
-      status: 'valid',
-      decision: 'pass',
+      status: "valid",
+      decision: "pass",
       categories: [],
       data: row.normalizedRow,
       rawData: row.rawRow,
@@ -1618,7 +1862,7 @@ function validateRowsCoreInternal(
       errorCount: 0,
       warningCount: 0,
       lastValidatedAt: new Date().toISOString(),
-      validationVersion: '2.0',
+      validationVersion: "2.0",
     };
 
     return { row, rowType: typeResolution, result, canonical };
@@ -1647,55 +1891,79 @@ function validateRowsCoreInternal(
     const legacyIssues = [...entry.result.issues];
     entry.result.legacyIssues = legacyIssues;
 
-    const typeUnknown = entry.rowType.type === 'unknown';
+    const typeUnknown = entry.rowType.type === "unknown";
 
     // FIX: Removed the typeUnknown bypass. The engine now correctly handles 'UNKNOWN' types natively.
-    
+
     const ruleResult = executeRules(
       {
         rowId: entry.result.rowId,
         type: toRuleType(entry.rowType.type),
         rawType: entry.result.detectedType,
-        // FIX: Provide raw un-trimmed stem so WHITESPACE_AUTOFIX can detect spaces
-        questionText: typeof entry.canonical.rawStem === 'string' ? entry.canonical.rawStem : String(entry.canonical.rawStem ?? ''),
+        // The rule engine validates the canonical normalized revision. Raw
+        // values remain on canonical.rawRow for the cleaning/audit pipeline.
+        questionText: entry.canonical.stem,
         optionCount: entry.canonical.choices.length,
         choices: entry.canonical.choices.map((choice) => ({
           identifier: choice.identifier,
-          text: choice.text, // This is now raw un-trimmed text from getOptionValues
+          text: choice.text,
           normalizedText: choice.normalizedText,
         })),
         correctResponseIdentifiers: entry.canonical.correctResponseIdentifiers,
         userResponseIdentifiers: entry.canonical.answerTokens,
-        // FIX: Provide actual raw answer string for DELIMITER_FORMAT_RULE
-        rawAnswerString: typeof entry.canonical.answerRaw === 'string' ? entry.canonical.answerRaw : String(entry.canonical.answerRaw ?? ''),
+        rawAnswerString:
+          typeof entry.canonical.answerRaw === "string"
+            ? entry.canonical.answerRaw
+            : String(entry.canonical.answerRaw ?? ""),
+        answerDelimiters:
+          entry.rowType.type === "multi_select"
+            ? ["\n", ",", ";", "|"]
+            : entry.rowType.type === "order"
+              ? (() => {
+                  const configured =
+                    getConfiguredOrderDelimiters(columnMapping);
+                  return configured.length > 0
+                    ? ["\n", ...configured]
+                    : ["\n", ",", ";", "|"];
+                })()
+              : undefined,
         mappingConfidence,
         parsingConfidence,
         typeUnknown,
         typeAmbiguous: typeIsAmbiguous(entry.rowType),
       },
-      defaultValidationRules
+      defaultValidationRules,
     );
 
     const ruleIssues = ruleResult.issues;
     entry.result.ruleIssues = ruleIssues;
     entry.result.validationV2 = ruleResult;
 
-    const mergedRuleIssuesAsLegacyShape = ruleIssues.map(toValidationIssueFromRuleIssue);
+    const mergedRuleIssuesAsLegacyShape = ruleIssues.map(
+      toValidationIssueFromRuleIssue,
+    );
     const legacyCodes = new Set(legacyIssues.map((i) => i.code));
     const ruleCodes = new Set(mergedRuleIssuesAsLegacyShape.map((i) => i.code));
     const dedupedLegacy = legacyIssues.filter((i) => !ruleCodes.has(i.code));
     entry.result.issues = [...dedupedLegacy, ...mergedRuleIssuesAsLegacyShape];
 
-    const hasBlockIssue = entry.result.issues.some((issue) => issue.severity === 'block');
-    const hasNonBlockIssue = entry.result.issues.some((issue) => issue.severity !== 'block');
+    const hasBlockIssue = entry.result.issues.some(
+      (issue) => issue.severity === "block",
+    );
+    const hasNonBlockIssue = entry.result.issues.some(
+      (issue) => issue.severity !== "block",
+    );
     if (typeUnknown) {
-      ruleResult.status = 'unknown';
+      ruleResult.status = "unknown";
     } else if (hasBlockIssue) {
-      ruleResult.status = 'invalid';
-    } else if ((ruleResult.uncertaintyFlags || []).length > 0 || hasNonBlockIssue) {
-      ruleResult.status = 'review';
+      ruleResult.status = "invalid";
+    } else if (
+      (ruleResult.uncertaintyFlags || []).length > 0 ||
+      hasNonBlockIssue
+    ) {
+      ruleResult.status = "review";
     } else {
-      ruleResult.status = 'valid';
+      ruleResult.status = "valid";
     }
 
     if (accumulator) {
@@ -1710,18 +1978,29 @@ export function validateAllQuestions(
   rows: QuestionData[],
   columnMapping: any,
   profileInput?: Partial<ValidationProfile>,
-  engineOptions?: ValidationEngineOptions
+  engineOptions?: ValidationEngineOptions,
 ): ValidationResult[] {
-  return validateRowsCoreInternal(rows, columnMapping, profileInput, engineOptions, null);
+  return validateRowsCoreInternal(
+    rows,
+    columnMapping,
+    profileInput,
+    engineOptions,
+    null,
+  );
 }
 
 export function validateAllQuestionsWithInsights(
   rows: QuestionData[],
   columnMapping: any,
   profileInput?: Partial<ValidationProfile>,
-  engineOptions?: ValidationEngineOptions
+  engineOptions?: ValidationEngineOptions,
 ): { results: ValidationResult[]; insights: ValidationDatasetInsights } {
-  return validateRowsCoreWithInsights(rows, columnMapping, profileInput, engineOptions);
+  return validateRowsCoreWithInsights(
+    rows,
+    columnMapping,
+    profileInput,
+    engineOptions,
+  );
 }
 
 export function validateSingleRow(
@@ -1729,30 +2008,46 @@ export function validateSingleRow(
   rowNumber: number,
   columnMapping: any,
   profileInput?: Partial<ValidationProfile>,
-  engineOptions?: ValidationEngineOptions
+  engineOptions?: ValidationEngineOptions,
 ): ValidationResult {
-  const rows = validateRowsCoreInternal([row], columnMapping, profileInput, engineOptions, null);
+  const rows = validateRowsCoreInternal(
+    [row],
+    columnMapping,
+    profileInput,
+    engineOptions,
+    null,
+  );
   if (rows.length === 0) {
     return {
       rowId: toStableString(row?.id) || `row_${rowNumber}`,
       rowNumber,
       rowKey: `${toStableString(row?.id) || `row_${rowNumber}`}#${rowNumber}`,
-      sourceItemId: '',
-      status: 'rejected',
-      decision: 'block',
-      categories: ['structural'],
+      sourceItemId: "",
+      status: "rejected",
+      decision: "block",
+      categories: ["structural"],
       data: row || {},
       rawData: row || {},
-      criticalErrors: [{ field: 'Row', message: 'Row is empty', level: 'critical' }],
+      criticalErrors: [
+        { field: "Row", message: "Row is empty", level: "critical" },
+      ],
       warnings: [],
-      issues: [{ code: 'ROW_EMPTY', category: 'structural', field: 'Row', message: 'Row is empty', severity: 'block' }],
-      detectedType: 'unknown',
-      typeConfidence: 'none',
+      issues: [
+        {
+          code: "ROW_EMPTY",
+          category: "structural",
+          field: "Row",
+          message: "Row is empty",
+          severity: "block",
+        },
+      ],
+      detectedType: "unknown",
+      typeConfidence: "none",
       exportReady: false,
       errorCount: 1,
       warningCount: 0,
       lastValidatedAt: new Date().toISOString(),
-      validationVersion: '2.0',
+      validationVersion: "2.0",
     };
   }
 
@@ -1766,20 +2061,24 @@ function normalizePercent(count: number, total: number): number {
   return Math.round((count / total) * 1000) / 10;
 }
 
-function severityWeightForIssue(severity: ValidationIssue['severity']): number {
-  return severity === 'block' ? 3 : 1;
+function severityWeightForIssue(severity: ValidationIssue["severity"]): number {
+  return severity === "block" ? 3 : 1;
 }
 
-function mapLegacyStatus(result: ValidationResult): ValidationResultV2['status'] {
-  if (result.status === 'valid') return 'valid';
-  if (result.status === 'rejected') return 'invalid';
-  return 'review';
+function mapLegacyStatus(
+  result: ValidationResult,
+): ValidationResultV2["status"] {
+  if (result.status === "valid") return "valid";
+  if (result.status === "rejected") return "invalid";
+  return "review";
 }
 
-function normalizeStatus(status: ValidationResultV2['status']): 'valid' | 'invalid' | 'review' {
-  if (status === 'valid') return 'valid';
-  if (status === 'invalid') return 'invalid';
-  return 'review';
+function normalizeStatus(
+  status: ValidationResultV2["status"],
+): "valid" | "invalid" | "review" {
+  if (status === "valid") return "valid";
+  if (status === "invalid") return "invalid";
+  return "review";
 }
 
 function extractIssueCodes(result: ValidationResult): Set<string> {
@@ -1788,11 +2087,21 @@ function extractIssueCodes(result: ValidationResult): Set<string> {
   return codes;
 }
 
-function hasMissingAnswers(issueCodes: Set<string>, issues: ValidationIssue[], ruleIssues?: RuleIssue[]): boolean {
-  if (issueCodes.has('MISSING_CORRECT_ANSWER') || issueCodes.has('MISSING_CORRECT_ANSWERS')) {
+function hasMissingAnswers(
+  issueCodes: Set<string>,
+  issues: ValidationIssue[],
+  ruleIssues?: RuleIssue[],
+): boolean {
+  if (
+    issueCodes.has("MISSING_CORRECT_ANSWER") ||
+    issueCodes.has("MISSING_CORRECT_ANSWERS")
+  ) {
     return true;
   }
-  if (issueCodes.has('MISSING_ANSWER') || issueCodes.has('MISSING_MULTI_SELECT_ANSWERS')) {
+  if (
+    issueCodes.has("MISSING_ANSWER") ||
+    issueCodes.has("MISSING_MULTI_SELECT_ANSWERS")
+  ) {
     return true;
   }
 
@@ -1808,8 +2117,11 @@ function hasMissingAnswers(issueCodes: Set<string>, issues: ValidationIssue[], r
   ];
 
   return allIssues.some((issue) => {
-    if (issue.code === 'MSQ_CARDINALITY_MISMATCH' || issue.code === 'MSQ_EXACT_SET_MISMATCH') {
-      return issue.message === 'missing_answers' || issue.message === 'both';
+    if (
+      issue.code === "MSQ_CARDINALITY_MISMATCH" ||
+      issue.code === "MSQ_EXACT_SET_MISMATCH"
+    ) {
+      return issue.message === "missing_answers" || issue.message === "both";
     }
     return false;
   });
@@ -1817,47 +2129,68 @@ function hasMissingAnswers(issueCodes: Set<string>, issues: ValidationIssue[], r
 
 function detectTextFallbackUsage(result: ValidationResult): boolean {
   const trace = result.validationV2?.executionTrace ?? [];
-  if (trace.some((entry) => entry.ruleId === 'MCQ_ANSWER_TEXT_MATCH' && entry.result !== 'skip')) {
+  if (
+    trace.some(
+      (entry) =>
+        entry.ruleId === "MCQ_ANSWER_TEXT_MATCH" && entry.result !== "skip",
+    )
+  ) {
     return true;
   }
-  if (trace.some((entry) => entry.ruleId === 'MSQ_ANSWER_TEXT_MATCH' && entry.result !== 'skip')) {
+  if (
+    trace.some(
+      (entry) =>
+        entry.ruleId === "MSQ_ANSWER_TEXT_MATCH" && entry.result !== "skip",
+    )
+  ) {
     return true;
   }
-  return result.validationV2?.uncertaintyFlags.includes('ANSWER_RESOLVED_BY_TEXT_MATCH') ?? false;
+  return (
+    result.validationV2?.uncertaintyFlags.includes(
+      "ANSWER_RESOLVED_BY_TEXT_MATCH",
+    ) ?? false
+  );
 }
 
-function classifyFallbackType(result: ValidationResult): keyof FallbackTypeBreakdown | null {
+function classifyFallbackType(
+  result: ValidationResult,
+): keyof FallbackTypeBreakdown | null {
   if (!detectTextFallbackUsage(result)) return null;
 
   const trace = result.validationV2?.executionTrace ?? [];
-  const textMatchFailure = trace.some((entry) =>
-    (entry.ruleId === 'MCQ_ANSWER_TEXT_MATCH' || entry.ruleId === 'MSQ_ANSWER_TEXT_MATCH') &&
-    entry.result === 'fail'
+  const textMatchFailure = trace.some(
+    (entry) =>
+      (entry.ruleId === "MCQ_ANSWER_TEXT_MATCH" ||
+        entry.ruleId === "MSQ_ANSWER_TEXT_MATCH") &&
+      entry.result === "fail",
   );
-  if (textMatchFailure) return 'mapping_failure';
+  if (textMatchFailure) return "mapping_failure";
 
   const canonical = result.canonicalItem;
   const answerTokens = canonical?.answerTokens ?? [];
-  const choiceIdentifiers = canonical?.choices.map((choice) => choice.identifier) ?? [];
+  const choiceIdentifiers =
+    canonical?.choices.map((choice) => choice.identifier) ?? [];
 
   const casingOnly = answerTokens.some((token) =>
-    choiceIdentifiers.some((identifier) =>
-      identifier.toLowerCase() === token.toLowerCase() && identifier !== token
-    )
+    choiceIdentifiers.some(
+      (identifier) =>
+        identifier.toLowerCase() === token.toLowerCase() &&
+        identifier !== token,
+    ),
   );
 
-  return casingOnly ? 'casing_issue' : 'identifier_missing';
+  return casingOnly ? "casing_issue" : "identifier_missing";
 }
 
 function hasIdentifierMismatch(result: ValidationResult): boolean {
   const ruleIssues = result.validationV2?.issues ?? result.ruleIssues ?? [];
   const issueCodes = new Set(ruleIssues.map((issue) => issue.code));
   if (
-    issueCodes.has('ANSWER_NOT_IN_OPTIONS') ||
-    issueCodes.has('ANSWER_TEXT_NOT_MATCH') ||
-    issueCodes.has('AMBIGUOUS_ANSWER_MATCH') ||
-    issueCodes.has('MSQ_ANSWER_TEXT_NOT_MATCH') ||
-    issueCodes.has('MSQ_ANSWER_TEXT_AMBIGUOUS')
+    issueCodes.has("ANSWER_NOT_IN_OPTIONS") ||
+    issueCodes.has("ANSWER_TEXT_NOT_MATCH") ||
+    issueCodes.has("AMBIGUOUS_ANSWER_MATCH") ||
+    issueCodes.has("MSQ_ANSWER_TEXT_NOT_MATCH") ||
+    issueCodes.has("MSQ_ANSWER_TEXT_AMBIGUOUS")
   ) {
     return true;
   }
@@ -1880,7 +2213,9 @@ interface DatasetInsightsAccumulator {
   fallbackRowIds: string[];
 }
 
-function createInsightsAccumulator(totalRows: number): DatasetInsightsAccumulator {
+function createInsightsAccumulator(
+  totalRows: number,
+): DatasetInsightsAccumulator {
   return {
     totalRows,
     validRows: 0,
@@ -1902,10 +2237,15 @@ function createInsightsAccumulator(totalRows: number): DatasetInsightsAccumulato
   };
 }
 
-function recordDatasetInsight(acc: DatasetInsightsAccumulator, result: ValidationResult): void {
-  const status = normalizeStatus(result.validationV2?.status ?? mapLegacyStatus(result));
-  if (status === 'valid') acc.validRows += 1;
-  else if (status === 'invalid') acc.invalidRows += 1;
+function recordDatasetInsight(
+  acc: DatasetInsightsAccumulator,
+  result: ValidationResult,
+): void {
+  const status = normalizeStatus(
+    result.validationV2?.status ?? mapLegacyStatus(result),
+  );
+  if (status === "valid") acc.validRows += 1;
+  else if (status === "invalid") acc.invalidRows += 1;
   else acc.reviewRows += 1;
 
   const uncertaintyFlags = result.validationV2?.uncertaintyFlags ?? [];
@@ -1944,16 +2284,34 @@ function recordDatasetInsight(acc: DatasetInsightsAccumulator, result: Validatio
   });
 }
 
-function finalizeDatasetInsights(acc: DatasetInsightsAccumulator): ValidationDatasetInsights {
-  const percentTextFallback = normalizePercent(acc.textFallbackRows, acc.totalRows);
-  const percentIdentifierMismatch = normalizePercent(acc.identifierMismatchRows, acc.totalRows);
-  const percentMissingAnswers = normalizePercent(acc.missingAnswerRows, acc.totalRows);
+function finalizeDatasetInsights(
+  acc: DatasetInsightsAccumulator,
+): ValidationDatasetInsights {
+  const percentTextFallback = normalizePercent(
+    acc.textFallbackRows,
+    acc.totalRows,
+  );
+  const percentIdentifierMismatch = normalizePercent(
+    acc.identifierMismatchRows,
+    acc.totalRows,
+  );
+  const percentMissingAnswers = normalizePercent(
+    acc.missingAnswerRows,
+    acc.totalRows,
+  );
 
-  const topIssues = Array.from(acc.errorTypeCounts.entries()).map(([code, count]) => {
-    const severityWeight = acc.errorTypeSeverity.get(code) ?? 1;
-    const impact = count * severityWeight;
-    return { code, count, severityWeight, impact };
-  }).sort((a, b) => b.impact - a.impact || b.count - a.count || a.code.localeCompare(b.code));
+  const topIssues = Array.from(acc.errorTypeCounts.entries())
+    .map(([code, count]) => {
+      const severityWeight = acc.errorTypeSeverity.get(code) ?? 1;
+      const impact = count * severityWeight;
+      return { code, count, severityWeight, impact };
+    })
+    .sort(
+      (a, b) =>
+        b.impact - a.impact ||
+        b.count - a.count ||
+        a.code.localeCompare(b.code),
+    );
 
   const repeatedErrorTypes = topIssues
     .filter((issue) => issue.count >= 2)
@@ -1972,13 +2330,15 @@ function finalizeDatasetInsights(acc: DatasetInsightsAccumulator): ValidationDat
     repeatedErrorTypes,
   };
 
-  const exampleRows: ValidationDatasetInsights['exampleRows'] = {
+  const exampleRows: ValidationDatasetInsights["exampleRows"] = {
     fallback: acc.fallbackRowIds.slice(0, 5),
     topIssues: {},
   };
 
   topIssues.slice(0, 5).forEach((issue) => {
-    exampleRows.topIssues[issue.code] = (acc.errorTypeRowIds.get(issue.code) || []).slice(0, 5);
+    exampleRows.topIssues[issue.code] = (
+      acc.errorTypeRowIds.get(issue.code) || []
+    ).slice(0, 5);
   });
 
   return {
@@ -1997,7 +2357,9 @@ function finalizeDatasetInsights(acc: DatasetInsightsAccumulator): ValidationDat
   };
 }
 
-export function buildValidationDatasetInsights(results: ValidationResult[]): ValidationDatasetInsights {
+export function buildValidationDatasetInsights(
+  results: ValidationResult[],
+): ValidationDatasetInsights {
   const totalRows = results.length;
   const acc = createInsightsAccumulator(totalRows);
   results.forEach((result) => recordDatasetInsight(acc, result));
@@ -2008,12 +2370,19 @@ function computeIsAnswerInOptions(canonical?: CanonicalItem): boolean {
   if (!canonical) return true;
 
   const type = canonical.canonicalType;
-  if (type !== 'single_choice' && type !== 'multi_select' && type !== 'true_false') {
+  if (
+    type !== "single_choice" &&
+    type !== "multi_select" &&
+    type !== "true_false"
+  ) {
     return true;
   }
 
-  const raw = typeof canonical.answerRaw === 'string' ? canonical.answerRaw : String(canonical.answerRaw ?? '');
-  if (type === 'true_false') {
+  const raw =
+    typeof canonical.answerRaw === "string"
+      ? canonical.answerRaw
+      : String(canonical.answerRaw ?? "");
+  if (type === "true_false") {
     const normalized = normalizeTextFingerprint(raw);
     return TF_TRUE.has(normalized) || TF_FALSE.has(normalized);
   }
@@ -2024,10 +2393,11 @@ function computeIsAnswerInOptions(canonical?: CanonicalItem): boolean {
   const answerTokens = canonical.answerTokens || [];
   if (answerTokens.length === 0) return false;
 
-  if (type === 'single_choice') {
-    const resolved = answerTokens.length === 1
-      ? resolveChoiceToken(answerTokens[0], choices)
-      : resolveChoiceToken(raw, choices);
+  if (type === "single_choice") {
+    const resolved =
+      answerTokens.length === 1
+        ? resolveChoiceToken(answerTokens[0], choices)
+        : resolveChoiceToken(raw, choices);
     return !!resolved.id && !resolved.ambiguous;
   }
 
@@ -2037,7 +2407,9 @@ function computeIsAnswerInOptions(canonical?: CanonicalItem): boolean {
   });
 }
 
-export function buildValidationDebugReport(results: ValidationResult[]): ValidationDebugReport {
+export function buildValidationDebugReport(
+  results: ValidationResult[],
+): ValidationDebugReport {
   const rows: ValidationDebugRow[] = [];
   const issueCounts = new Map<string, number>();
   let validRows = 0;
@@ -2046,18 +2418,21 @@ export function buildValidationDebugReport(results: ValidationResult[]): Validat
 
   results.forEach((result) => {
     const canonical = result.canonicalItem;
-    const normalizedType = canonical?.canonicalType ?? 'unknown';
-    const detectedType = result.detectedType ?? 'unknown';
-    const questionText = canonical?.stem ?? '';
-    const options = canonical?.choices?.map((choice) => choice.normalizedText) ?? [];
-    const answerRaw = canonical?.answerRaw ?? '';
-    const normalizedAnswerTokens = normalizeAnswerTokens(canonical?.answerTokens ?? []);
+    const normalizedType = canonical?.canonicalType ?? "unknown";
+    const detectedType = result.detectedType ?? "unknown";
+    const questionText = canonical?.stem ?? "";
+    const options =
+      canonical?.choices?.map((choice) => choice.normalizedText) ?? [];
+    const answerRaw = canonical?.answerRaw ?? "";
+    const normalizedAnswerTokens = normalizeAnswerTokens(
+      canonical?.answerTokens ?? [],
+    );
 
     const validationV2 = result.validationV2;
     const status = validationV2?.status ?? mapLegacyStatus(result);
     const normalizedStatus = normalizeStatus(status);
-    if (normalizedStatus === 'valid') validRows += 1;
-    else if (normalizedStatus === 'invalid') invalidRows += 1;
+    if (normalizedStatus === "valid") validRows += 1;
+    else if (normalizedStatus === "invalid") invalidRows += 1;
     else reviewRows += 1;
 
     const issues = (result.issues || []).map((issue) => ({
@@ -2076,7 +2451,7 @@ export function buildValidationDebugReport(results: ValidationResult[]): Validat
       questionText,
       options,
       correctAnswer: {
-        raw: String(answerRaw ?? ''),
+        raw: String(answerRaw ?? ""),
         normalized: normalizedAnswerTokens,
       },
       isAnswerInOptions: computeIsAnswerInOptions(canonical),
@@ -2112,7 +2487,7 @@ export function buildValidationDebugReport(results: ValidationResult[]): Validat
 export function detectQuestionType(
   row: QuestionData,
   columnMapping: any,
-  profileInput?: Partial<ValidationProfile>
+  profileInput?: Partial<ValidationProfile>,
 ): string {
   const profile: ValidationProfile = {
     ...createDefaultValidationProfile(),
@@ -2121,29 +2496,32 @@ export function detectQuestionType(
   const normalized = normalizeRow((row || {}) as Record<string, unknown>, 1);
   const resolution = detectTypeFromStructure(normalized, columnMapping);
 
-  if (resolution.source !== 'explicit' && !profile.allowAutoDetectType) {
-    return 'unknown';
+  if (resolution.source !== "explicit" && !profile.allowAutoDetectType) {
+    return "unknown";
   }
 
   return toLegacyDetectedType(resolution.type);
 }
 
-export function computeDataQualityMetrics(results: ValidationResult[]): DataQualityMetrics {
-  const DEDUP_CODES = new Set(['DUPLICATE_EXACT', 'DUPLICATE_CONFLICT']);
+export function computeDataQualityMetrics(
+  results: ValidationResult[],
+): DataQualityMetrics {
+  const DEDUP_CODES = new Set(["DUPLICATE_EXACT", "DUPLICATE_CONFLICT"]);
 
   const totalRows = results.length;
 
-  const rawValidRows = results.filter((r) => r.status === 'valid').length;
+  const rawValidRows = results.filter((r) => r.status === "valid").length;
 
   const duplicatesCount = results.filter((r) =>
-    r.issues.some((i) => DEDUP_CODES.has(i.code))
+    r.issues.some((i) => DEDUP_CODES.has(i.code)),
   ).length;
 
   const duplicateRows = results.filter(
-    (r) => r.status === 'caution' && r.issues.some((i) => DEDUP_CODES.has(i.code))
+    (r) =>
+      r.status === "caution" && r.issues.some((i) => DEDUP_CODES.has(i.code)),
   ).length;
 
-  const validRows = results.filter((r) => r.status !== 'rejected').length; // valid + caution
+  const validRows = results.filter((r) => r.status !== "rejected").length; // valid + caution
   const adjustedValidRows = Math.max(0, validRows - duplicateRows);
 
   const usableAfterCleanupPercentage =
@@ -2151,12 +2529,24 @@ export function computeDataQualityMetrics(results: ValidationResult[]): DataQual
   const readyForExportPercentage =
     totalRows > 0 ? Math.round((rawValidRows / totalRows) * 1000) / 10 : 0;
 
-  return { totalRows, rawValidRows, adjustedValidRows, duplicatesCount, usableAfterCleanupPercentage, readyForExportPercentage };
+  return {
+    totalRows,
+    rawValidRows,
+    adjustedValidRows,
+    duplicatesCount,
+    usableAfterCleanupPercentage,
+    readyForExportPercentage,
+  };
 }
 
-export function computeDatasetRecoveryMetrics(results: ValidationResult[]): DatasetRecoveryMetrics {
+export function computeDatasetRecoveryMetrics(
+  results: ValidationResult[],
+): DatasetRecoveryMetrics {
   const ALL_DUPLICATE_CODES = new Set([
-    'DUPLICATE_EXACT', 'DUPLICATE_CONFLICT', 'DUPLICATE_NEAR', 'DUPLICATE_SUSPICIOUS',
+    "DUPLICATE_EXACT",
+    "DUPLICATE_CONFLICT",
+    "DUPLICATE_NEAR",
+    "DUPLICATE_SUSPICIOUS",
   ]);
 
   const totalRows = results.length;
@@ -2164,7 +2554,11 @@ export function computeDatasetRecoveryMetrics(results: ValidationResult[]): Data
   // --- Union-Find to count redundant rows (synced with Report 2) ---
   const extractPartners = (msg: string): number[] => {
     const listMatch = msg.match(/row\(s\):\s*([\d,\s]+)/i);
-    if (listMatch) return listMatch[1].split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    if (listMatch)
+      return listMatch[1]
+        .split(",")
+        .map((s) => parseInt(s.trim(), 10))
+        .filter((n) => !isNaN(n));
     const singleMatch = msg.match(/\brow\s+(\d+)\b/i);
     if (singleMatch) return [parseInt(singleMatch[1], 10)];
     return [];
@@ -2176,7 +2570,8 @@ export function computeDatasetRecoveryMetrics(results: ValidationResult[]): Data
     return ufParent.get(x)!;
   };
   const ufUnion = (x: number, y: number) => {
-    const px = ufFind(x), py = ufFind(y);
+    const px = ufFind(x),
+      py = ufFind(y);
     if (px !== py) ufParent.set(px, py);
   };
   const dupRowNumbers = new Set<number>();
@@ -2184,10 +2579,10 @@ export function computeDatasetRecoveryMetrics(results: ValidationResult[]): Data
     if (!r.rowNumber) return;
     (r.issues ?? []).forEach((i) => {
       if (!ALL_DUPLICATE_CODES.has(i.code)) return;
-      const partners = extractPartners(i.message ?? '');
+      const partners = extractPartners(i.message ?? "");
       if (partners.length > 0) {
         ufFind(r.rowNumber!);
-        partners.forEach(p => ufUnion(r.rowNumber!, p));
+        partners.forEach((p) => ufUnion(r.rowNumber!, p));
       }
     });
   });
@@ -2199,31 +2594,35 @@ export function computeDatasetRecoveryMetrics(results: ValidationResult[]): Data
     dupRowNumbers.add(r.rowNumber);
   });
   let deduplicationGain = 0;
-  clusterSizes.forEach((size) => { if (size > 1) deduplicationGain += size - 1; });
+  clusterSizes.forEach((size) => {
+    if (size > 1) deduplicationGain += size - 1;
+  });
 
   const uniqueRows = totalRows - deduplicationGain;
   const uniqueResults = results.filter(
-    (r) => !r.rowNumber || !dupRowNumbers.has(r.rowNumber) ||
-           ufFind(r.rowNumber) === r.rowNumber // keep cluster root as the "original"
+    (r) =>
+      !r.rowNumber ||
+      !dupRowNumbers.has(r.rowNumber) ||
+      ufFind(r.rowNumber) === r.rowNumber, // keep cluster root as the "original"
   );
 
   const FIXABLE_CODES = new Set([
-    'MISSING_ANSWER', 
-    'MISSING_MULTI_SELECT_ANSWERS', 
-    'MISSING_CORRECT_ANSWERS',
-    'ANSWER_NOT_IN_OPTIONS', 
-    'MSQ_EXACT_SET_MISMATCH', 
-    'MSQ_CARDINALITY_MISMATCH',
-    'AMBIGUOUS_ANSWER_MAPPING', 
-    'AMBIGUOUS_ANSWER_MATCH', 
-    'INVALID_FORMAT',
-    'SHORT_STEM', 
-    'DUPLICATE_NEAR', 
-    'DUPLICATE_SUSPICIOUS',
-    'MISSING_REQUIRED_OPTIONS',
-    'EMPTY_OPTION_TEXT',
-    'INVALID_ANSWER_FORMAT',
-    'WHITESPACE_AUTOFIX'
+    "MISSING_ANSWER",
+    "MISSING_MULTI_SELECT_ANSWERS",
+    "MISSING_CORRECT_ANSWERS",
+    "ANSWER_NOT_IN_OPTIONS",
+    "MSQ_EXACT_SET_MISMATCH",
+    "MSQ_CARDINALITY_MISMATCH",
+    "AMBIGUOUS_ANSWER_MAPPING",
+    "AMBIGUOUS_ANSWER_MATCH",
+    "INVALID_FORMAT",
+    "SHORT_STEM",
+    "DUPLICATE_NEAR",
+    "DUPLICATE_SUSPICIOUS",
+    "MISSING_REQUIRED_OPTIONS",
+    "EMPTY_OPTION_TEXT",
+    "INVALID_ANSWER_FORMAT",
+    "WHITESPACE_AUTOFIX",
   ]);
 
   let validInUnique = 0;
@@ -2231,7 +2630,7 @@ export function computeDatasetRecoveryMetrics(results: ValidationResult[]): Data
   let blockedInUnique = 0;
 
   uniqueResults.forEach((r) => {
-    if (r.status === 'valid') {
+    if (r.status === "valid") {
       validInUnique += 1;
     } else {
       const codes = (r.issues || []).map((i) => i.code);
@@ -2246,11 +2645,15 @@ export function computeDatasetRecoveryMetrics(results: ValidationResult[]): Data
   const conservativeRecoverable = validInUnique;
   const realisticRecoverable = validInUnique + fixableInUnique;
 
-  const conservativePct = totalRows > 0 ? Math.round((conservativeRecoverable / totalRows) * 100) : 0;
-  const realisticPct = totalRows > 0 ? Math.round((realisticRecoverable / totalRows) * 100) : 0;
+  const conservativePct =
+    totalRows > 0 ? Math.round((conservativeRecoverable / totalRows) * 100) : 0;
+  const realisticPct =
+    totalRows > 0 ? Math.round((realisticRecoverable / totalRows) * 100) : 0;
 
-  const immediatelyUsablePercent = totalRows > 0 ? Math.round((validInUnique / totalRows) * 100) : 0;
-  const recoveryPotentialPercent = totalRows > 0 ? Math.round((fixableInUnique / totalRows) * 100) : 0;
+  const immediatelyUsablePercent =
+    totalRows > 0 ? Math.round((validInUnique / totalRows) * 100) : 0;
+  const recoveryPotentialPercent =
+    totalRows > 0 ? Math.round((fixableInUnique / totalRows) * 100) : 0;
 
   return {
     totalRows,

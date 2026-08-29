@@ -32,32 +32,38 @@ export function SolutionsPage() {
     {
       icon: <Database className="h-5 w-5" />,
       title: "1. Intelligent Ingestion",
-      description: "Upload legacy PDFs, messy scans, or structured .xlsx/.csv files. Our pipeline uses human-in-the-loop OCR to extract bilingual text, LaTeX math, and spatial diagrams perfectly before ingestion.",
+      description:
+        "Upload legacy PDFs, messy scans, or structured .xlsx/.csv files. Our pipeline uses human-in-the-loop OCR to extract bilingual text, LaTeX math, and spatial diagrams perfectly before ingestion.",
     },
     {
       icon: <ShieldCheck className="h-5 w-5" />,
       title: "2. Structural Validation",
-      description: "The system runs 25+ deterministic structural rules, employing an Identifier-First Strategy to flag missing options, invalid identifiers, and duplicate entries with mathematical precision.",
+      description:
+        "The system runs 25+ deterministic structural rules, employing an Identifier-First Strategy to flag missing options, invalid identifiers, and duplicate entries with mathematical precision.",
     },
     {
       icon: <Wrench className="h-5 w-5" />,
       title: "3. Data Remediation",
-      description: "A split-screen, guided UI for resolving 'Block' and 'Caution' issues. Fix OCR misreads, correct missing options, and dynamically upload or swap diagram images directly inline.",
+      description:
+        "A split-screen, guided UI for resolving 'Block' and 'Caution' issues. Fix OCR misreads, correct missing options, and dynamically upload or swap diagram images directly inline.",
     },
     {
       icon: <FileSearch className="h-5 w-5" />,
       title: "4. Algorithmic Quality Assurance",
-      description: "An automated pedagogical review scans for linguistic consistency, grammatical integrity, and structural alignment across all options, ensuring professional-grade phrasing.",
+      description:
+        "An automated pedagogical review scans for linguistic consistency, grammatical integrity, and structural alignment across all options, ensuring professional-grade phrasing.",
     },
     {
       icon: <SlidersHorizontal className="h-5 w-5" />,
       title: "5. Output Configuration",
-      description: "Select your precise export parameters. Map spreadsheet columns to custom XML templates and define MathML rendering settings (MathJax vs. native) for your specific LMS.",
+      description:
+        "Select your precise export parameters. Map spreadsheet columns to custom XML templates and define MathML rendering settings (MathJax vs. native) for your specific LMS.",
     },
     {
       icon: <DownloadCloud className="h-5 w-5" />,
       title: "6. Transform & Export",
-      description: "Instantly generate an imsmanifest.xml and a structured media folder, packaged neatly into a standards-compliant ZIP ready for Canvas, Moodle, or Blackboard deployment.",
+      description:
+        "Instantly generate an imsmanifest.xml and a structured media folder, packaged neatly into a standards-compliant ZIP ready for Canvas, Moodle, or Blackboard deployment.",
     },
   ];
 
@@ -73,10 +79,13 @@ export function SolutionsPage() {
             The Deterministic Pipeline
           </div>
           <h1 className="max-w-4xl text-5xl font-semibold tracking-tight leading-[1.1]">
-            Engineered for <span className="text-primary">absolute precision.</span>
+            Engineered for{" "}
+            <span className="text-primary">absolute precision.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">
-            AssessmentCore replaces manual data entry with a rigorous, 6-stage computational workflow. We validate, clean, and format your question banks with uncompromising accuracy.
+            AssessmentCore replaces manual data entry with a rigorous, 6-stage
+            computational workflow. We validate, clean, and format your question
+            banks with uncompromising accuracy.
           </p>
         </div>
       </section>
@@ -85,8 +94,13 @@ export function SolutionsPage() {
       <section className="border-y border-border bg-muted/30 px-6 py-20 transition-colors duration-200">
         <div className="mx-auto w-full max-w-6xl">
           <div className="mb-12">
-            <h2 className="text-3xl font-semibold tracking-tight">The Batch Creator Wizard</h2>
-            <p className="mt-3 text-sm text-muted-foreground">Our flagship 6-stage extraction, cleaning, and validation architecture.</p>
+            <h2 className="text-3xl font-semibold tracking-tight">
+              The Batch Creator Wizard
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Our flagship 6-stage extraction, cleaning, and validation
+              architecture.
+            </p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -98,7 +112,9 @@ export function SolutionsPage() {
                 <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-primary shadow-sm group-hover:scale-110 transition-transform duration-300">
                   {step.icon}
                 </div>
-                <h3 className="mb-3 text-sm font-semibold tracking-tight text-foreground">{step.title}</h3>
+                <h3 className="mb-3 text-sm font-semibold tracking-tight text-foreground">
+                  {step.title}
+                </h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {step.description}
                 </p>
@@ -123,9 +139,12 @@ export function SolutionsPage() {
                   "Rewrites nested paragraph tags automatically",
                   "Converts generic feedbackBlock to modalFeedback",
                   "Validates internal ZIP structure and manifest integrity",
-                  "Generates distinct QTI 3.0 and IMS package variants"
+                  "Generates distinct QTI 3.0 and IMS package variants",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <li
+                    key={i}
+                    className="flex items-start gap-3 text-sm text-muted-foreground"
+                  >
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                     <span>{item}</span>
                   </li>
@@ -135,16 +154,22 @@ export function SolutionsPage() {
           </div>
 
           <div className="order-1 lg:order-2">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Seamless Export</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Seamless Export
+            </div>
             <h2 className="mt-2 text-4xl font-semibold tracking-tight text-foreground">
-              Native LMS integrations, <span className="text-primary">out of the box.</span>
+              Native LMS integrations,{" "}
+              <span className="text-primary">out of the box.</span>
             </h2>
             <p className="mt-6 text-base leading-relaxed text-muted-foreground">
-              We don't just export generic XML. AssessmentCore features purpose-built adapters that handle the specific, undocumented quirks of major Learning Management Systems. Your packages won't just import—they will render perfectly.
+              We don't just export generic XML. AssessmentCore features
+              purpose-built adapters that handle the specific, undocumented
+              quirks of major Learning Management Systems. Your packages won't
+              just import—they will render perfectly.
             </p>
             <div className="mt-8">
               <Link
-                to={isAuthenticated ? "/workspace" : "/auth/register"}
+                to="/contact"
                 className="inline-flex h-12 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-all"
               >
                 Start building for free
@@ -161,22 +186,37 @@ export function SolutionsPage() {
           <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
             <div>
               <div className="flex items-center gap-2">
-                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-7 w-7 rounded-md object-contain" />
-                <span className="text-sm font-semibold text-foreground">AssessmentCore</span>
+                <img
+                  src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
+                  alt="AssessmentCore logo"
+                  className="h-7 w-7 rounded-md object-contain"
+                />
+                <span className="text-sm font-semibold text-foreground">
+                  AssessmentCore
+                </span>
               </div>
               <p className="mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
-                Build, validate, and export high-quality assessments with a deterministic workflow and LMS-ready outputs.
+                Build, validate, and export high-quality assessments with a
+                deterministic workflow and LMS-ready outputs.
               </p>
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contact</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Contact
+              </h4>
               <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-                <a href="mailto:hello@assessmentcore.in" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                <a
+                  href="mailto:hello@assessmentcore.in"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors"
+                >
                   <Mail className="h-3.5 w-3.5" />
                   hello@assessmentcore.in
                 </a>
-                <a href="tel:+919382565942" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                <a
+                  href="tel:+919382565942"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors"
+                >
                   <Phone className="h-3.5 w-3.5" />
                   +91 9382565942
                 </a>
@@ -188,28 +228,75 @@ export function SolutionsPage() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Connect</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Connect
+              </h4>
               <div className="mt-3 flex items-center gap-2">
-                <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://www.linkedin.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="LinkedIn"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Linkedin className="h-4 w-4" />
                 </a>
-                <a href="https://github.com" target="_blank" rel="noreferrer" aria-label="GitHub" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://github.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="GitHub"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Github className="h-4 w-4" />
                 </a>
-                <a href="https://www.facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://www.facebook.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Facebook className="h-4 w-4" />
                 </a>
-                <a href="https://wa.me/919382565942" target="_blank" rel="noreferrer" aria-label="WhatsApp" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://wa.me/919382565942"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <MessageCircle className="h-4 w-4" />
                 </a>
-                <a href="https://www.youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://www.youtube.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="YouTube"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Youtube className="h-4 w-4" />
                 </a>
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <Link to="/documentation" className="hover:text-foreground transition-colors">Documentation</Link>
-                <Link to="/changelog" className="hover:text-foreground transition-colors">Changelog</Link>
-                <Link to="/status" className="hover:text-foreground transition-colors">Status</Link>
+                <Link
+                  to="/documentation"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Documentation
+                </Link>
+                <Link
+                  to="/changelog"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Changelog
+                </Link>
+                <Link
+                  to="/status"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Status
+                </Link>
               </div>
             </div>
           </div>

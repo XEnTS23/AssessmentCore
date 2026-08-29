@@ -3,10 +3,13 @@
  * Generates compliant QTI 1.2 XML for Multiple Choice Questions
  */
 
-import { Question, QuestionBuilder, GenerationError } from '../../types';
-import { escapeXml, isValidIdentifier } from '../../xmlUtils';
-import { validateXml } from '../../xmlValidator';
-import { convertTextWithMath, stripMath } from '../../../app/utils/mathmlConverter';
+import { Question, QuestionBuilder, GenerationError } from "../../types";
+import { escapeXml, isValidIdentifier } from "../../xmlUtils";
+import { validateXml } from "../../xmlValidator";
+import {
+  convertTextWithMath,
+  stripMath,
+} from "../../../app/utils/mathmlConverter";
 
 class MCQBuilder12 implements QuestionBuilder {
   /**
@@ -27,24 +30,24 @@ class MCQBuilder12 implements QuestionBuilder {
    * Validate question has all required fields
    */
   private validateQuestion(question: Question): void {
-    if (!question.identifier || question.identifier.trim() === '') {
-      throw new Error('Question identifier is required');
+    if (!question.identifier || question.identifier.trim() === "") {
+      throw new Error("Question identifier is required");
     }
 
-    if (!question.stem || question.stem.trim() === '') {
-      throw new Error('Question stem is required');
+    if (!question.stem || question.stem.trim() === "") {
+      throw new Error("Question stem is required");
     }
 
     if (!question.options || !Array.isArray(question.options)) {
-      throw new Error('Question options must be an array');
+      throw new Error("Question options must be an array");
     }
 
     if (question.options.length < 2) {
-      throw new Error('Question must have at least 2 options');
+      throw new Error("Question must have at least 2 options");
     }
 
-    if (!question.correct_answer || question.correct_answer.trim() === '') {
-      throw new Error('Correct answer is required');
+    if (!question.correct_answer || question.correct_answer.trim() === "") {
+      throw new Error("Correct answer is required");
     }
   }
 
@@ -57,7 +60,7 @@ class MCQBuilder12 implements QuestionBuilder {
     // Validate format
     if (!isValidIdentifier(answer)) {
       throw new Error(
-        `Invalid correct answer format: "${answer}". Must be A-Z or 1-26`
+        `Invalid correct answer format: "${answer}". Must be A-Z or 1-26`,
       );
     }
 
@@ -72,7 +75,7 @@ class MCQBuilder12 implements QuestionBuilder {
     // Check if answer index exists in options
     if (answerIndex >= question.options.length || answerIndex < 0) {
       throw new Error(
-        `Correct answer "${answer}" exceeds number of options (${question.options.length})`
+        `Correct answer "${answer}" exceeds number of options (${question.options.length})`,
       );
     }
   }
@@ -94,17 +97,17 @@ class MCQBuilder12 implements QuestionBuilder {
     const responseLabels = (
       await Promise.all(
         question.options.map(async (option: string, index: number) => {
-        const identifier = String.fromCharCode(65 + index); // A, B, C, D...
-        const optionContent = await convertTextWithMath(option);
+          const identifier = String.fromCharCode(65 + index); // A, B, C, D...
+          const optionContent = await convertTextWithMath(option);
 
-        return `            <response_label ident="${identifier}" rshuffle="Yes">
+          return `            <response_label ident="${identifier}" rshuffle="Yes">
               <material>
                 <mattext texttype="text/html">${optionContent}</mattext>
               </material>
             </response_label>`;
-        })
+        }),
       )
-    ).join('\n');
+    ).join("\n");
 
     // Build the complete QTI 1.2 XML with assessment/section wrapper for Canvas LMS
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -194,7 +197,7 @@ export async function generateMCQXml12(question: Question): Promise<string> {
  * Returns error if validation fails
  */
 export async function generateAndValidateMCQ12(
-  question: Question
+  question: Question,
 ): Promise<{ xml: string } | { error: GenerationError }> {
   try {
     const xml = await generateMCQXml12(question);
@@ -203,8 +206,8 @@ export async function generateAndValidateMCQ12(
     if (!builder.validate(xml)) {
       return {
         error: {
-          code: 'XML_VALIDATION_FAILED',
-          message: 'Generated XML failed validation',
+          code: "XML_VALIDATION_FAILED",
+          message: "Generated XML failed validation",
         },
       };
     }
@@ -213,7 +216,7 @@ export async function generateAndValidateMCQ12(
   } catch (error) {
     return {
       error: {
-        code: 'MCQ_GENERATION_ERROR',
+        code: "MCQ_GENERATION_ERROR",
         message: error instanceof Error ? error.message : String(error),
         details: error,
       },

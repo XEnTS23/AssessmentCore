@@ -1,5 +1,10 @@
-import { createQTIParaWithMath, createQTIChoiceWithMath, convertTextWithMath, stripMath } from './mathmlConverter';
-import { IMG_SEPARATOR } from './mediaUtils';
+import {
+  createQTIParaWithMath,
+  createQTIChoiceWithMath,
+  convertTextWithMath,
+  stripMath,
+} from "./mathmlConverter";
+import { IMG_SEPARATOR } from "./mediaUtils";
 export interface QTIQuestion {
   id: string;
   type: string;
@@ -25,38 +30,48 @@ export interface QTIOutput {
 }
 
 function normalizeQuestionType(rawType: string): string {
-  const normalized = String(rawType || '')
+  const normalized = String(rawType || "")
     .toLowerCase()
     .trim()
-    .replace(/[\s_-]+/g, '');
+    .replace(/[\s_-]+/g, "");
 
-  if (['mcq', 'singlechoice', 'singleanswer', 'multiplechoice', 'choice'].includes(normalized)) {
-    return 'mcq';
+  if (
+    [
+      "mcq",
+      "singlechoice",
+      "singleanswer",
+      "multiplechoice",
+      "choice",
+    ].includes(normalized)
+  ) {
+    return "mcq";
   }
 
-  if (['truefalse', 'boolean', 'tf'].includes(normalized)) {
-    return 'truefalse';
+  if (["truefalse", "boolean", "tf"].includes(normalized)) {
+    return "truefalse";
   }
 
   if (
     [
-      'shortanswer',
-      'short',
-      'textentry',
-      'text',
-      'numeric',
-      'numerical',
-      'number',
-      'fillintheblank',
-      'fib',
-      'essay',
-      'descriptive',
+      "shortanswer",
+      "short",
+      "textentry",
+      "text",
+      "numeric",
+      "numerical",
+      "number",
+      "fillintheblank",
+      "fib",
+      "essay",
+      "descriptive",
     ].includes(normalized)
   ) {
-    return 'shortanswer';
+    return "shortanswer";
   }
 
-  return String(rawType || '').toLowerCase().trim();
+  return String(rawType || "")
+    .toLowerCase()
+    .trim();
 }
 
 /**
@@ -65,16 +80,16 @@ function normalizeQuestionType(rawType: string): string {
 export function convertToQTIQuestion(
   row: any,
   questionType: string,
-  columnMapping: any
+  columnMapping: any,
 ): QTIQuestion {
   const normalizedType = normalizeQuestionType(questionType);
 
   // Determine title: 1. Use title col if exists, 2. Fallback to stripped question text
-  let title = '';
+  let title = "";
   if (columnMapping.titleCol && row[columnMapping.titleCol]) {
     title = row[columnMapping.titleCol].toString();
   } else {
-    const rawQuestion = row[columnMapping.questionCol] || '';
+    const rawQuestion = row[columnMapping.questionCol] || "";
     title = stripMath(rawQuestion).substring(0, 100) || `Question ${row.id}`;
   }
 
@@ -82,7 +97,7 @@ export function convertToQTIQuestion(
     id: row.id || `q_${Date.now()}`,
     type: normalizedType,
     title,
-    questionText: row[columnMapping.questionCol] || '',
+    questionText: row[columnMapping.questionCol] || "",
     metadata: {},
   };
 
@@ -101,13 +116,13 @@ export function convertToQTIQuestion(
 
   // Process based on type
   switch (normalizedType) {
-    case 'mcq':
+    case "mcq":
       processMCQQuestion(question, row, columnMapping);
       break;
-    case 'truefalse':
+    case "truefalse":
       processTrueFalseQuestion(question, row, columnMapping);
       break;
-    case 'shortanswer':
+    case "shortanswer":
       processShortAnswerQuestion(question, row, columnMapping);
       break;
     default:
@@ -123,10 +138,14 @@ export function convertToQTIQuestion(
 /**
  * Process MCQ question
  */
-function processMCQQuestion(question: QTIQuestion, row: any, columnMapping: any): void {
+function processMCQQuestion(
+  question: QTIQuestion,
+  row: any,
+  columnMapping: any,
+): void {
   question.options = [];
 
-  const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  const optionLabels = ["A", "B", "C", "D", "E", "F", "G", "H"];
   columnMapping.optionCols.forEach((col: string, index: number) => {
     const content = row[col];
     if (content && index < optionLabels.length) {
@@ -141,8 +160,8 @@ function processMCQQuestion(question: QTIQuestion, row: any, columnMapping: any)
   // Set correct answer
   if (columnMapping.answerCol && row[columnMapping.answerCol]) {
     const rawAnswer = String(row[columnMapping.answerCol]).toUpperCase().trim();
-    const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    let correctId = '';
+    const optionLabels = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    let correctId = "";
 
     if (optionLabels.includes(rawAnswer)) {
       correctId = rawAnswer;
@@ -155,7 +174,7 @@ function processMCQQuestion(question: QTIQuestion, row: any, columnMapping: any)
 
       // Mark correct option
       if (question.options) {
-        question.options.forEach(opt => {
+        question.options.forEach((opt) => {
           opt.correct = opt.id === correctId;
         });
       }
@@ -166,17 +185,21 @@ function processMCQQuestion(question: QTIQuestion, row: any, columnMapping: any)
 /**
  * Process True/False question
  */
-function processTrueFalseQuestion(question: QTIQuestion, row: any, columnMapping: any): void {
+function processTrueFalseQuestion(
+  question: QTIQuestion,
+  row: any,
+  columnMapping: any,
+): void {
   question.options = [
-    { id: 'T', label: 'True', content: 'True' },
-    { id: 'F', label: 'False', content: 'False' },
+    { id: "T", label: "True", content: "True" },
+    { id: "F", label: "False", content: "False" },
   ];
 
   if (columnMapping.answerCol && row[columnMapping.answerCol]) {
     const answer = String(row[columnMapping.answerCol]).toLowerCase().trim();
-    const correctId = ['true', 't', 'yes', 'y'].includes(answer) ? 'T' : 'F';
+    const correctId = ["true", "t", "yes", "y"].includes(answer) ? "T" : "F";
     question.correctAnswer = correctId;
-    question.options.forEach(opt => {
+    question.options.forEach((opt) => {
       opt.correct = opt.id === correctId;
     });
   }
@@ -185,7 +208,11 @@ function processTrueFalseQuestion(question: QTIQuestion, row: any, columnMapping
 /**
  * Process Short Answer question
  */
-function processShortAnswerQuestion(question: QTIQuestion, row: any, columnMapping: any): void {
+function processShortAnswerQuestion(
+  question: QTIQuestion,
+  row: any,
+  columnMapping: any,
+): void {
   if (columnMapping.answerCol && row[columnMapping.answerCol]) {
     question.correctAnswer = row[columnMapping.answerCol].toString();
   }
@@ -206,7 +233,7 @@ export async function generateQTI21XML(question: QTIQuestion): Promise<string> {
   timeDependent="false">`;
 
   // Response declaration
-  if (question.type === 'mcq' || question.type === 'truefalse') {
+  if (question.type === "mcq" || question.type === "truefalse") {
     xml += `
   <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="identifier">
     <correctResponse>
@@ -214,7 +241,7 @@ export async function generateQTI21XML(question: QTIQuestion): Promise<string> {
     </correctResponse>
   </responseDeclaration>`;
   } else {
-    const rawAnswer = (question.correctAnswer || '').trim();
+    const rawAnswer = (question.correctAnswer || "").trim();
     if (rawAnswer) {
       xml += `
   <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string">
@@ -252,21 +279,24 @@ export async function generateQTI21XML(question: QTIQuestion): Promise<string> {
 
   // Add question text — Process stem content handling image separators to avoid nested <p>
   const stemParts = question.questionText.split(IMG_SEPARATOR);
-  const stemContentBlocks = stemParts.map(part => {
+  const stemContentBlocks = stemParts.map((part) => {
     const trimmed = part.trim();
-    if (!trimmed) return '';
-    if (trimmed.startsWith('<img') && trimmed.endsWith('/>')) {
+    if (!trimmed) return "";
+    if (trimmed.startsWith("<img") && trimmed.endsWith("/>")) {
       return `<p>${trimmed}</p>`;
     }
     const converted = convertTextWithMath(trimmed);
     return `<p>${converted}</p>`;
   });
-  
-  const questionContent = stemContentBlocks.filter(Boolean).join('\n      ');
+
+  const questionContent = stemContentBlocks.filter(Boolean).join("\n      ");
   xml += `
       ${questionContent}`;
 
-  if ((question.type === 'mcq' || question.type === 'truefalse') && question.options) {
+  if (
+    (question.type === "mcq" || question.type === "truefalse") &&
+    question.options
+  ) {
     xml += `
       <choiceInteraction responseIdentifier="RESPONSE" shuffle="false" maxChoices="1">`;
     for (const option of question.options) {
@@ -277,7 +307,7 @@ export async function generateQTI21XML(question: QTIQuestion): Promise<string> {
     }
     xml += `
       </choiceInteraction>`;
-  } else if (question.type === 'shortanswer' || !question.options) {
+  } else if (question.type === "shortanswer" || !question.options) {
     // Text entry for shortanswer type or if no options (fallback)
     const answerLength = question.correctAnswer?.length || 20;
     const expectedLength = Math.max(20, Math.min(answerLength + 10, 500));
@@ -285,10 +315,7 @@ export async function generateQTI21XML(question: QTIQuestion): Promise<string> {
       <textEntryInteraction responseIdentifier="RESPONSE" expectedLength="${expectedLength}">
         <prompt>Enter your answer:</prompt>
       </textEntryInteraction>`;
-
   }
-
-
 
   // Add explanation — always use MathML-safe conversion
   if (question.explanation) {
@@ -300,9 +327,9 @@ export async function generateQTI21XML(question: QTIQuestion): Promise<string> {
   }
 
   // Build Custom Response Processing
-  let responseProcessingStr = '';
-  if (question.type === 'mcq' || question.type === 'truefalse') {
-    const ans = escapeXml(question.correctAnswer || '').trim();
+  let responseProcessingStr = "";
+  if (question.type === "mcq" || question.type === "truefalse") {
+    const ans = escapeXml(question.correctAnswer || "").trim();
     if (ans) {
       responseProcessingStr = `
   <responseProcessing>
@@ -322,15 +349,15 @@ export async function generateQTI21XML(question: QTIQuestion): Promise<string> {
       responseProcessingStr = `\n  <responseProcessing/>`;
     }
   } else {
-    const rawAnswer = (question.correctAnswer || '').trim();
+    const rawAnswer = (question.correctAnswer || "").trim();
     if (rawAnswer) {
       const feedbackSuccessSet = question.explanation
         ? `
         <setOutcomeValue identifier="ANSWER_FEEDBACK">
           <baseValue baseType="identifier">CORRECT</baseValue>
         </setOutcomeValue>`
-        : '';
-      
+        : "";
+
       responseProcessingStr = `
   <responseProcessing>
     <responseCondition>
@@ -356,11 +383,13 @@ ${responseProcessingStr}
 </assessmentItem>`;
 
   // Custom validation for fallback paths
-  if (xml.includes('<p><p>') || xml.includes('</p></p>')) {
-    console.warn('QTI 2.1 Fallback Generator: Nested <p> tags detected');
+  if (xml.includes("<p><p>") || xml.includes("</p></p>")) {
+    console.warn("QTI 2.1 Fallback Generator: Nested <p> tags detected");
   }
-  if (xml.includes('<textEntryInteraction') && !xml.includes('<prompt>')) {
-    console.warn('QTI 2.1 Fallback Generator: Missing prompt in textEntryInteraction');
+  if (xml.includes("<textEntryInteraction") && !xml.includes("<prompt>")) {
+    console.warn(
+      "QTI 2.1 Fallback Generator: Missing prompt in textEntryInteraction",
+    );
   }
 
   return xml;
@@ -382,18 +411,18 @@ export async function generateQTI22XML(question: QTIQuestion): Promise<string> {
   timeDependent="false">`;
 
   // Response declaration
-  if (question.type === 'mcq' || question.type === 'truefalse') {
+  if (question.type === "mcq" || question.type === "truefalse") {
     xml += `
   <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="identifier">
     <correctResponse>
       <value>${question.correctAnswer}</value>
     </correctResponse>
   </responseDeclaration>`;
-  } else if (question.type === 'shortanswer') {
+  } else if (question.type === "shortanswer") {
     xml += `
   <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string">
     <correctResponse>
-      <value>${escapeXml(question.correctAnswer || '')}</value>
+      <value>${escapeXml(question.correctAnswer || "")}</value>
     </correctResponse>
   </responseDeclaration>`;
   } else {
@@ -426,7 +455,10 @@ export async function generateQTI22XML(question: QTIQuestion): Promise<string> {
   xml += `
       <p>${questionContent22}</p>`;
 
-  if ((question.type === 'mcq' || question.type === 'truefalse') && question.options) {
+  if (
+    (question.type === "mcq" || question.type === "truefalse") &&
+    question.options
+  ) {
     xml += `
       <choiceInteraction responseIdentifier="RESPONSE" shuffle="false" maxChoices="1">`;
     for (const option of question.options) {
@@ -437,7 +469,7 @@ export async function generateQTI22XML(question: QTIQuestion): Promise<string> {
     }
     xml += `
       </choiceInteraction>`;
-  } else if (question.type === 'shortanswer' || !question.options) {
+  } else if (question.type === "shortanswer" || !question.options) {
     // Text entry for shortanswer type or if no options (fallback)
     const answerLength = question.correctAnswer?.length || 20;
     const expectedLength = Math.max(20, Math.min(answerLength + 10, 500));
@@ -473,38 +505,37 @@ export async function generateQTI22XML(question: QTIQuestion): Promise<string> {
  */
 export async function generateQTI(
   question: QTIQuestion,
-  version: string = '2.1',
-  format: 'xml' | 'json' = 'xml'
+  version: string = "2.1",
+  format: "xml" | "json" = "xml",
 ): Promise<QTIOutput> {
   const output: QTIOutput = {
     version,
   };
 
-  if (format === 'xml' || format === undefined) {
-    if (version === '2.2') {
+  if (format === "xml" || format === undefined) {
+    if (version === "2.2") {
       output.xml = await generateQTI22XML(question);
     } else {
       output.xml = await generateQTI21XML(question);
     }
-  } else if (format === 'json') {
+  } else if (format === "json") {
     output.json = question;
   }
 
   return output;
 }
 
-
 /**
  * Escape XML special characters
  */
 export function escapeXml(text: string): string {
-  if (text == null) return '';
+  if (text == null) return "";
   return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 /**
@@ -512,8 +543,8 @@ export function escapeXml(text: string): string {
  */
 export function generateJSON(questions: QTIQuestion[]): any {
   return {
-    version: '1.0',
-    questions: questions.map(q => ({
+    version: "1.0",
+    questions: questions.map((q) => ({
       id: q.id,
       type: q.type,
       title: q.title,

@@ -9,11 +9,13 @@ Phase 3 implements the hierarchical structure for organizing multiple assessment
 ## Components Delivered
 
 ### 1. Test Structure Types
+
 **File**: `testStructure.ts`
 
 Comprehensive type definitions for the entire test hierarchy.
 
 **Key Interfaces**:
+
 - `AssessmentTest` - Top-level test structure
 - `TestPart` - Major test divisions with navigation settings
 - `AssessmentSection` - Grouped items with shared settings
@@ -27,11 +29,13 @@ Comprehensive type definitions for the entire test hierarchy.
 ---
 
 ### 2. Test Builder
+
 **File**: `testBuilder.ts`
 
 Generates complete assessmentTest.xml files from configuration.
 
 **Key Methods**:
+
 - `build()` - Creates complete test structure
 - `toXML()` - Converts test to QTI 3.0 XML
 - `buildTestParts()` - Creates test parts with navigation settings
@@ -40,6 +44,7 @@ Generates complete assessmentTest.xml files from configuration.
 - `buildOutcomeProcessing()` - Sets up score aggregation
 
 **Helper Functions**:
+
 - `createTestBuilder(config)` - Factory function
 - `buildAssessmentTest(config)` - Quick build and XML generation
 
@@ -77,6 +82,7 @@ AssessmentTest (Root)
 The test builder supports multiple strategies for organizing items into sections:
 
 ### 1. Single Section (Default)
+
 All items in one section.
 
 ```typescript
@@ -89,6 +95,7 @@ const config: TestBuildConfig = {
 ```
 
 **Generated Structure**:
+
 ```
 TestPart
 └── Section "All Questions"
@@ -98,6 +105,7 @@ TestPart
 ```
 
 ### 2. By Category
+
 Items grouped by their category property.
 
 ```typescript
@@ -114,6 +122,7 @@ const config: TestBuildConfig = {
 ```
 
 **Generated Structure**:
+
 ```
 TestPart
 ├── Section "Algebra"
@@ -124,6 +133,7 @@ TestPart
 ```
 
 ### 3. By Difficulty
+
 Items grouped by difficulty level (Easy/Medium/Hard).
 
 ```typescript
@@ -140,6 +150,7 @@ const config: TestBuildConfig = {
 ```
 
 **Generated Structure**:
+
 ```
 TestPart
 ├── Section "Easy Questions"
@@ -151,6 +162,7 @@ TestPart
 ```
 
 ### 4. Custom Sections
+
 Manually define sections with specific items.
 
 ```typescript
@@ -182,6 +194,7 @@ const config: TestBuildConfig = {
 ## Navigation Modes
 
 ### Linear Navigation
+
 Candidates proceed sequentially, cannot skip forward or return to previous items.
 
 ```typescript
@@ -196,6 +209,7 @@ const config: TestBuildConfig = {
 **Use Cases**: Exams where question order matters, prevent looking ahead
 
 ### Nonlinear Navigation
+
 Candidates can navigate freely between items, skip questions, and review.
 
 ```typescript
@@ -215,31 +229,35 @@ const config: TestBuildConfig = {
 ## Submission Modes
 
 ### Individual Submission
+
 Each item is submitted immediately after answering.
 
 ```typescript
 const config: TestBuildConfig = {
-  submissionMode: 'individual',
+  submissionMode: "individual",
   showFeedback: true, // Show feedback after each item
 };
 ```
 
 **Characteristics**:
+
 - Immediate scoring and feedback
 - Cannot change answers after submission
 - Suitable for learning contexts
 
 ### Simultaneous Submission
+
 All items submitted together at test end.
 
 ```typescript
 const config: TestBuildConfig = {
-  submissionMode: 'simultaneous',
+  submissionMode: "simultaneous",
   allowReview: true, // Review before final submission
 };
 ```
 
 **Characteristics**:
+
 - No feedback until test completion
 - Can revise answers before submitting
 - Suitable for high-stakes exams
@@ -261,6 +279,7 @@ const config: TestBuildConfig = {
 ```
 
 **Options**:
+
 - `maxAttempts` - Number of attempts per item (0 = unlimited)
 - `showFeedback` - Display feedback immediately
 - `allowReview` - Enable review/navigation
@@ -275,32 +294,35 @@ const config: TestBuildConfig = {
 Item scores are automatically mapped to test-level outcomes.
 
 ### Automatic Mapping
+
 Each item's `SCORE` outcome is mapped to `TOTAL_SCORE`:
 
 ```typescript
 const itemRef: AssessmentItemRef = {
-  identifier: 'Q001',
-  href: 'items/Q001.xml',
+  identifier: "Q001",
+  href: "items/Q001.xml",
   weight: 2.0, // This item worth 2 points
   variableMappings: [
     {
-      sourceIdentifier: 'SCORE',      // From item
-      targetIdentifier: 'TOTAL_SCORE', // To test
-      transform: 'multiply',
-      transformValue: 2.0,             // Apply weight
-    }
-  ]
+      sourceIdentifier: "SCORE", // From item
+      targetIdentifier: "TOTAL_SCORE", // To test
+      transform: "multiply",
+      transformValue: 2.0, // Apply weight
+    },
+  ],
 };
 ```
 
 ### Test Outcomes
+
 The test builder creates standard outcome declarations:
 
 **TOTAL_SCORE**: Sum of all item scores
+
 ```xml
-<qti-outcome-declaration 
-  identifier="TOTAL_SCORE" 
-  cardinality="single" 
+<qti-outcome-declaration
+  identifier="TOTAL_SCORE"
+  cardinality="single"
   base-type="float"
   normal-maximum="10.0"
   normal-minimum="0">
@@ -311,10 +333,11 @@ The test builder creates standard outcome declarations:
 ```
 
 **PASS**: Boolean pass/fail (60% threshold)
+
 ```xml
-<qti-outcome-declaration 
-  identifier="PASS" 
-  cardinality="single" 
+<qti-outcome-declaration
+  identifier="PASS"
+  cardinality="single"
   base-type="boolean">
   <qti-default-value>
     <qti-value>false</qti-value>
@@ -323,10 +346,11 @@ The test builder creates standard outcome declarations:
 ```
 
 **PERCENT_SCORE**: Normalized 0-100 score (optional)
+
 ```xml
-<qti-outcome-declaration 
-  identifier="PERCENT_SCORE" 
-  cardinality="single" 
+<qti-outcome-declaration
+  identifier="PERCENT_SCORE"
+  cardinality="single"
   base-type="float"
   normal-maximum="100"
   normal-minimum="0">
@@ -337,6 +361,7 @@ The test builder creates standard outcome declarations:
 ```
 
 ### Outcome Processing
+
 Test-level logic to compute pass/fail and percentage:
 
 ```xml
@@ -351,7 +376,7 @@ Test-level logic to compute pass/fail and percentage:
       </qti-product>
     </qti-gte>
   </qti-set-outcome-value>
-  
+
   <!-- Calculate percentage score -->
   <qti-set-outcome-value identifier="PERCENT_SCORE">
     <qti-product>
@@ -372,7 +397,9 @@ Test-level logic to compute pass/fail and percentage:
 Time limits can be set at three levels:
 
 ### 1. Test Level
+
 Total time for entire test:
+
 ```typescript
 const config: TestBuildConfig = {
   timeLimits: {
@@ -382,30 +409,34 @@ const config: TestBuildConfig = {
 ```
 
 ### 2. Section Level
+
 Time for a specific section:
+
 ```typescript
 customSections: [
   {
-    identifier: 'SECTION_1',
-    title: 'Quick Fire Round',
-    itemIdentifiers: ['Q1', 'Q2', 'Q3'],
+    identifier: "SECTION_1",
+    title: "Quick Fire Round",
+    itemIdentifiers: ["Q1", "Q2", "Q3"],
     timeLimits: {
       maxTime: 300, // 5 minutes for this section
     },
-  }
-]
+  },
+];
 ```
 
 ### 3. Item Level
+
 Time for individual item:
+
 ```typescript
 items: [
   {
-    itemIdentifier: 'Q001',
-    itemHref: 'items/Q001.xml',
+    itemIdentifier: "Q001",
+    itemHref: "items/Q001.xml",
     timeLimit: 60, // 60 seconds for this item
-  }
-]
+  },
+];
 ```
 
 **Cascading**: If an item has no time limit, section limit applies. If section has no limit, test limit applies.
@@ -419,15 +450,17 @@ Instructional text displayed to candidates:
 ```typescript
 customSections: [
   {
-    identifier: 'SECTION_1',
-    title: 'Essay Questions',
-    itemIdentifiers: ['Q1', 'Q2'],
-    rubric: '<p>Read each question carefully. Provide detailed answers with examples.</p>',
-  }
-]
+    identifier: "SECTION_1",
+    title: "Essay Questions",
+    itemIdentifiers: ["Q1", "Q2"],
+    rubric:
+      "<p>Read each question carefully. Provide detailed answers with examples.</p>",
+  },
+];
 ```
 
 **Generated XML**:
+
 ```xml
 <qti-assessment-section identifier="SECTION_1" title="Essay Questions">
   <qti-rubric-block view="candidate">
@@ -442,61 +475,61 @@ customSections: [
 ## Complete Usage Example
 
 ```typescript
-import { buildAssessmentTest, TestBuildConfig } from './qti3';
+import { buildAssessmentTest, TestBuildConfig } from "./qti3";
 
 // Define test configuration
 const config: TestBuildConfig = {
-  testIdentifier: 'MATH_FINAL_2024',
-  testTitle: 'Mathematics Final Exam 2024',
-  toolName: 'AC Question Bank',
-  toolVersion: '1.0.0',
-  
+  testIdentifier: "MATH_FINAL_2024",
+  testTitle: "Mathematics Final Exam 2024",
+  toolName: "AC Question Bank",
+  toolVersion: "1.0.0",
+
   // Test settings
-  navigationMode: 'nonlinear',
-  submissionMode: 'simultaneous',
+  navigationMode: "nonlinear",
+  submissionMode: "simultaneous",
   maxAttempts: 1,
   showFeedback: false,
   allowReview: true,
   showSolution: false,
   aggregateScores: true,
   normalizeScores: true,
-  
+
   // Time limit: 2 hours
   timeLimits: {
     maxTime: 7200,
   },
-  
+
   // Items to include
   items: [
     {
-      itemIdentifier: 'Q001',
-      itemHref: 'items/Q001.xml',
-      title: 'Algebra - Linear Equations',
-      category: 'Algebra',
+      itemIdentifier: "Q001",
+      itemHref: "items/Q001.xml",
+      title: "Algebra - Linear Equations",
+      category: "Algebra",
       weight: 1.0,
       required: true,
     },
     {
-      itemIdentifier: 'Q002',
-      itemHref: 'items/Q002.xml',
-      title: 'Geometry - Triangles',
-      category: 'Geometry',
+      itemIdentifier: "Q002",
+      itemHref: "items/Q002.xml",
+      title: "Geometry - Triangles",
+      category: "Geometry",
       weight: 1.5,
       required: true,
     },
     {
-      itemIdentifier: 'Q003',
-      itemHref: 'items/Q003.xml',
-      title: 'Calculus - Derivatives',
-      category: 'Calculus',
+      itemIdentifier: "Q003",
+      itemHref: "items/Q003.xml",
+      title: "Calculus - Derivatives",
+      category: "Calculus",
       weight: 2.0,
       required: true,
       timeLimit: 600, // 10 minutes for this item
     },
   ],
-  
+
   // Group by category
-  groupingStrategy: 'by-category',
+  groupingStrategy: "by-category",
 };
 
 // Generate XML
@@ -507,6 +540,7 @@ const testXML = buildAssessmentTest(config);
 ```
 
 **Generated Structure**:
+
 ```
 assessmentTest.xml
 ├── TOTAL_SCORE outcome (max: 4.5)
@@ -528,26 +562,30 @@ assessmentTest.xml
 ### Connecting Items to Tests
 
 1. **Build Items** (Phase 1):
-```typescript
-import { buildAssessmentItem } from './qti3';
 
-const items = questions.map(q => buildAssessmentItem({
-  questionType: q.type,
-  question: q,
-  imageFolderPath: './images',
-}));
+```typescript
+import { buildAssessmentItem } from "./qti3";
+
+const items = questions.map((q) =>
+  buildAssessmentItem({
+    questionType: q.type,
+    question: q,
+    imageFolderPath: "./images",
+  }),
+);
 
 // Save items to files: items/Q001.xml, items/Q002.xml, etc.
 ```
 
 2. **Build Test** (Phase 3):
+
 ```typescript
-import { buildAssessmentTest } from './qti3';
+import { buildAssessmentTest } from "./qti3";
 
 const testConfig: TestBuildConfig = {
-  testIdentifier: 'TEST_001',
-  testTitle: 'My Test',
-  items: items.map(item => ({
+  testIdentifier: "TEST_001",
+  testTitle: "My Test",
+  items: items.map((item) => ({
     itemIdentifier: item.assessmentItem.identifier,
     itemHref: `items/${item.assessmentItem.identifier}.xml`,
     weight: 1.0,
@@ -559,6 +597,7 @@ const testXML = buildAssessmentTest(testConfig);
 ```
 
 3. **Package** (Phase 4 - Next):
+
 ```typescript
 // Next phase: Create IMS Content Package
 // - imsmanifest.xml (references test + items)
@@ -581,37 +620,37 @@ Example generated assessmentTest.xml:
   title="Sample Test"
   tool-name="AC Question Bank"
   tool-version="1.0.0">
-  
+
   <qti-outcome-declaration identifier="TOTAL_SCORE" cardinality="single" base-type="float" normal-maximum="3.0" normal-minimum="0">
     <qti-default-value>
       <qti-value>0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
-  
+
   <qti-outcome-declaration identifier="PASS" cardinality="single" base-type="boolean">
     <qti-default-value>
       <qti-value>false</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
-  
+
   <qti-test-part identifier="PART_1" navigation-mode="linear" submission-mode="individual">
     <qti-item-session-control max-attempts="1" show-feedback="true" allow-review="true" show-solution="false" allow-skipping="true" validate-responses="false" />
-    
+
     <qti-assessment-section identifier="SECTION_1" title="All Questions" visible="true">
       <qti-assessment-item-ref identifier="Q001" href="items/Q001.xml">
         <qti-variable-mapping source-identifier="SCORE" target-identifier="TOTAL_SCORE" />
       </qti-assessment-item-ref>
-      
+
       <qti-assessment-item-ref identifier="Q002" href="items/Q002.xml">
         <qti-variable-mapping source-identifier="SCORE" target-identifier="TOTAL_SCORE" />
       </qti-assessment-item-ref>
-      
+
       <qti-assessment-item-ref identifier="Q003" href="items/Q003.xml">
         <qti-variable-mapping source-identifier="SCORE" target-identifier="TOTAL_SCORE" />
       </qti-assessment-item-ref>
     </qti-assessment-section>
   </qti-test-part>
-  
+
   <qti-outcome-processing>
     <qti-set-outcome-value identifier="PASS">
       <qti-gte>
@@ -623,7 +662,7 @@ Example generated assessmentTest.xml:
       </qti-gte>
     </qti-set-outcome-value>
   </qti-outcome-processing>
-  
+
 </qti-assessment-test>
 ```
 
@@ -634,26 +673,31 @@ Example generated assessmentTest.xml:
 ### Test Cases
 
 1. **Single section test**
+
    - All items in one section
    - Linear navigation
    - Individual submission
 
 2. **Multi-section by category**
+
    - Items grouped by subject
    - Nonlinear navigation
    - Simultaneous submission
 
 3. **Custom sections with rubrics**
+
    - Manually defined sections
    - Section-level time limits
    - Instructional rubric blocks
 
 4. **Weighted items**
+
    - Different point values per item
    - Correct score aggregation
    - Pass/fail threshold (60%)
 
 5. **Time limits at multiple levels**
+
    - Test-level: 1 hour
    - Section-level: 20 minutes
    - Item-level: 5 minutes
@@ -669,6 +713,7 @@ Example generated assessmentTest.xml:
 With Phase 3 complete, we can now proceed to Phase 4: IMS Content Packaging
 
 **Phase 4 Goals**:
+
 - Create `imsmanifest.xml` file
 - Register all resources (test, items, images)
 - Implement IMS Content Package structure
@@ -676,6 +721,7 @@ With Phase 3 complete, we can now proceed to Phase 4: IMS Content Packaging
 - Validate complete package
 
 **Files to Create**:
+
 - `src/engine/qti3/manifestBuilder.ts` - IMS manifest generation
 - `src/engine/qti3/packageBuilder.ts` - ZIP package creation
 - `src/engine/qti3/resourceRegistry.ts` - Resource management
@@ -694,6 +740,6 @@ With Phase 3 complete, we can now proceed to Phase 4: IMS Content Packaging
 ✅ **Time Limits** - Multi-level time constraints  
 ✅ **Rubric Blocks** - Instructional content  
 ✅ **Variable Mappings** - Automatic score aggregation  
-✅ **XML Generation** - Full QTI 3.0 compliant assessmentTest.xml  
+✅ **XML Generation** - Full QTI 3.0 compliant assessmentTest.xml
 
 **Status**: Phase 3 is complete. The system can now create complete assessment tests that organize multiple items into a test structure with proper navigation, scoring, and time management.

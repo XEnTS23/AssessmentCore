@@ -1,6 +1,12 @@
-import React, { useRef } from 'react';
-import { UploadCloud, FileSpreadsheet, Bot, AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
+import React, { useRef } from "react";
+import {
+  UploadCloud,
+  FileSpreadsheet,
+  Bot,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+import { Button } from "../../../components/ui/button";
 
 export function UploadStage({ upload }: { upload?: any; wizard?: any }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,7 +39,9 @@ export function UploadStage({ upload }: { upload?: any; wizard?: any }) {
     <div className="flex flex-1 flex-col items-center p-8 overflow-y-auto">
       <div className="w-full max-w-5xl">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-foreground">Upload Source Data</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            Upload Source Data
+          </h2>
           <p className="mt-2 text-muted-foreground">
             Import a CSV, Excel sheet, or load your latest AI OCR extraction.
           </p>
@@ -51,16 +59,16 @@ export function UploadStage({ upload }: { upload?: any; wizard?: any }) {
 
         <div className="grid gap-4 md:grid-cols-2 max-w-2xl mx-auto">
           {/* File Upload Dropzone */}
-          <div 
-            className={`flex items-center justify-between gap-4 rounded-xl border-2 border-dashed border-border bg-card p-5 transition-all hover:border-primary hover:bg-muted/50 cursor-pointer ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
+          <div
+            className={`flex items-center justify-between gap-4 rounded-xl border-2 border-dashed border-border bg-card p-5 transition-all hover:border-primary hover:bg-muted/50 cursor-pointer ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
             onDragOver={onDragOver}
             onDrop={onDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
               accept=".csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv"
               onChange={onFileChange}
             />
@@ -69,28 +77,49 @@ export function UploadStage({ upload }: { upload?: any; wizard?: any }) {
                 <UploadCloud className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <p className="font-medium text-foreground text-sm">Upload File</p>
-                <p className="text-xs text-muted-foreground mt-0.5">CSV or XLSX format</p>
+                <p className="font-medium text-foreground text-sm">
+                  Upload File
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  CSV or XLSX format
+                </p>
               </div>
             </div>
-            <Button variant="secondary" size="sm" className="h-8 text-xs shrink-0" disabled={isLoading}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 text-xs shrink-0"
+              disabled={isLoading}
+            >
               Browse
             </Button>
           </div>
 
           {/* OCR Load Button */}
-          <div className={`flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5 transition-all ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div
+            className={`flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5 transition-all ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+          >
             <div className="flex items-center gap-4">
               <div className="rounded-full bg-purple-500/10 p-2.5 text-purple-500">
                 <Bot className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <p className="font-medium text-foreground text-sm">Load AI OCR</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Last extracted data</p>
+                <p className="font-medium text-foreground text-sm">
+                  Load AI OCR
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Last extracted data
+                </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={handleLoadOcr} disabled={isLoading}>
-              {isLoading ? 'Loading...' : 'Import'}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs shrink-0"
+              onClick={handleLoadOcr}
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading..." : "Import"}
             </Button>
           </div>
         </div>
@@ -99,9 +128,16 @@ export function UploadStage({ upload }: { upload?: any; wizard?: any }) {
           <div className="mt-12 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between border-b pb-4">
               <div>
-                <h2 className="text-xl font-semibold text-foreground">File Parsed Successfully</h2>
+                <h2 className="text-xl font-semibold text-foreground">
+                  File Parsed Successfully
+                </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Found {output.columns.length} columns and {output.rawRows.length} rows in <span className="font-medium text-foreground">{output.sourceFileName}</span>.
+                  Found {output.columns.length} columns and{" "}
+                  {output.rawRows.length} rows in{" "}
+                  <span className="font-medium text-foreground">
+                    {output.sourceFileName}
+                  </span>
+                  .
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={reset}>
@@ -114,19 +150,39 @@ export function UploadStage({ upload }: { upload?: any; wizard?: any }) {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-muted text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-3 font-medium whitespace-nowrap">#</th>
+                      <th className="px-4 py-3 font-medium whitespace-nowrap">
+                        #
+                      </th>
                       {output.columns.map((col: string, i: number) => (
-                        <th key={i} className="px-4 py-3 font-medium whitespace-nowrap">{col}</th>
+                        <th
+                          key={i}
+                          className="px-4 py-3 font-medium whitespace-nowrap"
+                        >
+                          {col}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {output.previewRows.map((row: any, i: number) => (
-                      <tr key={row.__internalId || i} className="hover:bg-muted/50 transition-colors">
-                        <td className="px-4 py-3 text-muted-foreground">{row.__sourceRowNumber}</td>
+                      <tr
+                        key={row.__internalId || i}
+                        className="hover:bg-muted/50 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {row.__sourceRowNumber}
+                        </td>
                         {output.columns.map((col: string, j: number) => (
-                          <td key={j} className="px-4 py-3 text-foreground truncate max-w-[200px]" title={row[col]}>
-                            {row[col] || <span className="text-muted-foreground/50 italic">empty</span>}
+                          <td
+                            key={j}
+                            className="px-4 py-3 text-foreground truncate max-w-[200px]"
+                            title={row[col]}
+                          >
+                            {row[col] || (
+                              <span className="text-muted-foreground/50 italic">
+                                empty
+                              </span>
+                            )}
                           </td>
                         ))}
                       </tr>

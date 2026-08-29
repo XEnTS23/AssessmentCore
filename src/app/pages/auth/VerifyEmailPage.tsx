@@ -55,8 +55,14 @@ export function VerifyEmailPage() {
 
   if (!email) {
     return (
-      <AuthScaffold title="Verification required" subtitle="Email was not provided for this step.">
-        <Link to="/auth/register" className="inline-flex h-10 items-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white">
+      <AuthScaffold
+        title="Verification required"
+        subtitle="Email was not provided for this step."
+      >
+        <Link
+          to="/auth/register"
+          className="inline-flex h-10 items-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white"
+        >
           Back to register
         </Link>
       </AuthScaffold>
@@ -68,13 +74,18 @@ export function VerifyEmailPage() {
       title="Check your email"
       subtitle={
         <>
-          We sent a 6-digit code to <span className="font-medium text-slate-800">{email}</span>. It expires in 10 minutes.
+          We sent a 6-digit code to{" "}
+          <span className="font-medium text-slate-800">{email}</span>. It
+          expires in 10 minutes.
         </>
       }
       footer={
         <>
           Use a different email?{" "}
-          <Link to="/auth/register" className="font-medium text-slate-700 hover:text-slate-900">
+          <Link
+            to="/auth/register"
+            className="font-medium text-slate-700 hover:text-slate-900"
+          >
             Back to register
           </Link>
         </>

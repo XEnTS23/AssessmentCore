@@ -1,11 +1,11 @@
-import { ExportConfig } from '../core/exportTypes';
-import { QuestionRow } from '../core/rowTypes';
+import { ExportConfig } from "../core/exportTypes";
+import { QuestionRow } from "../core/rowTypes";
 
 export interface ExportReadinessIssue {
   id: string;
-  type: 'row' | 'config';
+  type: "row" | "config";
   rowId?: string;
-  severity: 'block' | 'warning';
+  severity: "block" | "warning";
   message: string;
 }
 
@@ -14,64 +14,114 @@ export interface ExportReadinessResult {
   issues: ExportReadinessIssue[];
 }
 
-export type ReadinessRule = (config: ExportConfig, rows: QuestionRow[]) => ExportReadinessIssue[];
+export type ReadinessRule = (
+  config: ExportConfig,
+  rows: QuestionRow[],
+) => ExportReadinessIssue[];
+
+const nonEmptyBatch: ReadinessRule = (_config, rows) => {
+  if (rows.length > 0) return [];
+  return [
+    {
+      id: crypto.randomUUID(),
+      type: "config",
+      severity: "block",
+      message: "At least one validated question is required before export.",
+    },
+  ];
+};
 
 // ─── Row Status Rules ──────────────────────────────────────────────────
 
 const noRejectedRows: ReadinessRule = (config, rows) => {
-  return rows.filter(r => r.status === 'rejected').map(r => ({
-    id: crypto.randomUUID(),
-    type: 'row',
-    rowId: r.id,
-    severity: 'block',
-    message: `Row ${r.sourceRowNumber} is rejected and cannot be exported.`
-  }));
+  return rows
+    .filter((r) => r.status === "rejected")
+    .map((r) => ({
+      id: crypto.randomUUID(),
+      type: "row",
+      rowId: r.id,
+      severity: "block",
+      message: `Row ${r.sourceRowNumber} is rejected and cannot be exported.`,
+    }));
 };
 
 const noUnknownRows: ReadinessRule = (config, rows) => {
-  return rows.filter(r => r.normalizedQuestion?.type === 'UNKNOWN').map(r => ({
-    id: crypto.randomUUID(),
-    type: 'row',
-    rowId: r.id,
-    severity: 'block',
-    message: `Row ${r.sourceRowNumber} has an UNKNOWN question type.`
-  }));
+  return rows
+    .filter((r) => r.normalizedQuestion?.type === "UNKNOWN")
+    .map((r) => ({
+      id: crypto.randomUUID(),
+      type: "row",
+      rowId: r.id,
+      severity: "block",
+      message: `Row ${r.sourceRowNumber} has an UNKNOWN question type.`,
+    }));
+};
+
+const noUnsupportedTypeRows: ReadinessRule = (config, rows) => {
+  return rows
+    .filter((r) => {
+      const t = r.normalizedQuestion?.type;
+      return t === "UNSUPPORTED" || t === "HOTSPOT" || t === "MATRIX_MATCH";
+    })
+    .map((r) => ({
+      id: crypto.randomUUID(),
+      type: "row",
+      rowId: r.id,
+      severity: "block",
+      message: `Row ${r.sourceRowNumber} has question type '${r.normalizedQuestion?.type}' which is unsupported for the export target '${config.target}'.`,
+    }));
 };
 
 const reviewRowsNeedApproval: ReadinessRule = (config, rows) => {
-  return rows.filter(r => r.status === 'needs_review').map(r => ({
-    id: crypto.randomUUID(),
-    type: 'row',
-    rowId: r.id,
-    severity: 'warning',
-    message: `Row ${r.sourceRowNumber} is still marked for review. It will be exported as-is.`
-  }));
+  return rows
+    .filter((r) => r.status === "needs_review")
+    .map((r) => ({
+      id: crypto.randomUUID(),
+      type: "row",
+      rowId: r.id,
+      severity: "warning",
+      message: `Row ${r.sourceRowNumber} still needs human review and must be explicitly acknowledged before export.`,
+    }));
+};
+
+const cautionRowsNeedApproval: ReadinessRule = (_config, rows) => {
+  return rows
+    .filter((r) => r.status === "caution")
+    .map((r) => ({
+      id: crypto.randomUUID(),
+      type: "row",
+      rowId: r.id,
+      severity: "warning",
+      message: `Row ${r.sourceRowNumber} has validation warnings that must be explicitly acknowledged before export.`,
+    }));
 };
 
 // ─── QTI Compatibility Rules ───────────────────────────────────────────
 
 const qtiCompatibility: ReadinessRule = (config, rows) => {
   const issues: ExportReadinessIssue[] = [];
-  const isQti = config.target === 'qti_2_1' || config.target === 'qti_3_0';
+  const isQti = config.target === "qti_2_1" || config.target === "qti_3_0";
 
   if (!isQti) return issues;
 
-  if (config.mediaMode === 'keep_public_url') {
+  if (config.mediaMode === "keep_public_url") {
     issues.push({
       id: crypto.randomUUID(),
-      type: 'config',
-      severity: 'warning',
-      message: 'QTI typically requires media to be packaged. Keeping public URLs may not render correctly in some LMS.'
+      type: "config",
+      severity: "warning",
+      message:
+        "QTI typically requires media to be packaged. Keeping public URLs may not render correctly in some LMS.",
     });
   }
 
-  if (config.scoring.mode === 'advanced') {
-    if (config.scoring.partialMarking.enabled && config.target === 'qti_2_1') {
+  if (config.scoring.mode === "advanced") {
+    if (config.scoring.partialMarking.enabled && config.target === "qti_2_1") {
       issues.push({
         id: crypto.randomUUID(),
-        type: 'config',
-        severity: 'warning',
-        message: 'Partial marking support in QTI 2.1 is inconsistent across LMS platforms.'
+        type: "config",
+        severity: "warning",
+        message:
+          "Partial marking support in QTI 2.1 is inconsistent across LMS platforms.",
       });
     }
   }
@@ -84,15 +134,19 @@ const qtiCompatibility: ReadinessRule = (config, rows) => {
  * Formula-mode TEXT_ENTRY cannot be represented in standard QTI 3.0 XML.
  */
 const qti30Compatibility: ReadinessRule = (config, rows) => {
-  if (config.target !== 'qti_3_0') return [];
+  if (config.target !== "qti_3_0") return [];
 
   return rows
-    .filter(r => r.normalizedQuestion?.type === 'TEXT_ENTRY' && (r.normalizedQuestion as any).mode === 'formula')
-    .map(r => ({
+    .filter(
+      (r) =>
+        r.normalizedQuestion?.type === "TEXT_ENTRY" &&
+        (r.normalizedQuestion as any).mode === "formula",
+    )
+    .map((r) => ({
       id: crypto.randomUUID(),
-      type: 'row' as const,
+      type: "row" as const,
       rowId: r.id,
-      severity: 'block' as const,
+      severity: "block" as const,
       message: `Row ${r.sourceRowNumber}: formula-mode TEXT_ENTRY is not supported in QTI 3.0.`,
     }));
 };
@@ -108,19 +162,19 @@ const identifierIntegrity: ReadinessRule = (config, rows) => {
     if (!qid) {
       issues.push({
         id: crypto.randomUUID(),
-        type: 'row',
+        type: "row",
         rowId: row.id,
-        severity: 'block',
-        message: `Row ${row.sourceRowNumber} is missing a Question ID.`
+        severity: "block",
+        message: `Row ${row.sourceRowNumber} is missing a Question ID.`,
       });
     } else {
       if (ids.has(qid)) {
         issues.push({
           id: crypto.randomUUID(),
-          type: 'row',
+          type: "row",
           rowId: row.id,
-          severity: 'block',
-          message: `Row ${row.sourceRowNumber} has a duplicate Question ID: ${qid}`
+          severity: "block",
+          message: `Row ${row.sourceRowNumber} has a duplicate Question ID: ${qid}`,
         });
       }
       ids.add(qid);
@@ -129,10 +183,10 @@ const identifierIntegrity: ReadinessRule = (config, rows) => {
       if (!/^[a-zA-Z_][a-zA-Z0-9_.-]*$/.test(qid)) {
         issues.push({
           id: crypto.randomUUID(),
-          type: 'row',
+          type: "row",
           rowId: row.id,
-          severity: config.target.startsWith('qti') ? 'block' : 'warning',
-          message: `Row ${row.sourceRowNumber} has an identifier that is not XML-safe: ${qid}`
+          severity: config.target.startsWith("qti") ? "block" : "warning",
+          message: `Row ${row.sourceRowNumber} has an identifier that is not XML-safe: ${qid}`,
         });
       }
     }
@@ -143,21 +197,27 @@ const identifierIntegrity: ReadinessRule = (config, rows) => {
 
 // ─── Run All ───────────────────────────────────────────────────────────
 
-export function checkExportReadiness(config: ExportConfig, rows: QuestionRow[]): ExportReadinessResult {
+export function checkExportReadiness(
+  config: ExportConfig,
+  rows: QuestionRow[],
+): ExportReadinessResult {
   const allRules: ReadinessRule[] = [
+    nonEmptyBatch,
     noRejectedRows,
     noUnknownRows,
+    noUnsupportedTypeRows,
     reviewRowsNeedApproval,
+    cautionRowsNeedApproval,
     qtiCompatibility,
     qti30Compatibility,
-    identifierIntegrity
+    identifierIntegrity,
   ];
 
-  const issues = allRules.flatMap(rule => rule(config, rows));
-  const hasBlockers = issues.some(i => i.severity === 'block');
+  const issues = allRules.flatMap((rule) => rule(config, rows));
+  const hasBlockers = issues.some((i) => i.severity === "block");
 
   return {
     isReady: !hasBlockers,
-    issues
+    issues,
   };
 }

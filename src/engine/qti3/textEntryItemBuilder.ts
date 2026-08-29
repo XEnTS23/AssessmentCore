@@ -10,19 +10,20 @@ import {
   ResponseDeclaration,
   OutcomeDeclaration,
   TextEntryInteraction,
-} from './types';
-import { ResponseProcessingBuilder } from './responseProcessingBuilder';
-import { OutcomeMapper, getOutcomesFromMetadata } from './outcomeMapper';
-import { FeedbackBuilder, createFeedbackFromQuestion } from './feedbackBuilder';
-import { MetadataMapper, extractMetadata } from './metadataMapper';
-import { StimulusBuilder } from './stimulusBuilder';
-import { convertTextWithMath } from '../../app/utils/mathmlConverter';
+} from "./types";
+import { ResponseProcessingBuilder } from "./responseProcessingBuilder";
+import { OutcomeMapper, getOutcomesFromMetadata } from "./outcomeMapper";
+import { FeedbackBuilder, createFeedbackFromQuestion } from "./feedbackBuilder";
+import { MetadataMapper, extractMetadata } from "./metadataMapper";
+import { StimulusBuilder } from "./stimulusBuilder";
+import { convertTextWithMath } from "../../app/utils/mathmlConverter";
 
 export class TextEntryItemBuilder {
-  private readonly NAMESPACE = 'http://www.imsglobal.org/xsd/imsqti_v3p0';
-  private readonly XSI_NAMESPACE = 'http://www.w3.org/2001/XMLSchema-instance';
-  private readonly MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
-  private readonly SCHEMA_LOCATION = 'http://www.imsglobal.org/xsd/qti/qtiv3p0/imsqti_v3p0.xsd';
+  private readonly NAMESPACE = "http://www.imsglobal.org/xsd/imsqti_v3p0";
+  private readonly XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance";
+  private readonly MATHML_NAMESPACE = "http://www.w3.org/1998/Math/MathML";
+  private readonly SCHEMA_LOCATION =
+    "http://www.imsglobal.org/xsd/qti/qtiv3p0/imsqti_v3p0.xsd";
 
   /**
    * Build text entry assessment item from Excel question
@@ -51,8 +52,8 @@ export class TextEntryItemBuilder {
       };
     } catch (error) {
       return {
-        xml: '',
-        itemId: '',
+        xml: "",
+        itemId: "",
         images: [],
         errors: [error instanceof Error ? error.message : String(error)],
       };
@@ -63,12 +64,12 @@ export class TextEntryItemBuilder {
    * Validate text entry question data
    */
   private validate(question: any): void {
-    if (!question.question || question.question.trim() === '') {
-      throw new Error('Question text is required');
+    if (!question.question || question.question.trim() === "") {
+      throw new Error("Question text is required");
     }
 
-    if (!question.correctAnswer || question.correctAnswer.trim() === '') {
-      throw new Error('Correct answer is required');
+    if (!question.correctAnswer || question.correctAnswer.trim() === "") {
+      throw new Error("Correct answer is required");
     }
   }
 
@@ -108,9 +109,15 @@ export class TextEntryItemBuilder {
   /**
    * Build complete QTI assessment item structure
    */
-  private async buildItem(question: any, itemId: string, imageMap?: Map<string, string>): Promise<QTIAssessmentItem> {
+  private async buildItem(
+    question: any,
+    itemId: string,
+    imageMap?: Map<string, string>,
+  ): Promise<QTIAssessmentItem> {
     // Build response declaration
-    const responseDeclaration = this.buildResponseDeclaration(question.correctAnswer);
+    const responseDeclaration = this.buildResponseDeclaration(
+      question.correctAnswer,
+    );
 
     // Build outcome declarations with metadata
     const outcomeDeclarations = getOutcomesFromMetadata({
@@ -127,10 +134,10 @@ export class TextEntryItemBuilder {
     // Build response processing with Phase 2 builder
     const responseProcessing = {
       xml: ResponseProcessingBuilder.buildMultipleAcceptableAnswers(
-        'RESPONSE',
-        'SCORE',
+        "RESPONSE",
+        "SCORE",
         [question.correctAnswer],
-        false // case insensitive
+        false, // case insensitive
       ),
     };
 
@@ -158,9 +165,9 @@ export class TextEntryItemBuilder {
    */
   private buildResponseDeclaration(correctAnswer: string): ResponseDeclaration {
     return {
-      identifier: 'RESPONSE',
-      cardinality: 'single',
-      baseType: 'string',
+      identifier: "RESPONSE",
+      cardinality: "single",
+      baseType: "string",
       correctResponse: {
         values: [correctAnswer],
       },
@@ -184,11 +191,11 @@ export class TextEntryItemBuilder {
     const stimulusRef = StimulusBuilder.fromQuestion(question);
 
     const textEntryInteraction: TextEntryInteraction = {
-      type: 'textEntry',
-      responseIdentifier: 'RESPONSE',
+      type: "textEntry",
+      responseIdentifier: "RESPONSE",
       expectedLength: this.calculateExpectedLength(question.correctAnswer),
-      format: 'plain',
-      content: '',
+      format: "plain",
+      content: "",
     };
 
     return {
@@ -209,18 +216,21 @@ export class TextEntryItemBuilder {
   /**
    * Process question text and replace image paths
    */
-  private processQuestionText(text: string, imageMap?: Map<string, string>): string {
+  private processQuestionText(
+    text: string,
+    imageMap?: Map<string, string>,
+  ): string {
     let processed = text;
 
     if (imageMap) {
       imageMap.forEach((filepath, filename) => {
         const patterns = [
-          new RegExp(`!\\[.*?\\]\\(${filename}\\)`, 'gi'),
-          new RegExp(`src="${filename}"`, 'gi'),
-          new RegExp(`src='${filename}'`, 'gi'),
+          new RegExp(`!\\[.*?\\]\\(${filename}\\)`, "gi"),
+          new RegExp(`src="${filename}"`, "gi"),
+          new RegExp(`src='${filename}'`, "gi"),
         ];
 
-        patterns.forEach(pattern => {
+        patterns.forEach((pattern) => {
           processed = processed.replace(pattern, `src="images/${filename}"`);
         });
       });
@@ -235,10 +245,10 @@ export class TextEntryItemBuilder {
    */
   private buildStringMatchResponseProcessing(correctAnswer: string): string {
     return ResponseProcessingBuilder.buildMultipleAcceptableAnswers(
-      'RESPONSE',
-      'SCORE',
+      "RESPONSE",
+      "SCORE",
       [correctAnswer],
-      false
+      false,
     );
   }
 
@@ -247,7 +257,7 @@ export class TextEntryItemBuilder {
    */
   private sanitizeTitle(text: string): string {
     return text
-      .replace(/<[^>]*>/g, '')
+      .replace(/<[^>]*>/g, "")
       .substring(0, 100)
       .trim();
   }
@@ -256,13 +266,13 @@ export class TextEntryItemBuilder {
    * Escape XML special characters
    */
   private escapeXml(text: string): string {
-    if (!text) return '';
+    if (!text) return "";
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 
   /**
@@ -287,30 +297,30 @@ export class TextEntryItemBuilder {
       const metadata = MetadataMapper.toQTIMetadata(item.metadata);
       if (metadata.lomXML) {
         xml += metadata.lomXML;
-        xml += '\n';
+        xml += "\n";
       }
     }
 
     // Add response declaration
     xml += this.responseDeclarationToXML(item.responseDeclaration);
-    xml += '\n\n';
+    xml += "\n\n";
 
     // Add outcome declarations
-    item.outcomeDeclarations.forEach(od => {
+    item.outcomeDeclarations.forEach((od) => {
       xml += this.outcomeDeclarationToXML(od);
-      xml += '\n';
+      xml += "\n";
     });
-    xml += '\n';
+    xml += "\n";
 
     // Add item body
     xml += this.itemBodyToXML(item.itemBody);
-    xml += '\n\n';
+    xml += "\n\n";
 
     // Add response processing
     xml += item.responseProcessing.xml || item.responseProcessing.template;
-    xml += '\n';
+    xml += "\n";
 
-    xml += '</assessmentItem>';
+    xml += "</assessmentItem>";
 
     return xml;
   }
@@ -325,14 +335,14 @@ export class TextEntryItemBuilder {
     baseType="${rd.baseType}">`;
 
     if (rd.correctResponse) {
-      xml += '\n    <correctResponse>';
-      rd.correctResponse.values.forEach(value => {
+      xml += "\n    <correctResponse>";
+      rd.correctResponse.values.forEach((value) => {
         xml += `\n      <value>${this.escapeXml(value)}</value>`;
       });
-      xml += '\n    </correctResponse>';
+      xml += "\n    </correctResponse>";
     }
 
-    xml += '\n  </responseDeclaration>';
+    xml += "\n  </responseDeclaration>";
     return xml;
   }
 
@@ -349,7 +359,7 @@ export class TextEntryItemBuilder {
       xml += `\n    <defaultValue>\n      <value>${od.defaultValue}</value>\n    </defaultValue>`;
     }
 
-    xml += '\n  </outcomeDeclaration>';
+    xml += "\n  </outcomeDeclaration>";
     return xml;
   }
 
@@ -357,7 +367,7 @@ export class TextEntryItemBuilder {
    * Item body to XML (with MathML support)
    */
   private itemBodyToXML(itemBody: any): string {
-    let xml = '  <itemBody>\n    <div>';
+    let xml = "  <itemBody>\n    <div>";
 
     if (itemBody.stimulusRef) {
       xml += `\n${StimulusBuilder.buildReference(itemBody.stimulusRef)}`;
@@ -370,11 +380,11 @@ export class TextEntryItemBuilder {
     const interaction = itemBody.interactions[0] as TextEntryInteraction;
     if (interaction) {
       xml += `\n      <textEntryInteraction responseIdentifier="${interaction.responseIdentifier}" expectedLength="${interaction.expectedLength}">`;
-      xml += '\n        <prompt>Enter your answer:</prompt>';
-      xml += '\n      </textEntryInteraction>';
+      xml += "\n        <prompt>Enter your answer:</prompt>";
+      xml += "\n      </textEntryInteraction>";
     }
 
-    xml += '\n    </div>\n  </itemBody>';
+    xml += "\n    </div>\n  </itemBody>";
     return xml;
   }
 }

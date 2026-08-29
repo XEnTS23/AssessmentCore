@@ -1,7 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { extractTemplateFields, ExtractedTemplate, TemplateField } from '../utils/templateFieldExtractor';
-import { parseSheetData, ColumnMapping, SheetRow, mapRowToFields, MappedRow } from '../utils/templateDataMapper';
-import { AlertCircle, Check } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  extractTemplateFields,
+  ExtractedTemplate,
+  TemplateField,
+} from "../utils/templateFieldExtractor";
+import {
+  parseSheetData,
+  ColumnMapping,
+  SheetRow,
+  mapRowToFields,
+  MappedRow,
+} from "../utils/templateDataMapper";
+import { AlertCircle, Check } from "lucide-react";
 
 type SubsectionEntry = {
   id: string;
@@ -9,21 +19,33 @@ type SubsectionEntry = {
   column: string | null;
 };
 
-type FieldMappingMode = 'add-column' | 'add-subsections';
+type FieldMappingMode = "add-column" | "add-subsections";
 
-const DEFAULT_SUBSECTIONS = ['Key Idea', 'Explanation', 'Concept', 'Final answer', 'Image'];
+const DEFAULT_SUBSECTIONS = [
+  "Key Idea",
+  "Explanation",
+  "Concept",
+  "Final answer",
+  "Image",
+];
 
 function supportsSubsections(field: TemplateField): boolean {
   const normalized = field.name.toLowerCase();
-  return normalized === 'question stem' || normalized === 'text entry prompt' || normalized === 'incorrect feedback';
+  return (
+    normalized === "question stem" ||
+    normalized === "text entry prompt" ||
+    normalized === "incorrect feedback"
+  );
 }
 
 function normalizeSubsectionName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '') || 'subsection';
+  return (
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "subsection"
+  );
 }
 
 function subsectionMappingKey(fieldId: string, subsectionName: string): string {
@@ -34,7 +56,11 @@ interface TemplateMappingUIProps {
   templateXml: string;
   sheetFile: File;
   selectedQtiVersion?: string;
-  onMappingComplete: (mapping: ColumnMapping, sheetRows: SheetRow[], extractedTemplate: ExtractedTemplate) => void;
+  onMappingComplete: (
+    mapping: ColumnMapping,
+    sheetRows: SheetRow[],
+    extractedTemplate: ExtractedTemplate,
+  ) => void;
   onCancel: () => void;
 }
 
@@ -45,7 +71,8 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
   onMappingComplete,
   onCancel,
 }) => {
-  const [extractedTemplate, setExtractedTemplate] = useState<ExtractedTemplate | null>(null);
+  const [extractedTemplate, setExtractedTemplate] =
+    useState<ExtractedTemplate | null>(null);
   const [sheetHeaders, setSheetHeaders] = useState<string[]>([]);
   const [sheetRows, setSheetRows] = useState<SheetRow[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({});
@@ -54,8 +81,12 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
-  const [subsectionMappings, setSubsectionMappings] = useState<Record<string, SubsectionEntry[]>>({});
-  const [fieldModes, setFieldModes] = useState<Record<string, FieldMappingMode>>({});
+  const [subsectionMappings, setSubsectionMappings] = useState<
+    Record<string, SubsectionEntry[]>
+  >({});
+  const [fieldModes, setFieldModes] = useState<
+    Record<string, FieldMappingMode>
+  >({});
 
   // Load template and sheet on mount
   useEffect(() => {
@@ -65,10 +96,12 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
 
         // Extract fields from template
         const template = extractTemplateFields(templateXml);
-          // Validate that template was extracted successfully
-          if (!template || !template.fields || template.fields.length === 0) {
-            throw new Error('No extractable fields found in template. Template may be malformed.');
-          }
+        // Validate that template was extracted successfully
+        if (!template || !template.fields || template.fields.length === 0) {
+          throw new Error(
+            "No extractable fields found in template. Template may be malformed.",
+          );
+        }
         setExtractedTemplate(template);
 
         // Initialize mapping with empty values
@@ -76,24 +109,26 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
         const initialModes: Record<string, FieldMappingMode> = {};
         template.fields.forEach((field) => {
           initialMapping[field.id] = null;
-          initialModes[field.id] = supportsSubsections(field) ? 'add-column' : 'add-column';
+          initialModes[field.id] = supportsSubsections(field)
+            ? "add-column"
+            : "add-column";
         });
         setMapping(initialMapping);
         setFieldModes(initialModes);
 
         // Parse sheet
         const { headers, rows } = await parseSheetData(sheetFile);
-          if (!headers || headers.length === 0) {
-            throw new Error('Sheet file has no columns or could not be parsed.');
-          }
+        if (!headers || headers.length === 0) {
+          throw new Error("Sheet file has no columns or could not be parsed.");
+        }
         setSheetHeaders(headers);
         setSheetRows(rows);
 
         setLoading(false);
       } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          console.error('Template/Sheet Loading Error:', errorMsg, err);
-          setError(errorMsg);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("Template/Sheet Loading Error:", errorMsg, err);
+        setError(errorMsg);
         setLoading(false);
       }
     })();
@@ -108,17 +143,20 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
   };
 
   const getFieldMode = (field: TemplateField): FieldMappingMode => {
-    return fieldModes[field.id] || 'add-column';
+    return fieldModes[field.id] || "add-column";
   };
 
-  const handleFieldModeChange = (field: TemplateField, nextMode: FieldMappingMode) => {
+  const handleFieldModeChange = (
+    field: TemplateField,
+    nextMode: FieldMappingMode,
+  ) => {
     setFieldModes((prev) => ({
       ...prev,
       [field.id]: nextMode,
     }));
 
     // User preference: switching to subsection mode should clear parent column mapping.
-    if (nextMode === 'add-subsections') {
+    if (nextMode === "add-subsections") {
       setMapping((prev) => ({
         ...prev,
         [field.id]: null,
@@ -147,11 +185,17 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
   const handleRemoveSubsection = (fieldId: string, subsectionId: string) => {
     setSubsectionMappings((prev) => ({
       ...prev,
-      [fieldId]: (prev[fieldId] || []).filter((entry) => entry.id !== subsectionId),
+      [fieldId]: (prev[fieldId] || []).filter(
+        (entry) => entry.id !== subsectionId,
+      ),
     }));
   };
 
-  const handleSubsectionNameChange = (fieldId: string, subsectionId: string, nextName: string) => {
+  const handleSubsectionNameChange = (
+    fieldId: string,
+    subsectionId: string,
+    nextName: string,
+  ) => {
     setSubsectionMappings((prev) => ({
       ...prev,
       [fieldId]: (prev[fieldId] || []).map((entry) =>
@@ -160,7 +204,11 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
     }));
   };
 
-  const handleSubsectionColumnChange = (fieldId: string, subsectionId: string, nextColumn: string | null) => {
+  const handleSubsectionColumnChange = (
+    fieldId: string,
+    subsectionId: string,
+    nextColumn: string | null,
+  ) => {
     setSubsectionMappings((prev) => ({
       ...prev,
       [fieldId]: (prev[fieldId] || []).map((entry) =>
@@ -185,7 +233,8 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
         if (!entry.name.trim()) {
           return;
         }
-        finalMapping[subsectionMappingKey(fieldId, entry.name)] = entry.column || null;
+        finalMapping[subsectionMappingKey(fieldId, entry.name)] =
+          entry.column || null;
       });
     });
 
@@ -194,7 +243,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
 
   const validateCurrentMapping = (): { valid: boolean; errors: string[] } => {
     if (!extractedTemplate) {
-      return { valid: false, errors: ['Template is not loaded.'] };
+      return { valid: false, errors: ["Template is not loaded."] };
     }
 
     const errors: string[] = [];
@@ -204,17 +253,26 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
         return;
       }
 
-      if (supportsSubsections(field) && getFieldMode(field) === 'add-subsections') {
+      if (
+        supportsSubsections(field) &&
+        getFieldMode(field) === "add-subsections"
+      ) {
         const entries = subsectionMappings[field.id] || [];
-        const mappedSubsections = entries.filter((entry) => entry.column && entry.column.trim() !== '');
+        const mappedSubsections = entries.filter(
+          (entry) => entry.column && entry.column.trim() !== "",
+        );
         if (mappedSubsections.length === 0) {
-          errors.push(`Required field "${field.name}" is in subsection mode but has no mapped subsection columns`);
+          errors.push(
+            `Required field "${field.name}" is in subsection mode but has no mapped subsection columns`,
+          );
         }
         return;
       }
 
       if (!mapping[field.id]) {
-        errors.push(`Required field "${field.name}" is not mapped to any sheet column`);
+        errors.push(
+          `Required field "${field.name}" is not mapped to any sheet column`,
+        );
       }
     });
 
@@ -232,7 +290,9 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
       if (!prev) return prev;
       return {
         ...prev,
-        fields: prev.fields.map((f) => (f.id === fieldId ? { ...f, required: !f.required } : f)),
+        fields: prev.fields.map((f) =>
+          f.id === fieldId ? { ...f, required: !f.required } : f,
+        ),
       };
     });
   };
@@ -310,22 +370,33 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
   }
 
   const visibleFields = extractedTemplate.fields.filter(
-    (field) => !field.id.startsWith('placeholder_incorrect_') && !field.id.startsWith('placeholder_correct_'),
+    (field) =>
+      !field.id.startsWith("placeholder_incorrect_") &&
+      !field.id.startsWith("placeholder_correct_"),
   );
 
   const detectedQtiVersion = extractedTemplate.version;
-  const qtiVersionDisplay = selectedQtiVersion || detectedQtiVersion || 'Unknown';
-  const showDetectedVersion = selectedQtiVersion && detectedQtiVersion && selectedQtiVersion !== detectedQtiVersion;
+  const qtiVersionDisplay =
+    selectedQtiVersion || detectedQtiVersion || "Unknown";
+  const showDetectedVersion =
+    selectedQtiVersion &&
+    detectedQtiVersion &&
+    selectedQtiVersion !== detectedQtiVersion;
 
   return (
     <div className="bg-card rounded-2xl border border-[#E2E8F0] shadow-xl p-6 max-h-screen overflow-y-auto">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#111827]">Map Template Fields to Sheet Columns</h2>
+        <h2 className="text-xl font-semibold text-[#111827]">
+          Map Template Fields to Sheet Columns
+        </h2>
         <p className="text-sm text-[#64748B] mt-1">
-          Select which column from your sheet corresponds to each template field. Use XML comments like
-          {" "}<code className="text-xs bg-[#F1F5F9] px-1 py-0.5 rounded">&lt;!-- AC:concept --&gt;</code>
-          {" "}in your template to mark replaceable sections.
+          Select which column from your sheet corresponds to each template
+          field. Use XML comments like{" "}
+          <code className="text-xs bg-[#F1F5F9] px-1 py-0.5 rounded">
+            &lt;!-- AC:concept --&gt;
+          </code>{" "}
+          in your template to mark replaceable sections.
         </p>
       </div>
 
@@ -334,13 +405,17 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <p className="text-[#64748B]">Template</p>
-            <p className="font-semibold text-[#111827]">{extractedTemplate.title}</p>
+            <p className="font-semibold text-[#111827]">
+              {extractedTemplate.title}
+            </p>
           </div>
           <div>
             <p className="text-[#64748B]">QTI Version (Selected)</p>
             <p className="font-semibold text-[#111827]">{qtiVersionDisplay}</p>
             {showDetectedVersion && (
-              <p className="text-xs text-[#94A3B8] mt-1">Template detected: {detectedQtiVersion}</p>
+              <p className="text-xs text-[#94A3B8] mt-1">
+                Template detected: {detectedQtiVersion}
+              </p>
             )}
           </div>
           <div>
@@ -353,7 +428,9 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
         <div className="bg-destructive-light border border-destructive rounded-lg p-4 mb-6">
-          <p className="text-sm font-semibold text-destructive mb-2">Validation Issues:</p>
+          <p className="text-sm font-semibold text-destructive mb-2">
+            Validation Issues:
+          </p>
           <ul className="text-sm text-destructive space-y-1">
             {validationErrors.map((error, i) => (
               <li key={i}>• {error}</li>
@@ -367,19 +444,36 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">Template Field</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">Type</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">Required</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">Map to Column</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">
+                Template Field
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">
+                Type
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">
+                Required
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wide">
+                Map to Column
+              </th>
             </tr>
           </thead>
           <tbody>
             {visibleFields.map((field) => (
-              <tr key={field.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
+              <tr
+                key={field.id}
+                className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]"
+              >
                 <td className="px-4 py-3">
                   <div>
-                    <p className="text-sm font-medium text-[#111827]">{field.name}</p>
-                    {field.description && <p className="text-xs text-[#64748B] mt-1">{field.description}</p>}
+                    <p className="text-sm font-medium text-[#111827]">
+                      {field.name}
+                    </p>
+                    {field.description && (
+                      <p className="text-xs text-[#64748B] mt-1">
+                        {field.description}
+                      </p>
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -392,18 +486,23 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                     onClick={() => handleToggleRequired(field.id)}
                     className={`text-xs font-medium px-2 py-1 rounded border transition-colors ${
                       field.required
-                        ? 'bg-primary-light border-blue-300 text-primary'
-                        : 'bg-[#F3F4F6] border-[#E5E7EB] text-[#6B7280]'
+                        ? "bg-primary-light border-blue-300 text-primary"
+                        : "bg-[#F3F4F6] border-[#E5E7EB] text-[#6B7280]"
                     }`}
                   >
-                    {field.required ? '✓ Required' : 'Optional'}
+                    {field.required ? "✓ Required" : "Optional"}
                   </button>
                 </td>
                 <td className="px-4 py-3">
                   {supportsSubsections(field) && (
                     <select
                       value={getFieldMode(field)}
-                      onChange={(e) => handleFieldModeChange(field, e.target.value as FieldMappingMode)}
+                      onChange={(e) =>
+                        handleFieldModeChange(
+                          field,
+                          e.target.value as FieldMappingMode,
+                        )
+                      }
                       className="w-full px-3 py-2 border border-[#E2E8F0] rounded-md text-sm mb-3 focus:ring-2 focus:ring-[#0F6CBD] focus:border-transparent"
                     >
                       <option value="add-column">Add a column</option>
@@ -411,10 +510,13 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                     </select>
                   )}
 
-                  {(!supportsSubsections(field) || getFieldMode(field) === 'add-column') && (
+                  {(!supportsSubsections(field) ||
+                    getFieldMode(field) === "add-column") && (
                     <select
-                      value={mapping[field.id] || ''}
-                      onChange={(e) => handleMappingChange(field.id, e.target.value || null)}
+                      value={mapping[field.id] || ""}
+                      onChange={(e) =>
+                        handleMappingChange(field.id, e.target.value || null)
+                      }
                       className="w-full px-3 py-2 border border-[#E2E8F0] rounded-md text-sm focus:ring-2 focus:ring-[#0F6CBD] focus:border-transparent"
                     >
                       <option value="">-- Select Column --</option>
@@ -426,68 +528,92 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                     </select>
                   )}
 
-                  {supportsSubsections(field) && getFieldMode(field) === 'add-subsections' && (
-                    <div className="mt-3 border border-[#E2E8F0] rounded-md p-3 bg-[#F9FAFB]">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-[#111827]">Subsections</p>
-                        <button
-                          type="button"
-                          onClick={() => handleAddSubsection(field.id)}
-                          className="text-xs px-2 py-1 rounded border border-[#CBD5E1] text-[#0F172A] hover:bg-[#E2E8F0]"
-                        >
-                          Add More
-                        </button>
-                      </div>
-
-                      <p className="text-[11px] text-[#64748B] mb-2">Map each subsection to a column from your sheet.</p>
-
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {DEFAULT_SUBSECTIONS.map((preset) => (
+                  {supportsSubsections(field) &&
+                    getFieldMode(field) === "add-subsections" && (
+                      <div className="mt-3 border border-[#E2E8F0] rounded-md p-3 bg-[#F9FAFB]">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-[#111827]">
+                            Subsections
+                          </p>
                           <button
-                            key={preset}
                             type="button"
-                            onClick={() => handleAddSubsection(field.id, preset)}
-                            className="text-[11px] px-2 py-1 rounded bg-card border border-[#D1D5DB] text-[#334155] hover:bg-[#F1F5F9]"
+                            onClick={() => handleAddSubsection(field.id)}
+                            className="text-xs px-2 py-1 rounded border border-[#CBD5E1] text-[#0F172A] hover:bg-[#E2E8F0]"
                           >
-                            + {preset}
+                            Add More
                           </button>
-                        ))}
-                      </div>
+                        </div>
 
-                      <div className="space-y-2">
-                        {(subsectionMappings[field.id] || []).map((entry) => (
-                          <div key={entry.id} className="grid grid-cols-12 gap-2 items-center">
-                            <input
-                              value={entry.name}
-                              onChange={(e) => handleSubsectionNameChange(field.id, entry.id, e.target.value)}
-                              placeholder="Subsection name"
-                              className="col-span-4 px-2 py-1 border border-[#E2E8F0] rounded text-xs"
-                            />
-                            <select
-                              value={entry.column || ''}
-                              onChange={(e) => handleSubsectionColumnChange(field.id, entry.id, e.target.value || null)}
-                              className="col-span-7 px-2 py-1 border border-[#E2E8F0] rounded text-xs"
-                            >
-                              <option value="">-- Select Column --</option>
-                              {sheetHeaders.map((header) => (
-                                <option key={header} value={header}>
-                                  {header}
-                                </option>
-                              ))}
-                            </select>
+                        <p className="text-[11px] text-[#64748B] mb-2">
+                          Map each subsection to a column from your sheet.
+                        </p>
+
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {DEFAULT_SUBSECTIONS.map((preset) => (
                             <button
+                              key={preset}
                               type="button"
-                              onClick={() => handleRemoveSubsection(field.id, entry.id)}
-                              className="col-span-1 text-xs text-destructive hover:text-destructive"
-                              title="Remove subsection"
+                              onClick={() =>
+                                handleAddSubsection(field.id, preset)
+                              }
+                              className="text-[11px] px-2 py-1 rounded bg-card border border-[#D1D5DB] text-[#334155] hover:bg-[#F1F5F9]"
                             >
-                              ×
+                              + {preset}
                             </button>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+
+                        <div className="space-y-2">
+                          {(subsectionMappings[field.id] || []).map((entry) => (
+                            <div
+                              key={entry.id}
+                              className="grid grid-cols-12 gap-2 items-center"
+                            >
+                              <input
+                                value={entry.name}
+                                onChange={(e) =>
+                                  handleSubsectionNameChange(
+                                    field.id,
+                                    entry.id,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="Subsection name"
+                                className="col-span-4 px-2 py-1 border border-[#E2E8F0] rounded text-xs"
+                              />
+                              <select
+                                value={entry.column || ""}
+                                onChange={(e) =>
+                                  handleSubsectionColumnChange(
+                                    field.id,
+                                    entry.id,
+                                    e.target.value || null,
+                                  )
+                                }
+                                className="col-span-7 px-2 py-1 border border-[#E2E8F0] rounded text-xs"
+                              >
+                                <option value="">-- Select Column --</option>
+                                {sheetHeaders.map((header) => (
+                                  <option key={header} value={header}>
+                                    {header}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveSubsection(field.id, entry.id)
+                                }
+                                className="col-span-1 text-xs text-destructive hover:text-destructive"
+                                title="Remove subsection"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </td>
               </tr>
             ))}
@@ -498,21 +624,34 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
       {/* Preview Section */}
       {showPreview && preview.length > 0 && (
         <div className="mb-6 bg-[#F9FAFB] rounded-lg border border-[#E2E8F0] p-4">
-          <h3 className="text-sm font-semibold text-[#111827] mb-3">Preview (First 5 Rows)</h3>
+          <h3 className="text-sm font-semibold text-[#111827] mb-3">
+            Preview (First 5 Rows)
+          </h3>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {preview.map((row) => (
-              <div key={row.rowIndex} className="bg-card p-3 rounded border border-[#E2E8F0] text-xs">
-                <p className="font-semibold text-[#111827] mb-2">Row {row.rowIndex + 1}</p>
+              <div
+                key={row.rowIndex}
+                className="bg-card p-3 rounded border border-[#E2E8F0] text-xs"
+              >
+                <p className="font-semibold text-[#111827] mb-2">
+                  Row {row.rowIndex + 1}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(row.templateFieldValues).map(([fieldId, value]) => {
-                    const field = extractedTemplate.fields.find((f) => f.id === fieldId);
-                    return (
-                      <div key={fieldId}>
-                        <p className="text-[#64748B]">{field?.name}:</p>
-                        <p className="text-[#111827] truncate">{value || '(empty)'}</p>
-                      </div>
-                    );
-                  })}
+                  {Object.entries(row.templateFieldValues).map(
+                    ([fieldId, value]) => {
+                      const field = extractedTemplate.fields.find(
+                        (f) => f.id === fieldId,
+                      );
+                      return (
+                        <div key={fieldId}>
+                          <p className="text-[#64748B]">{field?.name}:</p>
+                          <p className="text-[#111827] truncate">
+                            {value || "(empty)"}
+                          </p>
+                        </div>
+                      );
+                    },
+                  )}
                 </div>
               </div>
             ))}

@@ -4,7 +4,8 @@ import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 class HttpError extends Error {
@@ -33,10 +34,10 @@ const extractJsonObject = (content: string): Record<string, unknown> => {
         console.warn("Fenced JSON parse failed:", e);
       }
     }
-    
+
     // Attempt to extract the outermost JSON object manually
-    const firstBrace = trimmed.indexOf('{');
-    const lastBrace = trimmed.lastIndexOf('}');
+    const firstBrace = trimmed.indexOf("{");
+    const lastBrace = trimmed.lastIndexOf("}");
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       try {
         return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
@@ -46,7 +47,11 @@ const extractJsonObject = (content: string): Record<string, unknown> => {
     }
   }
 
-  throw new HttpError("Model returned invalid JSON payload", 502, content.slice(0, 1000));
+  throw new HttpError(
+    "Model returned invalid JSON payload",
+    502,
+    content.slice(0, 1000),
+  );
 };
 
 async function checkUnlimitedStatus(req: Request): Promise<boolean> {
@@ -58,7 +63,9 @@ async function checkUnlimitedStatus(req: Request): Promise<boolean> {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   // Use SERVICE_ROLE_KEY for admin-level check to bypass RLS issues
-  const supabaseAdminKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseAdminKey =
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+    Deno.env.get("SUPABASE_ANON_KEY");
 
   if (!supabaseUrl || !supabaseAdminKey) {
     console.error("Missing Supabase configuration env vars");
@@ -178,8 +185,8 @@ RULES:
 interface ManualCrop {
   id: string;
   coordinates: [number, number, number, number]; // [y, x, h, w] in percentages
-  type: 'stem' | 'option';
-  optionLabel?: 'A' | 'B' | 'C' | 'D';
+  type: "stem" | "option";
+  optionLabel?: "A" | "B" | "C" | "D";
   /** 1-based question number for deterministic diagram assignment */
   questionNumber?: number;
 }
@@ -187,8 +194,8 @@ interface ManualCrop {
 // ── Step 1: Native Mistral OCR image coordinate types ────────────────────────
 
 interface MistralNativeImage {
-  id: string;              // e.g. "img-0.jpeg"
-  top_left_x: number;      // pixel coordinates
+  id: string; // e.g. "img-0.jpeg"
+  top_left_x: number; // pixel coordinates
   top_left_y: number;
   bottom_right_x: number;
   bottom_right_y: number;
@@ -229,7 +236,7 @@ async function extractMistralNativeImages(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "mistral-ocr-latest",
@@ -242,7 +249,10 @@ async function extractMistralNativeImages(
     });
 
     if (!ocrResponse.ok) {
-      console.warn("Mistral OCR endpoint failed, falling back:", await ocrResponse.text().catch(() => "(no body)"));
+      console.warn(
+        "Mistral OCR endpoint failed, falling back:",
+        await ocrResponse.text().catch(() => "(no body)"),
+      );
       return { images: [], dimensions: null, markdown: "" };
     }
 
@@ -250,16 +260,22 @@ async function extractMistralNativeImages(
     const page = ocrResult?.pages?.[0];
     if (!page) return { images: [], dimensions: null, markdown: "" };
 
-    const images: MistralNativeImage[] = (page.images || []).map((img: any) => ({
-      id: img.id || "",
-      top_left_x: img.top_left_x ?? 0,
-      top_left_y: img.top_left_y ?? 0,
-      bottom_right_x: img.bottom_right_x ?? 0,
-      bottom_right_y: img.bottom_right_y ?? 0,
-    }));
+    const images: MistralNativeImage[] = (page.images || []).map(
+      (img: any) => ({
+        id: img.id || "",
+        top_left_x: img.top_left_x ?? 0,
+        top_left_y: img.top_left_y ?? 0,
+        bottom_right_x: img.bottom_right_x ?? 0,
+        bottom_right_y: img.bottom_right_y ?? 0,
+      }),
+    );
 
     const dimensions: PageDimensions | null = page.dimensions
-      ? { width: page.dimensions.width, height: page.dimensions.height, dpi: page.dimensions.dpi || 72 }
+      ? {
+          width: page.dimensions.width,
+          height: page.dimensions.height,
+          dpi: page.dimensions.dpi || 72,
+        }
       : null;
 
     const markdown: string = page.markdown || "";
@@ -305,7 +321,10 @@ function calculateIoU(boxA: AABB, boxB: AABB): number {
 /**
  * Convert a Mistral native image (pixel coords) to a normalized AABB [0..1].
  */
-function mistralImageToAABB(img: MistralNativeImage, dim: PageDimensions): AABB {
+function mistralImageToAABB(
+  img: MistralNativeImage,
+  dim: PageDimensions,
+): AABB {
   return [
     img.top_left_y / dim.height,
     img.top_left_x / dim.width,
@@ -319,12 +338,7 @@ function mistralImageToAABB(img: MistralNativeImage, dim: PageDimensions): AABB 
  */
 function cropToAABB(crop: ManualCrop): AABB {
   const [yP, xP, hP, wP] = crop.coordinates;
-  return [
-    yP / 100,
-    xP / 100,
-    (yP + hP) / 100,
-    (xP + wP) / 100,
-  ];
+  return [yP / 100, xP / 100, (yP + hP) / 100, (xP + wP) / 100];
 }
 
 /**
@@ -366,7 +380,10 @@ interface SortableElement {
  * Sort elements into natural reading order: top-to-bottom, left-to-right.
  * Elements within the same horizontal band (±tolerance) are sorted by X.
  */
-function spatialSortElements<T extends SortableElement>(elements: T[], yTolerance = 0.02): T[] {
+function spatialSortElements<T extends SortableElement>(
+  elements: T[],
+  yTolerance = 0.02,
+): T[] {
   return [...elements].sort((a, b) => {
     // If they're in roughly the same row, sort by X
     if (Math.abs(a.y_min - b.y_min) < yTolerance) {
@@ -426,8 +443,20 @@ function getTextContextBeforeImage(imageId: string, markdown: string): string {
 function textSimilarity(a: string, b: string): number {
   if (!a || !b) return 0;
 
-  const wordsA = new Set(a.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2));
-  const wordsB = new Set(b.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2));
+  const wordsA = new Set(
+    a
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 2),
+  );
+  const wordsB = new Set(
+    b
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 2),
+  );
 
   if (wordsA.size === 0 || wordsB.size === 0) return 0;
 
@@ -444,7 +473,10 @@ function textSimilarity(a: string, b: string): number {
  * Find which Pixtral question best matches a given OCR text context.
  * Returns the question index with the highest text similarity.
  */
-function matchContextToQuestion(context: string, questions: any[]): { index: number; similarity: number } {
+function matchContextToQuestion(
+  context: string,
+  questions: any[],
+): { index: number; similarity: number } {
   let bestIndex = 0;
   let bestSim = -1;
 
@@ -480,37 +512,63 @@ function findOwnerQuestion(
 
   // ─── Strategy 1: Markdown-aware matching ─────────────────────────────────
   if (nativeImages.length > 0 && pageDimensions && ocrMarkdown) {
-    const iouMatch = matchCropToMistralImage(crop, nativeImages, pageDimensions);
+    const iouMatch = matchCropToMistralImage(
+      crop,
+      nativeImages,
+      pageDimensions,
+    );
 
     if (iouMatch && iouMatch.iou > 0.05) {
-      console.log(`[Markdown Match] Crop ${crop.id} ↔ native image "${iouMatch.matchedId}" (IoU=${iouMatch.iou.toFixed(3)})`);
+      console.log(
+        `[Markdown Match] Crop ${crop.id} ↔ native image "${iouMatch.matchedId}" (IoU=${iouMatch.iou.toFixed(3)})`,
+      );
 
       // Get the text that appears before this image in the OCR markdown
-      const textContext = getTextContextBeforeImage(iouMatch.matchedId, ocrMarkdown);
+      const textContext = getTextContextBeforeImage(
+        iouMatch.matchedId,
+        ocrMarkdown,
+      );
 
       if (textContext) {
-        console.log(`[Markdown Match] Text context before image: "${textContext.slice(-120)}"`);
+        console.log(
+          `[Markdown Match] Text context before image: "${textContext.slice(-120)}"`,
+        );
 
         // Find the question whose stem best matches this text context
         const match = matchContextToQuestion(textContext, questions);
-        console.log(`[Markdown Match] Best matching question: Q${match.index} (similarity=${match.similarity.toFixed(3)}, stem="${(questions[match.index]?.stem || '').slice(0, 60)}")`);
+        console.log(
+          `[Markdown Match] Best matching question: Q${match.index} (similarity=${match.similarity.toFixed(3)}, stem="${(questions[match.index]?.stem || "").slice(0, 60)}")`,
+        );
 
         if (match.similarity > 0.1) {
-          console.log(`[Markdown Match] ✓ Assigned crop ${crop.id} → Q${match.index} via OCR markdown context`);
+          console.log(
+            `[Markdown Match] ✓ Assigned crop ${crop.id} → Q${match.index} via OCR markdown context`,
+          );
           return match.index;
         } else {
-          console.log(`[Markdown Match] Low similarity (${match.similarity.toFixed(3)}), trying text-before-last-question approach...`);
+          console.log(
+            `[Markdown Match] Low similarity (${match.similarity.toFixed(3)}), trying text-before-last-question approach...`,
+          );
 
           // Alternative: count how many question-like patterns appear before the image
           // This works for numbered questions (1., 2., Q3, etc.)
-          const textBeforeImage = ocrMarkdown.slice(0, ocrMarkdown.indexOf(`${iouMatch.matchedId}`));
-          const questionPatterns = textBeforeImage.match(/(?:^|\n)\s*(?:Q\.?\s*)?(\d+)\s*[.):\s]/gm);
+          const textBeforeImage = ocrMarkdown.slice(
+            0,
+            ocrMarkdown.indexOf(`${iouMatch.matchedId}`),
+          );
+          const questionPatterns = textBeforeImage.match(
+            /(?:^|\n)\s*(?:Q\.?\s*)?(\d+)\s*[.):\s]/gm,
+          );
           if (questionPatterns && questionPatterns.length > 0) {
-            const lastQNum = parseInt(questionPatterns[questionPatterns.length - 1].replace(/\D/g, ''));
+            const lastQNum = parseInt(
+              questionPatterns[questionPatterns.length - 1].replace(/\D/g, ""),
+            );
             // Question numbers are 1-based, indices are 0-based
             const targetIdx = Math.min(lastQNum - 1, questions.length - 1);
             if (targetIdx >= 0) {
-              console.log(`[Markdown Match] ✓ Found ${questionPatterns.length} question numbers before image, last = ${lastQNum} → Q${targetIdx}`);
+              console.log(
+                `[Markdown Match] ✓ Found ${questionPatterns.length} question numbers before image, last = ${lastQNum} → Q${targetIdx}`,
+              );
               return targetIdx;
             }
           }
@@ -522,7 +580,12 @@ function findOwnerQuestion(
   // ─── Strategy 2: Zone-based fallback ─────────────────────────────────────
   console.log(`[Zone Fallback] Using stem_box zones for crop ${crop.id}`);
 
-  interface QZone { index: number; y_min: number; y_max: number; x_min: number; }
+  interface QZone {
+    index: number;
+    y_min: number;
+    y_max: number;
+    x_min: number;
+  }
 
   const elements: QZone[] = questions.map((q: any, idx: number) => ({
     index: idx,
@@ -542,7 +605,9 @@ function findOwnerQuestion(
     const zoneStart = sorted[i].y_min;
     const zoneEnd = i < sorted.length - 1 ? sorted[i + 1].y_min : 1.0;
     if (cropCenterY >= zoneStart && cropCenterY < zoneEnd) {
-      console.log(`[Zone Fallback] → Q${sorted[i].index} via zone [${zoneStart.toFixed(3)}, ${zoneEnd.toFixed(3)})`);
+      console.log(
+        `[Zone Fallback] → Q${sorted[i].index} via zone [${zoneStart.toFixed(3)}, ${zoneEnd.toFixed(3)})`,
+      );
       return sorted[i].index;
     }
   }
@@ -558,10 +623,14 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { imageBase64, filename, manualCrops = [] } = await req.json() as {
+    const {
+      imageBase64,
+      filename,
+      manualCrops = [],
+    } = (await req.json()) as {
       imageBase64: string;
       filename: string;
-      manualCrops: ManualCrop[]
+      manualCrops: ManualCrop[];
     };
 
     if (!imageBase64) {
@@ -574,11 +643,16 @@ serve(async (req: Request) => {
       // Premium user -> Use Mistral Pixtral OCR
       const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY");
       if (!MISTRAL_API_KEY) {
-        throw new HttpError("Missing MISTRAL_API_KEY environment variable", 500);
+        throw new HttpError(
+          "Missing MISTRAL_API_KEY environment variable",
+          500,
+        );
       }
 
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const supabaseAdminKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+      const supabaseAdminKey =
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+        Deno.env.get("SUPABASE_ANON_KEY");
       const supabaseAdmin = createClient(supabaseUrl!, supabaseAdminKey!);
 
       let finalImageBase64 = imageBase64;
@@ -586,7 +660,9 @@ serve(async (req: Request) => {
 
       if (manualCrops.length > 0) {
         try {
-          const img = await Image.decode(Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0)));
+          const img = await Image.decode(
+            Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0)),
+          );
           for (const crop of manualCrops) {
             const [yP, xP, hP, wP] = crop.coordinates;
             const x = Math.floor((xP / 100) * img.width);
@@ -596,40 +672,69 @@ serve(async (req: Request) => {
             const croppedImg = img.clone().crop(x, y, w, h);
             const croppedBytes = await croppedImg.encodeJPEG(90);
             const filePath = `manual_crops/${crypto.randomUUID()}.jpg`;
-            await supabaseAdmin.storage.from("ocr-diagrams").upload(filePath, croppedBytes, { contentType: "image/jpeg" });
-            const { data: { publicUrl } } = supabaseAdmin.storage.from("ocr-diagrams").getPublicUrl(filePath);
+            await supabaseAdmin.storage
+              .from("ocr-diagrams")
+              .upload(filePath, croppedBytes, { contentType: "image/jpeg" });
+            const {
+              data: { publicUrl },
+            } = supabaseAdmin.storage
+              .from("ocr-diagrams")
+              .getPublicUrl(filePath);
             uploadedManualCrops.push({ ...crop, publicUrl });
-            const whiteBox = new Image(w, h).fill(0xFFFFFFFF);
+            const whiteBox = new Image(w, h).fill(0xffffffff);
             img.composite(whiteBox, x, y);
           }
           const redactedBytes = await img.encodeJPEG(85);
           const chunks: string[] = [];
           const chunkSize = 8192;
           for (let i = 0; i < redactedBytes.length; i += chunkSize) {
-            chunks.push(String.fromCharCode.apply(null, Array.from(redactedBytes.subarray(i, i + chunkSize))));
+            chunks.push(
+              String.fromCharCode.apply(
+                null,
+                Array.from(redactedBytes.subarray(i, i + chunkSize)),
+              ),
+            );
           }
           finalImageBase64 = btoa(chunks.join(""));
-        } catch (imgErr) { console.warn("Redaction failed:", imgErr); }
+        } catch (imgErr) {
+          console.warn("Redaction failed:", imgErr);
+        }
       }
 
-      const systemPrompt = manualCrops.length > 0 ? MISTRAL_TEXT_ONLY_PROMPT : MISTRAL_STANDARD_PROMPT;
-      const mistralResponse = await fetch("https://api.mistral.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${MISTRAL_API_KEY}`,
+      const systemPrompt =
+        manualCrops.length > 0
+          ? MISTRAL_TEXT_ONLY_PROMPT
+          : MISTRAL_STANDARD_PROMPT;
+      const mistralResponse = await fetch(
+        "https://api.mistral.ai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${MISTRAL_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "pixtral-12b-2409",
+            temperature: 0.2,
+            max_tokens: 4000,
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:image/jpeg;base64,${finalImageBase64}`,
+                    },
+                  },
+                ],
+              },
+            ],
+            response_format: { type: "json_object" },
+          }),
         },
-        body: JSON.stringify({
-          model: "pixtral-12b-2409",
-          temperature: 0.2,
-          max_tokens: 4000,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: [{ type: "image_url", image_url: { url: `data:image/jpeg;base64,${finalImageBase64}` } }] }
-          ],
-          response_format: { type: "json_object" }
-        })
-      });
+      );
 
       if (!mistralResponse.ok) {
         const err = await mistralResponse.text();
@@ -643,24 +748,36 @@ serve(async (req: Request) => {
       const parsedData = extractJsonObject(content);
 
       // ── IoU-based diagram matching pipeline (replaces old 2D proximity) ───
-      if (uploadedManualCrops.length > 0 && Array.isArray(parsedData.questions)) {
+      if (
+        uploadedManualCrops.length > 0 &&
+        Array.isArray(parsedData.questions)
+      ) {
         // Repair missing or invalid stem_boxes before sorting
         const totalQ = parsedData.questions.length;
         parsedData.questions.forEach((q: any, idx: number) => {
-          if (!q.stem_box || typeof q.stem_box[0] !== 'number') {
+          if (!q.stem_box || typeof q.stem_box[0] !== "number") {
             q.stem_box = [idx / totalQ, 0, (idx + 1) / totalQ, 1];
           }
         });
 
         // Step 1: Extract native image coordinates + markdown from Mistral OCR endpoint
         // NOTE: We use the ORIGINAL (non-redacted) image so the OCR sees diagrams in context
-        const { images: nativeImages, dimensions: pageDimensions, markdown: ocrMarkdown } =
-          await extractMistralNativeImages(imageBase64, MISTRAL_API_KEY);
+        const {
+          images: nativeImages,
+          dimensions: pageDimensions,
+          markdown: ocrMarkdown,
+        } = await extractMistralNativeImages(imageBase64, MISTRAL_API_KEY);
 
-        console.log(`[IoU Pipeline] Native images found: ${nativeImages.length}, dimensions: ${JSON.stringify(pageDimensions)}`);
-        console.log(`[IoU Pipeline] OCR markdown length: ${ocrMarkdown.length} chars`);
+        console.log(
+          `[IoU Pipeline] Native images found: ${nativeImages.length}, dimensions: ${JSON.stringify(pageDimensions)}`,
+        );
+        console.log(
+          `[IoU Pipeline] OCR markdown length: ${ocrMarkdown.length} chars`,
+        );
         if (ocrMarkdown) {
-          console.log(`[IoU Pipeline] OCR markdown preview: "${ocrMarkdown.slice(0, 300)}..."`);
+          console.log(
+            `[IoU Pipeline] OCR markdown preview: "${ocrMarkdown.slice(0, 300)}..."`,
+          );
         }
 
         // Attach native coordinate metadata to the response for client-side use
@@ -669,42 +786,64 @@ serve(async (req: Request) => {
 
         // Log all question stem_boxes for debugging
         const questions = parsedData.questions;
-        console.log(`[IoU Pipeline] ${questions.length} questions detected. Stem boxes:`);
+        console.log(
+          `[IoU Pipeline] ${questions.length} questions detected. Stem boxes:`,
+        );
         questions.forEach((q: any, i: number) => {
           const box = q.stem_box;
-          console.log(`  Q${i}: stem_box=[${box.map((v: number) => v.toFixed(3)).join(', ')}] stem="${(q.stem || '').slice(0, 60)}..."`);
+          console.log(
+            `  Q${i}: stem_box=[${box.map((v: number) => v.toFixed(3)).join(", ")}] stem="${(q.stem || "").slice(0, 60)}..."`,
+          );
         });
 
         // Log all crop coordinates
-        console.log(`[IoU Pipeline] ${uploadedManualCrops.length} manual crops:`);
+        console.log(
+          `[IoU Pipeline] ${uploadedManualCrops.length} manual crops:`,
+        );
         uploadedManualCrops.forEach((c: any) => {
           const aabb = cropToAABB(c);
-          console.log(`  Crop ${c.id} (${c.type}): coords=[${c.coordinates.join(',')}] → AABB=[${aabb.map(v => v.toFixed(3)).join(', ')}] center_y=${((aabb[0]+aabb[2])/2).toFixed(3)}`);
+          console.log(
+            `  Crop ${c.id} (${c.type}): coords=[${c.coordinates.join(",")}] → AABB=[${aabb.map((v) => v.toFixed(3)).join(", ")}] center_y=${((aabb[0] + aabb[2]) / 2).toFixed(3)}`,
+          );
         });
 
         // Step 2: Match each crop to the correct question using markdown-aware matching
-        uploadedManualCrops.forEach(crop => {
+        uploadedManualCrops.forEach((crop) => {
           const cropBox = cropToAABB(crop);
 
           // ── Deterministic assignment: use user-specified Q number if available ──
           let bestMatchIndex: number;
-          if (typeof crop.questionNumber === 'number' && crop.questionNumber >= 1) {
-            bestMatchIndex = Math.min(crop.questionNumber - 1, questions.length - 1);
-            console.log(`[Direct Assignment] Crop ${crop.id} → Q${bestMatchIndex} (user specified Q${crop.questionNumber})`);
+          if (
+            typeof crop.questionNumber === "number" &&
+            crop.questionNumber >= 1
+          ) {
+            bestMatchIndex = Math.min(
+              crop.questionNumber - 1,
+              questions.length - 1,
+            );
+            console.log(
+              `[Direct Assignment] Crop ${crop.id} → Q${bestMatchIndex} (user specified Q${crop.questionNumber})`,
+            );
           } else {
             // Fallback to heuristic matching (markdown-aware → zone-based)
             bestMatchIndex = findOwnerQuestion(
-              crop, cropBox, questions,
-              nativeImages, pageDimensions, ocrMarkdown
+              crop,
+              cropBox,
+              questions,
+              nativeImages,
+              pageDimensions,
+              ocrMarkdown,
             );
           }
 
-          console.log(`[IoU Pipeline] Crop ${crop.id} (type=${crop.type}) -> Question index ${bestMatchIndex}`);
+          console.log(
+            `[IoU Pipeline] Crop ${crop.id} (type=${crop.type}) -> Question index ${bestMatchIndex}`,
+          );
 
           const targetQ = questions[bestMatchIndex];
           if (!targetQ) return;
 
-          if (crop.type === 'stem') {
+          if (crop.type === "stem") {
             targetQ.media_url = crop.publicUrl;
 
             if (!targetQ.diagrams) targetQ.diagrams = [];
@@ -719,11 +858,13 @@ serve(async (req: Request) => {
               ],
             });
             // Append the image link to the question stem
-            targetQ.stem = `${targetQ.stem || ""} [MEDIA:${crop.publicUrl}]`.trim();
-          } else if (crop.type === 'option' && crop.optionLabel) {
+            targetQ.stem =
+              `${targetQ.stem || ""} [MEDIA:${crop.publicUrl}]`.trim();
+          } else if (crop.type === "option" && crop.optionLabel) {
             const optIdx = crop.optionLabel.charCodeAt(0) - 65;
             if (targetQ.options && Array.isArray(targetQ.options)) {
-              targetQ.options[optIdx] = `${targetQ.options[optIdx] || ""} [MEDIA:${crop.publicUrl}]`.trim();
+              targetQ.options[optIdx] =
+                `${targetQ.options[optIdx] || ""} [MEDIA:${crop.publicUrl}]`.trim();
             }
           }
         });
@@ -733,11 +874,13 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
-
     } else {
       // Free user path
-      console.log("Processing as FREE user (either not unlimited or check failed)");
-      const OCR_SPACE_API_KEY = Deno.env.get("OCR_SPACE_API_KEY") || "helloworld";
+      console.log(
+        "Processing as FREE user (either not unlimited or check failed)",
+      );
+      const OCR_SPACE_API_KEY =
+        Deno.env.get("OCR_SPACE_API_KEY") || "helloworld";
 
       const formData = new FormData();
       formData.append("apikey", OCR_SPACE_API_KEY);
@@ -746,20 +889,28 @@ serve(async (req: Request) => {
       formData.append("OCREngine", "2");
       formData.append("scale", "true");
 
-      const ocrSpaceResponse = await fetch("https://api.ocr.space/parse/image", {
-        method: "POST",
-        body: formData,
-      });
+      const ocrSpaceResponse = await fetch(
+        "https://api.ocr.space/parse/image",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
       if (!ocrSpaceResponse.ok) {
         const err = await ocrSpaceResponse.text();
-        throw new HttpError(`OCR.space failed (status ${ocrSpaceResponse.status})`, 502, err.slice(0, 1000));
+        throw new HttpError(
+          `OCR.space failed (status ${ocrSpaceResponse.status})`,
+          502,
+          err.slice(0, 1000),
+        );
       }
 
       const ocrResult = await ocrSpaceResponse.json();
 
       if (ocrResult.IsErroredOnProcessing) {
-        const errorMsg = ocrResult.ErrorMessage?.[0] || "Unknown OCR.space error";
+        const errorMsg =
+          ocrResult.ErrorMessage?.[0] || "Unknown OCR.space error";
         throw new HttpError(`OCR.space failed: ${errorMsg}`, 502);
       }
 
@@ -776,41 +927,57 @@ serve(async (req: Request) => {
       // Restructure with OpenRouter (Free Model)
       const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
       if (!OPENROUTER_API_KEY) {
-        throw new HttpError("Missing OPENROUTER_API_KEY environment variable", 500);
+        throw new HttpError(
+          "Missing OPENROUTER_API_KEY environment variable",
+          500,
+        );
       }
 
-      const openRouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://assessment-core.vercel.app", // Change to your actual URL
-          "X-Title": "AssessmentCore"
+      const openRouterResponse = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "https://assessment-core.vercel.app", // Change to your actual URL
+            "X-Title": "AssessmentCore",
+          },
+          body: JSON.stringify({
+            model: "meta-llama/llama-3.1-8b-instruct:free",
+            messages: [
+              { role: "system", content: GEMINI_SYSTEM_PROMPT },
+              {
+                role: "user",
+                content: `Restructure this raw OCR text into JSON. Languages: Bengali, Hindi, English.\n\nRAW OCR CONTENT:\n${parsedText}`,
+              },
+            ],
+            temperature: 0.1,
+          }),
         },
-        body: JSON.stringify({
-          model: "meta-llama/llama-3.1-8b-instruct:free",
-          messages: [
-            { role: "system", content: GEMINI_SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: `Restructure this raw OCR text into JSON. Languages: Bengali, Hindi, English.\n\nRAW OCR CONTENT:\n${parsedText}`
-            }
-          ],
-          temperature: 0.1
-        })
-      });
+      );
 
       if (!openRouterResponse.ok) {
         const err = await openRouterResponse.text();
-        throw new HttpError(`OpenRouter failed (status ${openRouterResponse.status})`, 502, err.slice(0, 1000));
+        throw new HttpError(
+          `OpenRouter failed (status ${openRouterResponse.status})`,
+          502,
+          err.slice(0, 1000),
+        );
       }
 
       const openRouterResult = await openRouterResponse.json();
       const openRouterContent = openRouterResult.choices?.[0]?.message?.content;
 
       if (!openRouterContent) {
-        console.error("OpenRouter Full Response:", JSON.stringify(openRouterResult));
-        throw new HttpError("OpenRouter returned no content. Check logs for details.", 502);
+        console.error(
+          "OpenRouter Full Response:",
+          JSON.stringify(openRouterResult),
+        );
+        throw new HttpError(
+          "OpenRouter returned no content. Check logs for details.",
+          502,
+        );
       }
 
       const parsedData = extractJsonObject(openRouterContent);
@@ -819,16 +986,25 @@ serve(async (req: Request) => {
         status: 200,
       });
     }
-
   } catch (error) {
     console.error("Error in process-ocr:", error);
-    const typedError = error instanceof HttpError
-      ? error
-      : new HttpError(error instanceof Error ? error.message : "Unknown error", 500);
+    const typedError =
+      error instanceof HttpError
+        ? error
+        : new HttpError(
+            error instanceof Error ? error.message : "Unknown error",
+            500,
+          );
 
-    return new Response(JSON.stringify({ error: typedError.message, details: typedError.details }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: typedError.status,
-    });
+    return new Response(
+      JSON.stringify({
+        error: typedError.message,
+        details: typedError.details,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: typedError.status,
+      },
+    );
   }
 });

@@ -40,7 +40,9 @@ export function ProfileMenu({ variant = "workspace" }: ProfileMenuProps) {
         className={`flex items-center justify-center transition-colors hover:bg-accent ${compact ? "h-9 w-9" : "h-8 w-8"} ${isPremium ? "rounded-md bg-gradient-to-br from-[#4285F4] via-[#34A853] via-[#FBBC05] to-[#EA4335] p-[2px] shadow-[0_0_0_1px_rgba(66,133,244,0.15),0_8px_20px_rgba(66,133,244,0.12)]" : "rounded-md border border-border bg-card"}`}
         aria-expanded={isOpen}
       >
-        <div className={`flex items-center justify-center ${isPremium ? "rounded-sm bg-black text-white shadow-inner" : "rounded-md bg-primary text-primary-foreground"} text-[11px] font-semibold ${compact ? "h-7 w-7" : "h-6 w-6"}`}>
+        <div
+          className={`flex items-center justify-center ${isPremium ? "rounded-sm bg-black text-white shadow-inner" : "rounded-md bg-primary text-primary-foreground"} text-[11px] font-semibold ${compact ? "h-7 w-7" : "h-6 w-6"}`}
+        >
           {initials}
         </div>
       </button>
@@ -50,20 +52,24 @@ export function ProfileMenu({ variant = "workspace" }: ProfileMenuProps) {
           isOpen ? "visible opacity-100" : "invisible opacity-0"
         }`}
       >
-        <Link
-          to="/workspace"
-          className="block rounded px-2 py-1.5 text-xs text-popover-foreground hover:bg-muted"
-          onClick={() => setIsOpen(false)}
-        >
-          Workspace
-        </Link>
-        <Link
-          to="/workspace/dashboard"
-          className="block rounded px-2 py-1.5 text-xs text-popover-foreground hover:bg-muted"
-          onClick={() => setIsOpen(false)}
-        >
-          Dashboard
-        </Link>
+        {variant === "workspace" && (
+          <>
+            <Link
+              to="/workspace"
+              className="block rounded px-2 py-1.5 text-xs text-popover-foreground hover:bg-muted"
+              onClick={() => setIsOpen(false)}
+            >
+              Workspace
+            </Link>
+            <Link
+              to="/workspace/dashboard"
+              className="block rounded px-2 py-1.5 text-xs text-popover-foreground hover:bg-muted"
+              onClick={() => setIsOpen(false)}
+            >
+              Dashboard
+            </Link>
+          </>
+        )}
         <button
           type="button"
           className="w-full rounded px-2 py-1.5 text-left text-xs text-popover-foreground hover:bg-muted"

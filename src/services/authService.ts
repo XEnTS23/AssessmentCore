@@ -1,11 +1,15 @@
-import { getSupabaseConfigErrorMessage, isSupabaseConfigured, supabase } from './supabaseClient';
-import { AuthResponse, UserProfile } from '../types/auth';
+import {
+  getSupabaseConfigErrorMessage,
+  isSupabaseConfigured,
+  supabase,
+} from "./supabaseClient";
+import { AuthResponse, UserProfile } from "../types/auth";
 
 function mapAuthError(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : fallback;
 
   if (/failed to fetch|networkerror|load failed/i.test(message)) {
-    return 'Unable to reach authentication service. Check internet access and verify VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are set correctly.';
+    return "Unable to reach authentication service. Check internet access and verify VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are set correctly.";
   }
 
   return message;
@@ -17,7 +21,11 @@ function getSupabaseGuardError(): AuthResponse {
 
 export const authService = {
   // Register a new user
-  async register(email: string, password: string, name: string): Promise<AuthResponse> {
+  async register(
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<AuthResponse> {
     if (!isSupabaseConfigured) return getSupabaseGuardError();
 
     try {
@@ -38,29 +46,32 @@ export const authService = {
 
       // Store user profile
       if (data.user) {
-        const { error: profileError } = await supabase.from('user_profiles').insert([
-          {
-            id: data.user.id,
-            email,
-            full_name: name,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        const { error: profileError } = await supabase
+          .from("user_profiles")
+          .insert([
+            {
+              id: data.user.id,
+              email,
+              full_name: name,
+              created_at: new Date().toISOString(),
+            },
+          ]);
 
         if (profileError) {
-          console.error('Error creating user profile:', profileError);
+          console.error("Error creating user profile:", profileError);
         }
       }
 
       return {
         success: true,
-        message: 'Registration successful! Please check your email to verify your account.',
+        message:
+          "Registration successful! Please check your email to verify your account.",
         user: data.user || undefined,
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Registration failed'),
+        error: mapAuthError(error, "Registration failed"),
       };
     }
   },
@@ -81,13 +92,13 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Login successful!',
+        message: "Login successful!",
         user: data.user || undefined,
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Login failed'),
+        error: mapAuthError(error, "Login failed"),
       };
     }
   },
@@ -100,7 +111,7 @@ export const authService = {
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token,
-        type: 'signup',
+        type: "signup",
       });
 
       if (error) {
@@ -109,13 +120,13 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Email verified successfully!',
+        message: "Email verified successfully!",
         user: data.user || undefined,
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Verification failed'),
+        error: mapAuthError(error, "Verification failed"),
       };
     }
   },
@@ -126,7 +137,7 @@ export const authService = {
 
     try {
       const { error } = await supabase.auth.resend({
-        type: 'signup',
+        type: "signup",
         email,
       });
 
@@ -136,12 +147,12 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Verification email sent! Please check your inbox.',
+        message: "Verification email sent! Please check your inbox.",
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Failed to resend email'),
+        error: mapAuthError(error, "Failed to resend email"),
       };
     }
   },
@@ -159,12 +170,12 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Logged out successfully!',
+        message: "Logged out successfully!",
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Logout failed'),
+        error: mapAuthError(error, "Logout failed"),
       };
     }
   },
@@ -196,13 +207,13 @@ export const authService = {
 
     try {
       const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
+        .from("user_profiles")
+        .select("*")
+        .eq("id", userId)
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.error("Error fetching user profile:", error);
         return null;
       }
 
@@ -219,20 +230,20 @@ export const authService = {
     }
 
     // Check for global unlimited environment override first
-    const isGlobalUnlimited = import.meta.env.VITE_IS_UNLIMITED === 'true';
+    const isGlobalUnlimited = import.meta.env.VITE_IS_UNLIMITED === "true";
 
     try {
       const { data, error } = await supabase
-        .from('user_usage')
-        .select('*')
-        .eq('user_id', userId)
+        .from("user_usage")
+        .select("*")
+        .eq("user_id", userId)
         .single();
 
       if (error) {
         // If no usage record exists, create one
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           const { data: newUsage } = await supabase
-            .from('user_usage')
+            .from("user_usage")
             .insert([
               {
                 user_id: userId,
@@ -241,22 +252,28 @@ export const authService = {
             ])
             .select()
             .single();
-          
-          const isUnlimited = isGlobalUnlimited || !!(newUsage as any).is_unlimited || (newUsage as any).is_unlimited === 'true';
+
+          const isUnlimited =
+            isGlobalUnlimited ||
+            !!(newUsage as any).is_unlimited ||
+            (newUsage as any).is_unlimited === "true";
 
           return {
             ...newUsage,
-            is_premium: isUnlimited
+            is_premium: isUnlimited,
           };
         }
         return null;
       }
 
-      const isUnlimited = isGlobalUnlimited || !!(data as any).is_unlimited || (data as any).is_unlimited === 'true';
+      const isUnlimited =
+        isGlobalUnlimited ||
+        !!(data as any).is_unlimited ||
+        (data as any).is_unlimited === "true";
 
       return {
         ...data,
-        is_premium: isUnlimited
+        is_premium: isUnlimited,
       };
     } catch (error) {
       return null;
@@ -271,7 +288,7 @@ export const authService = {
       const usage = await this.getUserUsage(userId);
 
       if (!usage) {
-        const { error } = await supabase.from('user_usage').insert([
+        const { error } = await supabase.from("user_usage").insert([
           {
             user_id: userId,
             exports_count: 1,
@@ -285,14 +302,14 @@ export const authService = {
 
         return {
           success: true,
-          message: 'Export tracked successfully!',
+          message: "Export tracked successfully!",
         };
       }
 
       const { error } = await supabase
-        .from('user_usage')
+        .from("user_usage")
         .update({ exports_count: (usage.exports_count || 0) + 1 })
-        .eq('user_id', userId);
+        .eq("user_id", userId);
 
       if (error) {
         return { success: false, error: error.message };
@@ -300,25 +317,28 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Export tracked successfully!',
+        message: "Export tracked successfully!",
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Failed to track export'),
+        error: mapAuthError(error, "Failed to track export"),
       };
     }
   },
 
   // Track questions converted
-  async trackQuestionsConverted(userId: string, questionCount: number): Promise<AuthResponse> {
+  async trackQuestionsConverted(
+    userId: string,
+    questionCount: number,
+  ): Promise<AuthResponse> {
     if (!isSupabaseConfigured) return getSupabaseGuardError();
 
     try {
       const usage = await this.getUserUsage(userId);
 
       if (!usage) {
-        const { error } = await supabase.from('user_usage').insert([
+        const { error } = await supabase.from("user_usage").insert([
           {
             user_id: userId,
             exports_count: 0,
@@ -332,16 +352,17 @@ export const authService = {
 
         return {
           success: true,
-          message: 'Questions tracked successfully!',
+          message: "Questions tracked successfully!",
         };
       }
 
       const { error } = await supabase
-        .from('user_usage')
+        .from("user_usage")
         .update({
-          total_questions_converted: (usage.total_questions_converted || 0) + questionCount,
+          total_questions_converted:
+            (usage.total_questions_converted || 0) + questionCount,
         })
-        .eq('user_id', userId);
+        .eq("user_id", userId);
 
       if (error) {
         return { success: false, error: error.message };
@@ -349,12 +370,12 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Questions tracked successfully!',
+        message: "Questions tracked successfully!",
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Failed to track questions'),
+        error: mapAuthError(error, "Failed to track questions"),
       };
     }
   },
@@ -374,12 +395,12 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Password reset email sent! Please check your inbox.',
+        message: "Password reset email sent! Please check your inbox.",
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Failed to send reset email'),
+        error: mapAuthError(error, "Failed to send reset email"),
       };
     }
   },
@@ -399,12 +420,12 @@ export const authService = {
 
       return {
         success: true,
-        message: 'Password updated successfully!',
+        message: "Password updated successfully!",
       };
     } catch (error) {
       return {
         success: false,
-        error: mapAuthError(error, 'Failed to update password'),
+        error: mapAuthError(error, "Failed to update password"),
       };
     }
   },

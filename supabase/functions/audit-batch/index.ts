@@ -3,17 +3,20 @@
 // Accepts up to 50 rows per request. OPENROUTER_API_KEY read from server-side secrets.
 
 const ALLOWED_ORIGINS = [
-  'https://assessmentcore.vercel.app',
-  ...(Deno.env.get('ALLOWED_ORIGIN') ? [Deno.env.get('ALLOWED_ORIGIN')!] : []),
+  "https://assessmentcore.vercel.app",
+  ...(Deno.env.get("ALLOWED_ORIGIN") ? [Deno.env.get("ALLOWED_ORIGIN")!] : []),
 ];
 
 function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get('origin') ?? '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const origin = req.headers.get("origin") ?? "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
   return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Vary': 'Origin',
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    Vary: "Origin",
   };
 }
 
@@ -28,14 +31,14 @@ interface BatchRow {
 }
 
 interface AuditIssue {
-  issue_type: 'grammar' | 'logic' | 'clarity' | 'factual';
+  issue_type: "grammar" | "logic" | "clarity" | "factual";
   description: string;
   suggestion: string;
 }
 
 interface RowAuditResult {
   rowKey: string;
-  status: 'ai_certified' | 'ai_rejected';
+  status: "ai_certified" | "ai_rejected";
   issues: AuditIssue[];
   error?: string;
 }
@@ -44,24 +47,24 @@ interface OpenRouterChatResponse {
   choices?: Array<{ message?: { content?: string } }>;
 }
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const BASE_DELAY_MS = 300;
 
 function loadOpenRouterKeys(): string[] {
   const keys = [
-    Deno.env.get('OPENROUTER_API_KEY'),
-    Deno.env.get('OPENROUTER_API_KEY_2'),
-    Deno.env.get('OPENROUTER_API_KEY_3'),
-    Deno.env.get('OPENROUTER_API_KEY_4'),
+    Deno.env.get("OPENROUTER_API_KEY"),
+    Deno.env.get("OPENROUTER_API_KEY_2"),
+    Deno.env.get("OPENROUTER_API_KEY_3"),
+    Deno.env.get("OPENROUTER_API_KEY_4"),
   ]
-    .map((k) => (k ?? '').trim())
+    .map((k) => (k ?? "").trim())
     .filter(Boolean);
 
   return Array.from(new Set(keys));
 }
 
 function getRetryDelayMs(res: Response, attempt: number): number {
-  const retryAfter = res.headers.get('retry-after');
+  const retryAfter = res.headers.get("retry-after");
   if (retryAfter) {
     const seconds = Number(retryAfter);
     if (!Number.isNaN(seconds) && seconds > 0) {
@@ -75,36 +78,40 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function callOpenRouterWithFailover(body: Record<string, unknown>): Promise<OpenRouterChatResponse> {
+async function callOpenRouterWithFailover(
+  body: Record<string, unknown>,
+): Promise<OpenRouterChatResponse> {
   const keys = loadOpenRouterKeys();
   if (keys.length === 0) {
-    throw new Error('OPENROUTER_API_KEY (and optional _2/_3/_4) are not configured in Edge Function secrets.');
+    throw new Error(
+      "OPENROUTER_API_KEY (and optional _2/_3/_4) are not configured in Edge Function secrets.",
+    );
   }
 
-  let lastError = 'No request attempted';
+  let lastError = "No request attempted";
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const keyAlias = `key_${i + 1}`;
 
     const response = await fetch(OPENROUTER_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://dqusycmqpsadwdpxqhhv.supabase.co',
-        'X-Title': 'AssessmentCore AI Audit',
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://dqusycmqpsadwdpxqhhv.supabase.co",
+        "X-Title": "AssessmentCore AI Audit",
       },
       body: JSON.stringify(body),
     });
 
     if (response.ok) {
-      return await response.json() as OpenRouterChatResponse;
+      return (await response.json()) as OpenRouterChatResponse;
     }
 
     const errText = await response.text();
     lastError = `OpenRouter API error (${response.status}) using ${keyAlias}: ${errText}`;
-    console.error('[audit-batch] OpenRouter request failed:', lastError);
+    console.error("[audit-batch] OpenRouter request failed:", lastError);
 
     if (response.status === 429 && i < keys.length - 1) {
       await sleep(getRetryDelayMs(response, i + 1));
@@ -119,28 +126,32 @@ async function callOpenRouterWithFailover(body: Record<string, unknown>): Promis
 
 // Build a compact text block for each row so the prompt stays dense but readable
 function formatRow(row: BatchRow, index: number): string {
-  const alpha = 'ABCDEFGHIJ';
+  const alpha = "ABCDEFGHIJ";
 
-  let optionsLine = '';
+  let optionsLine = "";
   if (Array.isArray(row.choices) && row.choices.length > 0) {
     optionsLine = row.choices
       .map((c, i) => `${alpha[i] ?? i + 1}. ${c.text || c.identifier}`)
-      .join(' | ');
+      .join(" | ");
   } else if (Array.isArray(row.orderItems) && row.orderItems.length > 0) {
-    optionsLine = row.orderItems.map((item, i) => `${i + 1}. ${item}`).join(' | ');
+    optionsLine = row.orderItems
+      .map((item, i) => `${i + 1}. ${item}`)
+      .join(" | ");
   } else if (row.numericAnswer !== undefined && row.numericAnswer !== null) {
     optionsLine = `(Numeric: ${row.numericAnswer})`;
   } else {
-    optionsLine = '(open-ended)';
+    optionsLine = "(open-ended)";
   }
 
-  const correct = Array.isArray(row.correctResponseIdentifiers) && row.correctResponseIdentifiers.length > 0
-    ? row.correctResponseIdentifiers.join(', ')
-    : '(not specified)';
+  const correct =
+    Array.isArray(row.correctResponseIdentifiers) &&
+    row.correctResponseIdentifiers.length > 0
+      ? row.correctResponseIdentifiers.join(", ")
+      : "(not specified)";
 
   return `[${index + 1}] rowKey: "${row.rowKey}"
-Type: ${row.questionType ?? 'unknown'}
-Stem: "${row.stem ?? ''}"
+Type: ${row.questionType ?? "unknown"}
+Stem: "${row.stem ?? ""}"
 Options: ${optionsLine}
 Correct: ${correct}`;
 }
@@ -154,40 +165,53 @@ function parseJson(raw: string): any {
     if (mdMatch) return JSON.parse(mdMatch[1]);
     const arrMatch = raw.match(/\[[\s\S]*\]/);
     if (arrMatch) return JSON.parse(arrMatch[0]);
-    throw new Error('Could not parse OpenRouter response as JSON array');
+    throw new Error("Could not parse OpenRouter response as JSON array");
   }
 }
 
 function isTextEntryLikeType(questionType: string | undefined): boolean {
-  const t = String(questionType ?? '').toLowerCase();
-  return t.includes('text') || t.includes('short') || t.includes('open') || t.includes('fill');
+  const t = String(questionType ?? "").toLowerCase();
+  return (
+    t.includes("text") ||
+    t.includes("short") ||
+    t.includes("open") ||
+    t.includes("fill")
+  );
 }
 
 function hasClearQuestionStem(stem: string | undefined): boolean {
-  const s = String(stem ?? '').trim();
+  const s = String(stem ?? "").trim();
   if (s.length < 10) return false;
-  if (s.includes('?')) return true;
-  return /^(what|who|where|when|which|how|define|name|identify|calculate|find|solve)\b/i.test(s);
+  if (s.includes("?")) return true;
+  return /^(what|who|where|when|which|how|define|name|identify|calculate|find|solve)\b/i.test(
+    s,
+  );
 }
 
-function hasMeaningfulAnswer(correctResponseIdentifiers: string[] | undefined): boolean {
-  return Array.isArray(correctResponseIdentifiers) &&
-    correctResponseIdentifiers.some((v) => String(v ?? '').trim().length > 0);
+function hasMeaningfulAnswer(
+  correctResponseIdentifiers: string[] | undefined,
+): boolean {
+  return (
+    Array.isArray(correctResponseIdentifiers) &&
+    correctResponseIdentifiers.some((v) => String(v ?? "").trim().length > 0)
+  );
 }
 
 function isGenericStemHallucination(issues: AuditIssue[]): boolean {
   if (!Array.isArray(issues) || issues.length === 0) return false;
   const combined = issues
-    .map((i) => `${i.description ?? ''} ${i.suggestion ?? ''}`.toLowerCase())
-    .join(' ');
-  return /stem is incomplete|provides no context|does not pose a clear question|impossible for respondents to know/i.test(combined);
+    .map((i) => `${i.description ?? ""} ${i.suggestion ?? ""}`.toLowerCase())
+    .join(" ");
+  return /stem is incomplete|provides no context|does not pose a clear question|impossible for respondents to know/i.test(
+    combined,
+  );
 }
 
 Deno.serve(async (req: Request) => {
   const CORS = getCorsHeaders(req);
 
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS });
   }
 
   let inputRows: BatchRow[] = [];
@@ -198,13 +222,18 @@ Deno.serve(async (req: Request) => {
 
     if (!Array.isArray(inputRows) || inputRows.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'rows array is required and must not be empty' }),
-        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
+        JSON.stringify({
+          error: "rows array is required and must not be empty",
+        }),
+        {
+          status: 400,
+          headers: { ...CORS, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Build the formatted rows block
-    const rowsBlock = inputRows.map((row, i) => formatRow(row, i)).join('\n\n');
+    const rowsBlock = inputRows.map((row, i) => formatRow(row, i)).join("\n\n");
 
     const userPrompt = `Audit each of the following ${inputRows.length} assessment questions for educational quality.
 
@@ -237,20 +266,26 @@ Rules:
 - Every suggestion must be a concrete rewritten alternative, not a vague instruction
 - Do not reject a question merely because it is difficult`;
 
-    const model = (Deno.env.get('OPENROUTER_MODEL_BATCH') ?? Deno.env.get('OPENROUTER_MODEL') ?? 'openrouter/auto').trim();
+    const model = (
+      Deno.env.get("OPENROUTER_MODEL_BATCH") ??
+      Deno.env.get("OPENROUTER_MODEL") ??
+      "openrouter/auto"
+    ).trim();
     const openRouterData = await callOpenRouterWithFailover({
       model,
       messages: [
         {
-          role: 'system',
-          content: 'You are an educational content quality auditor. Audit assessment questions for stem-option-answer consistency, grammar, logic, clarity, and factual correctness. Respond ONLY with a valid JSON array.',
+          role: "system",
+          content:
+            "You are an educational content quality auditor. Audit assessment questions for stem-option-answer consistency, grammar, logic, clarity, and factual correctness. Respond ONLY with a valid JSON array.",
         },
-        { role: 'user', content: userPrompt },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.1,
       max_tokens: 4096,
     });
-    const rawContent: string = openRouterData.choices?.[0]?.message?.content ?? '';
+    const rawContent: string =
+      openRouterData.choices?.[0]?.message?.content ?? "";
 
     const parsed: RowAuditResult[] = parseJson(rawContent);
 
@@ -260,53 +295,63 @@ Rules:
       if (item?.rowKey) {
         resultMap.set(item.rowKey, {
           rowKey: item.rowKey,
-          status: item.status === 'ai_certified' ? 'ai_certified' : 'ai_rejected',
-          issues: item.status === 'ai_certified' ? [] : (item.issues ?? []).map((iss: any) => ({
-            issue_type: iss.issue_type ?? 'clarity',
-            description: iss.description ?? 'No description provided',
-            suggestion: iss.suggestion ?? 'No suggestion provided',
-          })),
+          status:
+            item.status === "ai_certified" ? "ai_certified" : "ai_rejected",
+          issues:
+            item.status === "ai_certified"
+              ? []
+              : (item.issues ?? []).map((iss: any) => ({
+                  issue_type: iss.issue_type ?? "clarity",
+                  description: iss.description ?? "No description provided",
+                  suggestion: iss.suggestion ?? "No suggestion provided",
+                })),
         });
       }
     }
 
     // Fill any rows Gemini may have skipped as certified (safe default)
     const finalResults: RowAuditResult[] = inputRows.map((row) => {
-      const base = resultMap.get(row.rowKey) ?? { rowKey: row.rowKey, status: 'ai_certified', issues: [] };
+      const base = resultMap.get(row.rowKey) ?? {
+        rowKey: row.rowKey,
+        status: "ai_certified",
+        issues: [],
+      };
 
       if (
-        base.status === 'ai_rejected' &&
+        base.status === "ai_rejected" &&
         isTextEntryLikeType(row.questionType) &&
         hasClearQuestionStem(row.stem) &&
         hasMeaningfulAnswer(row.correctResponseIdentifiers) &&
         isGenericStemHallucination(base.issues)
       ) {
-        return { rowKey: row.rowKey, status: 'ai_certified', issues: [] };
+        return { rowKey: row.rowKey, status: "ai_certified", issues: [] };
       }
 
       return base;
     });
 
     return new Response(JSON.stringify({ results: finalResults }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
+      headers: { ...CORS, "Content-Type": "application/json" },
     });
-
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[audit-batch] OpenRouter error:', message);
+    console.error("[audit-batch] OpenRouter error:", message);
     // Graceful fallback — mark all input rows as rejected with the error reason
-    const fallback: RowAuditResult[] = inputRows.map(row => ({
+    const fallback: RowAuditResult[] = inputRows.map((row) => ({
       rowKey: row.rowKey,
-      status: 'ai_rejected',
-      issues: [{
-        issue_type: 'clarity',
-        description: `Batch audit could not complete: ${message}`,
-        suggestion: 'Please retry. If the error persists, use the per-row Audit button instead.',
-      }],
+      status: "ai_rejected",
+      issues: [
+        {
+          issue_type: "clarity",
+          description: `Batch audit could not complete: ${message}`,
+          suggestion:
+            "Please retry. If the error persists, use the per-row Audit button instead.",
+        },
+      ],
       error: message,
     }));
     return new Response(JSON.stringify({ results: fallback }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
+      headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 });

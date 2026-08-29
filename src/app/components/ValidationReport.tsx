@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -10,20 +10,32 @@ import {
   X,
   Plus,
   Trash2,
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Badge } from "./ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from './ui/collapsible';
-import type { ValidationError, ValidationResult } from '../utils/questionValidator.js';
-import { MathMLRenderer } from './MathMLRenderer';
+} from "./ui/collapsible";
+import type {
+  ValidationError,
+  ValidationResult,
+} from "../utils/questionValidator.js";
+import { MathMLRenderer } from "./MathMLRenderer";
 
 interface ValidationReportProps {
   columns: string[];
@@ -45,7 +57,7 @@ function getRowValidationKey(row: Record<string, any>, index: number): string {
     return String(row.__rowKey);
   }
 
-  const explicitId = row.id != null ? String(row.id).trim() : '';
+  const explicitId = row.id != null ? String(row.id).trim() : "";
   const sourceId = explicitId || `row_${index + 1}`;
   return `${sourceId}#${index + 1}`;
 }
@@ -61,13 +73,17 @@ export function ValidationReport({
 }: ValidationReportProps) {
   const [collapsed, setCollapsed] = useState(isCollapsed);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [localRows, setLocalRows] = useState(rows);
   const [customColumns, setCustomColumns] = useState<string[]>([]);
-  const [editingHeaderColumn, setEditingHeaderColumn] = useState<string | null>(null);
-  const [editingHeaderValue, setEditingHeaderValue] = useState('');
-  const [pendingDeleteColumn, setPendingDeleteColumn] = useState<string | null>(null);
+  const [editingHeaderColumn, setEditingHeaderColumn] = useState<string | null>(
+    null,
+  );
+  const [editingHeaderValue, setEditingHeaderValue] = useState("");
+  const [pendingDeleteColumn, setPendingDeleteColumn] = useState<string | null>(
+    null,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,11 +121,13 @@ export function ValidationReport({
 
   const deleteCustomColumn = (columnName: string) => {
     // Remove from custom columns
-    const updatedCustomColumns = customColumns.filter(col => col !== columnName);
+    const updatedCustomColumns = customColumns.filter(
+      (col) => col !== columnName,
+    );
     setCustomColumns(updatedCustomColumns);
 
     // Remove the column data from all rows
-    const updatedRows = localRows.map(row => {
+    const updatedRows = localRows.map((row) => {
       const { [columnName]: _, ...rest } = row;
       return rest;
     });
@@ -134,19 +152,19 @@ export function ValidationReport({
     }
 
     setEditingHeaderColumn(null);
-    setEditingHeaderValue('');
+    setEditingHeaderValue("");
   };
 
   const cancelHeaderEdit = () => {
     setEditingHeaderColumn(null);
-    setEditingHeaderValue('');
+    setEditingHeaderValue("");
   };
 
   const handleHeaderKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       saveHeaderEdit();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       e.preventDefault();
       cancelHeaderEdit();
     }
@@ -164,7 +182,7 @@ export function ValidationReport({
 
   const handleCellEdit = (rowId: string, column: string, value: any) => {
     setEditingCell({ rowId, column });
-    setEditValue(value?.toString() || '');
+    setEditValue(value?.toString() || "");
   };
 
   const saveEdit = () => {
@@ -183,54 +201,54 @@ export function ValidationReport({
     setLocalRows(updatedRows);
     onDataChange?.(updatedRows);
     setEditingCell(null);
-    setEditValue('');
+    setEditValue("");
   };
 
   const cancelEdit = () => {
     setEditingCell(null);
-    setEditValue('');
+    setEditValue("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       saveEdit();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       e.preventDefault();
       cancelEdit();
     }
   };
 
-  const getStatusColor = (status: ValidationResult['status']) => {
+  const getStatusColor = (status: ValidationResult["status"]) => {
     switch (status) {
-      case 'valid':
-        return 'bg-green-50 border-green-200';
-      case 'caution':
-        return 'bg-yellow-50 border-yellow-200';
-      case 'rejected':
-        return 'bg-destructive-light border-destructive';
+      case "valid":
+        return "bg-green-50 border-green-200";
+      case "caution":
+        return "bg-yellow-50 border-yellow-200";
+      case "rejected":
+        return "bg-destructive-light border-destructive";
       default:
-        return 'bg-gray-50 border-gray-200';
+        return "bg-gray-50 border-gray-200";
     }
   };
 
-  const getStatusBadge = (status: ValidationResult['status']) => {
+  const getStatusBadge = (status: ValidationResult["status"]) => {
     switch (status) {
-      case 'valid':
+      case "valid":
         return (
           <Badge className="bg-green-100 text-green-800 gap-1">
             <CheckCircle2 className="w-3 h-3" />
             Valid
           </Badge>
         );
-      case 'caution':
+      case "caution":
         return (
           <Badge className="bg-yellow-100 text-yellow-800 gap-1">
             <AlertCircle className="w-3 h-3" />
             Caution
           </Badge>
         );
-      case 'rejected':
+      case "rejected":
         return (
           <Badge className="bg-destructive-light text-red-800 gap-1">
             <XCircle className="w-3 h-3" />
@@ -243,7 +261,10 @@ export function ValidationReport({
   if (collapsed) {
     return (
       <Card className="border border-gray-200">
-        <Collapsible open={!collapsed} onOpenChange={(open: boolean) => setCollapsed(!open)}>
+        <Collapsible
+          open={!collapsed}
+          onOpenChange={(open: boolean) => setCollapsed(!open)}
+        >
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50">
               <div className="flex items-center gap-3">
@@ -251,9 +272,7 @@ export function ValidationReport({
                 <h3 className="font-semibold">Validation Report</h3>
               </div>
               <div className="flex gap-2">
-                <Badge variant="outline">
-                  {localRows.length} rows
-                </Badge>
+                <Badge variant="outline">{localRows.length} rows</Badge>
               </div>
             </div>
           </CollapsibleTrigger>
@@ -264,390 +283,485 @@ export function ValidationReport({
 
   return (
     <>
-    <AlertDialog open={pendingDeleteColumn !== null} onOpenChange={(open) => { if (!open) setPendingDeleteColumn(null); }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete column "{pendingDeleteColumn}"?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently remove the column and all its data from every row. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-red-600 hover:bg-red-700 text-primary-foreground"
-            onClick={() => {
-              if (pendingDeleteColumn) deleteCustomColumn(pendingDeleteColumn);
-              setPendingDeleteColumn(null);
-            }}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    <Card className="border border-gray-200">
-      <Collapsible open={!collapsed} onOpenChange={(open: boolean) => setCollapsed(!open)}>
-        <CardHeader className="pb-3 border-b">
-          <div className="flex items-center justify-between">
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2"
-              >
-                {collapsed ? <ChevronUp /> : <ChevronDown />}
-                <CardTitle>Validation Report</CardTitle>
-              </Button>
-            </CollapsibleTrigger>
-            <div className="flex gap-2">
-              {validationResults && (
-                <>
-                  <Badge className="bg-green-100 text-green-800">
-                    {Array.from(validationResults.values()).filter(r => r.status === 'valid').length} Valid
-                  </Badge>
-                  <Badge className="bg-yellow-100 text-yellow-800">
-                    {Array.from(validationResults.values()).filter(r => r.status === 'caution').length} Caution
-                  </Badge>
-                  <Badge className="bg-destructive-light text-red-800">
-                    {Array.from(validationResults.values()).filter(r => r.status === 'rejected').length} Rejected
-                  </Badge>
-                </>
-              )}
+      <AlertDialog
+        open={pendingDeleteColumn !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteColumn(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete column "{pendingDeleteColumn}"?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the column and all its data from
+              every row. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-primary-foreground"
+              onClick={() => {
+                if (pendingDeleteColumn)
+                  deleteCustomColumn(pendingDeleteColumn);
+                setPendingDeleteColumn(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Card className="border border-gray-200">
+        <Collapsible
+          open={!collapsed}
+          onOpenChange={(open: boolean) => setCollapsed(!open)}
+        >
+          <CardHeader className="pb-3 border-b">
+            <div className="flex items-center justify-between">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  {collapsed ? <ChevronUp /> : <ChevronDown />}
+                  <CardTitle>Validation Report</CardTitle>
+                </Button>
+              </CollapsibleTrigger>
+              <div className="flex gap-2">
+                {validationResults && (
+                  <>
+                    <Badge className="bg-green-100 text-green-800">
+                      {
+                        Array.from(validationResults.values()).filter(
+                          (r) => r.status === "valid",
+                        ).length
+                      }{" "}
+                      Valid
+                    </Badge>
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                      {
+                        Array.from(validationResults.values()).filter(
+                          (r) => r.status === "caution",
+                        ).length
+                      }{" "}
+                      Caution
+                    </Badge>
+                    <Badge className="bg-destructive-light text-red-800">
+                      {
+                        Array.from(validationResults.values()).filter(
+                          (r) => r.status === "rejected",
+                        ).length
+                      }{" "}
+                      Rejected
+                    </Badge>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </CardHeader>
+          </CardHeader>
 
-        <CollapsibleContent asChild>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              {/* Header Row */}
-              <thead>
-                <tr className="bg-gray-100 border-b border-gray-300">
-                  <th className="border-r border-gray-300 px-3 py-2 text-left font-semibold w-10">
-                    #
-                  </th>
-                  {allColumns.map(col => {
-                    const isCustomColumn = !columns.includes(col);
-                    const isEditingHeader = editingHeaderColumn === col;
-
-                    return (
-                      <th
-                        key={col}
-                        className="border-r border-gray-300 px-3 py-2 text-left font-semibold whitespace-nowrap bg-gray-50"
-                        onClick={() => {
-                          if (isCustomColumn && !isEditingHeader) {
-                            handleHeaderEdit(col);
-                          }
-                        }}
-                      >
-                        {isEditingHeader ? (
-                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              ref={headerInputRef}
-                              type="text"
-                              value={editingHeaderValue}
-                              onChange={(e) => setEditingHeaderValue(e.target.value)}
-                              onKeyDown={handleHeaderKeyDown}
-                              className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                saveHeaderEdit();
-                              }}
-                              className="text-primary hover:text-blue-800 text-sm font-bold px-2"
-                              title="Save (Enter)"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cancelHeaderEdit();
-                              }}
-                              className="text-destructive hover:text-red-800 text-sm font-bold px-2"
-                              title="Cancel (Esc)"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between group">
-                            <span className={isCustomColumn ? 'cursor-pointer hover:text-primary hover:underline flex-1' : 'flex-1'}>
-                              {col}
-                            </span>
-                            {isCustomColumn && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPendingDeleteColumn(col);
-                                }}
-                                className="text-red-400 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0"
-                                title="Delete column"
-                                aria-label={`Delete column ${col}`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        )}
+          <CollapsibleContent asChild>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  {/* Header Row */}
+                  <thead>
+                    <tr className="bg-gray-100 border-b border-gray-300">
+                      <th className="border-r border-gray-300 px-3 py-2 text-left font-semibold w-10">
+                        #
                       </th>
-                    );
-                  })}
-                  <th className="border-r border-gray-300 px-3 py-2 text-center font-semibold bg-gray-50 w-10">
-                    <button
-                      onClick={addCustomColumn}
-                      className="text-primary hover:text-blue-800 transition-colors inline-flex items-center justify-center"
-                      title="Add custom column"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </th>
-                  <th className="border-r border-gray-300 px-3 py-2 text-left font-semibold bg-gray-50 min-w-[140px]">
-                    Validation Status
-                  </th>
-                  <th className="px-3 py-2 text-left font-semibold bg-gray-50 min-w-[100px]">
-                    Details
-                  </th>
-                </tr>
-              </thead>
-
-              {/* Data Rows */}
-              <tbody>
-                {localRows.map((row, rowIndex) => {
-                  const rowKey = getRowValidationKey(row, rowIndex);
-                  const validation = validationResults.get(rowKey);
-                  const isExpanded = expandedRows.has(rowKey);
-                  const isSelected = selectedRowKey === rowKey;
-                  const statusColor = validation ? getStatusColor(validation.status) : 'bg-card';
-
-                  return (
-                    <tr
-                      key={rowKey}
-                      className={isSelected ? `border-b-2 border-blue-500 bg-primary-light transition-colors` : `border-b border-gray-200 ${statusColor} transition-colors`}
-                    >
-                      {/* Row Number and Expand Button */}
-                      <td className="border-r border-gray-300 px-3 py-2 text-center bg-gray-50 font-medium">
-                        <button
-                          onClick={() => toggleRowExpanded(rowKey)}
-                          className="text-gray-600 hover:text-gray-900 inline-flex"
-                          aria-label={isExpanded ? 'Collapse row details' : 'Expand row details'}
-                          aria-expanded={isExpanded}
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                        </button>
-                        <span className="ml-1">{rowIndex + 1}</span>
-                      </td>
-
-                      {/* Data Cells */}
-                      {allColumns.map(col => {
-                        const isEditing =
-                          editingCell?.rowId === rowKey && editingCell?.column === col;
-                        const cellValue = row[col];
-                        const issue = validation?.issues?.find((i: any) => i.field === col);
-                        const hasErrorMsg = issue ? issue.message : null;
+                      {allColumns.map((col) => {
+                        const isCustomColumn = !columns.includes(col);
+                        const isEditingHeader = editingHeaderColumn === col;
 
                         return (
-                          <td
-                            key={`${rowKey}-${col}`}
-                            className={`border-r border-gray-300 px-3 py-2 cursor-pointer hover:bg-primary-light max-w-xs ${hasErrorMsg ? 'bg-destructive-light' : ''}`}
+                          <th
+                            key={col}
+                            className="border-r border-gray-300 px-3 py-2 text-left font-semibold whitespace-nowrap bg-gray-50"
                             onClick={() => {
-                              if (onRowClick) onRowClick(rowKey);
-                              if (!isEditing) {
-                                handleCellEdit(rowKey, col, cellValue);
+                              if (isCustomColumn && !isEditingHeader) {
+                                handleHeaderEdit(col);
                               }
                             }}
                           >
-                            {isEditing ? (
-                              <div 
+                            {isEditingHeader ? (
+                              <div
                                 className="flex gap-1"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <Input
-                                  ref={inputRef}
-                                  value={editValue}
-                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditValue(e.target.value)}
-                                  onKeyDown={handleKeyDown}
-                                  className="h-8 text-xs flex-1"
+                                <input
+                                  ref={headerInputRef}
+                                  type="text"
+                                  value={editingHeaderValue}
+                                  onChange={(e) =>
+                                    setEditingHeaderValue(e.target.value)
+                                  }
+                                  onKeyDown={handleHeaderKeyDown}
+                                  className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm"
                                   onClick={(e) => e.stopPropagation()}
-                                  spellCheck="false"
                                 />
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    saveEdit();
+                                    saveHeaderEdit();
                                   }}
-                                  className="h-8 w-8 p-0"
+                                  className="text-primary hover:text-blue-800 text-sm font-bold px-2"
                                   title="Save (Enter)"
                                 >
-                                  <Save className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
+                                  ✓
+                                </button>
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    cancelEdit();
+                                    cancelHeaderEdit();
                                   }}
-                                  className="h-8 w-8 p-0"
+                                  className="text-destructive hover:text-red-800 text-sm font-bold px-2"
                                   title="Cancel (Esc)"
                                 >
-                                  <X className="w-3 h-3" />
-                                </Button>
+                                  ✕
+                                </button>
                               </div>
                             ) : (
                               <div className="flex items-center justify-between group">
-                                <span className={`truncate ${hasErrorMsg ? 'text-red-900 font-medium' : 'text-gray-900'}`} title={hasErrorMsg || ''}>
-                                  {cellValue?.toString() || '-'}
+                                <span
+                                  className={
+                                    isCustomColumn
+                                      ? "cursor-pointer hover:text-primary hover:underline flex-1"
+                                      : "flex-1"
+                                  }
+                                >
+                                  {col}
                                 </span>
-                                {hasErrorMsg && <AlertCircle className="w-3 h-3 text-destructive ml-1 shrink-0" />}
-                                <Edit2 className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 ml-2 flex-shrink-0" />
+                                {isCustomColumn && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPendingDeleteColumn(col);
+                                    }}
+                                    className="text-red-400 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0"
+                                    title="Delete column"
+                                    aria-label={`Delete column ${col}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             )}
-                          </td>
+                          </th>
                         );
                       })}
-
-                      {/* Empty cell for + button alignment */}
-                      <td className="border-r border-gray-300 px-3 py-2 w-10"></td>
-
-                      {/* Validation Status Cell */}
-                      <td className="border-r border-gray-300 px-3 py-2">
-                        {validation ? (
-                          getStatusBadge(validation.status)
-                        ) : (
-                          <Badge variant="outline">-</Badge>
-                        )}
-                      </td>
-
-                      {/* Expand Details Button */}
-                      <td className="px-3 py-2">
+                      <th className="border-r border-gray-300 px-3 py-2 text-center font-semibold bg-gray-50 w-10">
                         <button
-                          onClick={() => toggleRowExpanded(rowKey)}
-                          className="text-primary hover:text-blue-900 text-sm font-medium"
+                          onClick={addCustomColumn}
+                          className="text-primary hover:text-blue-800 transition-colors inline-flex items-center justify-center"
+                          title="Add custom column"
                         >
-                          {isExpanded ? 'Hide' : 'Show'}
+                          <Plus className="w-5 h-5" />
                         </button>
-                      </td>
+                      </th>
+                      <th className="border-r border-gray-300 px-3 py-2 text-left font-semibold bg-gray-50 min-w-[140px]">
+                        Validation Status
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold bg-gray-50 min-w-[100px]">
+                        Details
+                      </th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
 
-          {/* Expanded Row Details */}
-          {Array.from(expandedRows).map(rowId => {
-            const row = localRows.find((r, idx) => getRowValidationKey(r, idx) === rowId);
-            const validation = validationResults.get(rowId);
+                  {/* Data Rows */}
+                  <tbody>
+                    {localRows.map((row, rowIndex) => {
+                      const rowKey = getRowValidationKey(row, rowIndex);
+                      const validation = validationResults.get(rowKey);
+                      const isExpanded = expandedRows.has(rowKey);
+                      const isSelected = selectedRowKey === rowKey;
+                      const statusColor = validation
+                        ? getStatusColor(validation.status)
+                        : "bg-card";
 
-            if (!row || !validation) return null;
+                      return (
+                        <tr
+                          key={rowKey}
+                          className={
+                            isSelected
+                              ? `border-b-2 border-blue-500 bg-primary-light transition-colors`
+                              : `border-b border-gray-200 ${statusColor} transition-colors`
+                          }
+                        >
+                          {/* Row Number and Expand Button */}
+                          <td className="border-r border-gray-300 px-3 py-2 text-center bg-gray-50 font-medium">
+                            <button
+                              onClick={() => toggleRowExpanded(rowKey)}
+                              className="text-gray-600 hover:text-gray-900 inline-flex"
+                              aria-label={
+                                isExpanded
+                                  ? "Collapse row details"
+                                  : "Expand row details"
+                              }
+                              aria-expanded={isExpanded}
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
+                            </button>
+                            <span className="ml-1">{rowIndex + 1}</span>
+                          </td>
 
-            return (
-              <div
-                key={`details-${rowId}`}
-                className="bg-gray-50 border-t border-gray-200 p-4"
-              >
-                <div className="max-w-3xl">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    {getStatusBadge(validation.status)}
-                    <span>Question Details - {validation.detectedType?.toUpperCase()}</span>
-                  </h4>
+                          {/* Data Cells */}
+                          {allColumns.map((col) => {
+                            const isEditing =
+                              editingCell?.rowId === rowKey &&
+                              editingCell?.column === col;
+                            const cellValue = row[col];
+                            const issue = validation?.issues?.find(
+                              (i: any) => i.field === col,
+                            );
+                            const hasErrorMsg = issue ? issue.message : null;
 
-                  <div className="space-y-3">
-                    {/* Question Text */}
-                    <div className="bg-card p-3 rounded border border-gray-200">
-                      <p className="text-xs text-gray-600 font-semibold mb-1">Question Text:</p>
-                      <div className="text-sm text-gray-900">
-                        <MathMLRenderer 
-                          content={row.question || row.questionText || 'Not available'}
-                          className="text-sm text-gray-900"
-                        />
-                      </div>
-                    </div>
+                            return (
+                              <td
+                                key={`${rowKey}-${col}`}
+                                className={`border-r border-gray-300 px-3 py-2 cursor-pointer hover:bg-primary-light max-w-xs ${hasErrorMsg ? "bg-destructive-light" : ""}`}
+                                onClick={() => {
+                                  if (onRowClick) onRowClick(rowKey);
+                                  if (!isEditing) {
+                                    handleCellEdit(rowKey, col, cellValue);
+                                  }
+                                }}
+                              >
+                                {isEditing ? (
+                                  <div
+                                    className="flex gap-1"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Input
+                                      ref={inputRef}
+                                      value={editValue}
+                                      onChange={(
+                                        e: React.ChangeEvent<HTMLInputElement>,
+                                      ) => setEditValue(e.target.value)}
+                                      onKeyDown={handleKeyDown}
+                                      className="h-8 text-xs flex-1"
+                                      onClick={(e) => e.stopPropagation()}
+                                      spellCheck="false"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        saveEdit();
+                                      }}
+                                      className="h-8 w-8 p-0"
+                                      title="Save (Enter)"
+                                    >
+                                      <Save className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        cancelEdit();
+                                      }}
+                                      className="h-8 w-8 p-0"
+                                      title="Cancel (Esc)"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between group">
+                                    <span
+                                      className={`truncate ${hasErrorMsg ? "text-red-900 font-medium" : "text-gray-900"}`}
+                                      title={hasErrorMsg || ""}
+                                    >
+                                      {cellValue?.toString() || "-"}
+                                    </span>
+                                    {hasErrorMsg && (
+                                      <AlertCircle className="w-3 h-3 text-destructive ml-1 shrink-0" />
+                                    )}
+                                    <Edit2 className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 ml-2 flex-shrink-0" />
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
 
-                    {/* Validation Issues */}
-                    {(validation.criticalErrors.length > 0 || validation.warnings.length > 0) && (
-                      <div className="bg-card p-3 rounded border border-gray-200">
-                        {validation.criticalErrors.length > 0 && (
-                          <>
-                            <p className="text-xs text-gray-600 font-semibold mb-2">Critical Errors:</p>
-                            <ul className="space-y-1 mb-3">
-                              {validation.criticalErrors.map((error: ValidationError, idx: number) => (
-                                <li key={`error-${idx}`} className="text-sm text-destructive flex gap-2">
-                                  <span className="text-red-400">•</span>
-                                  <span><strong>{error.field}:</strong> {error.message}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </>
-                        )}
-                        {validation.warnings.length > 0 && (
-                          <>
-                            <p className="text-xs text-gray-600 font-semibold mb-2">Warnings:</p>
-                            <ul className="space-y-1">
-                              {validation.warnings.map((warning: ValidationError, idx: number) => (
-                                <li key={`warning-${idx}`} className="text-sm text-yellow-600 flex gap-2">
-                                  <span className="text-yellow-500">⚠</span>
-                                  <span><strong>{warning.field}:</strong> {warning.message}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </>
-                        )}
-                      </div>
-                    )}
+                          {/* Empty cell for + button alignment */}
+                          <td className="border-r border-gray-300 px-3 py-2 w-10"></td>
 
-                    {/* All Row Data */}
-                    <div className="bg-card p-3 rounded border border-gray-200">
-                      <p className="text-xs text-gray-600 font-semibold mb-2">All Fields:</p>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        {Object.entries(row).map(([key, value]) => (
-                          <div key={key} className="border-l-2 border-gray-200 pl-2">
-                            <p className="text-gray-600 font-medium">{key}:</p>
-                            <p className="text-gray-900 truncate">
-                              {value?.toString() || '-'}
-                            </p>
+                          {/* Validation Status Cell */}
+                          <td className="border-r border-gray-300 px-3 py-2">
+                            {validation ? (
+                              getStatusBadge(validation.status)
+                            ) : (
+                              <Badge variant="outline">-</Badge>
+                            )}
+                          </td>
+
+                          {/* Expand Details Button */}
+                          <td className="px-3 py-2">
+                            <button
+                              onClick={() => toggleRowExpanded(rowKey)}
+                              className="text-primary hover:text-blue-900 text-sm font-medium"
+                            >
+                              {isExpanded ? "Hide" : "Show"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Expanded Row Details */}
+              {Array.from(expandedRows).map((rowId) => {
+                const row = localRows.find(
+                  (r, idx) => getRowValidationKey(r, idx) === rowId,
+                );
+                const validation = validationResults.get(rowId);
+
+                if (!row || !validation) return null;
+
+                return (
+                  <div
+                    key={`details-${rowId}`}
+                    className="bg-gray-50 border-t border-gray-200 p-4"
+                  >
+                    <div className="max-w-3xl">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        {getStatusBadge(validation.status)}
+                        <span>
+                          Question Details -{" "}
+                          {validation.detectedType?.toUpperCase()}
+                        </span>
+                      </h4>
+
+                      <div className="space-y-3">
+                        {/* Question Text */}
+                        <div className="bg-card p-3 rounded border border-gray-200">
+                          <p className="text-xs text-gray-600 font-semibold mb-1">
+                            Question Text:
+                          </p>
+                          <div className="text-sm text-gray-900">
+                            <MathMLRenderer
+                              content={
+                                row.question ||
+                                row.questionText ||
+                                "Not available"
+                              }
+                              className="text-sm text-gray-900"
+                            />
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleRowExpanded(rowId)}
-                      >
-                        Close Details
-                      </Button>
+                        {/* Validation Issues */}
+                        {(validation.criticalErrors.length > 0 ||
+                          validation.warnings.length > 0) && (
+                          <div className="bg-card p-3 rounded border border-gray-200">
+                            {validation.criticalErrors.length > 0 && (
+                              <>
+                                <p className="text-xs text-gray-600 font-semibold mb-2">
+                                  Critical Errors:
+                                </p>
+                                <ul className="space-y-1 mb-3">
+                                  {validation.criticalErrors.map(
+                                    (error: ValidationError, idx: number) => (
+                                      <li
+                                        key={`error-${idx}`}
+                                        className="text-sm text-destructive flex gap-2"
+                                      >
+                                        <span className="text-red-400">•</span>
+                                        <span>
+                                          <strong>{error.field}:</strong>{" "}
+                                          {error.message}
+                                        </span>
+                                      </li>
+                                    ),
+                                  )}
+                                </ul>
+                              </>
+                            )}
+                            {validation.warnings.length > 0 && (
+                              <>
+                                <p className="text-xs text-gray-600 font-semibold mb-2">
+                                  Warnings:
+                                </p>
+                                <ul className="space-y-1">
+                                  {validation.warnings.map(
+                                    (warning: ValidationError, idx: number) => (
+                                      <li
+                                        key={`warning-${idx}`}
+                                        className="text-sm text-yellow-600 flex gap-2"
+                                      >
+                                        <span className="text-yellow-500">
+                                          ⚠
+                                        </span>
+                                        <span>
+                                          <strong>{warning.field}:</strong>{" "}
+                                          {warning.message}
+                                        </span>
+                                      </li>
+                                    ),
+                                  )}
+                                </ul>
+                              </>
+                            )}
+                          </div>
+                        )}
+
+                        {/* All Row Data */}
+                        <div className="bg-card p-3 rounded border border-gray-200">
+                          <p className="text-xs text-gray-600 font-semibold mb-2">
+                            All Fields:
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {Object.entries(row).map(([key, value]) => (
+                              <div
+                                key={key}
+                                className="border-l-2 border-gray-200 pl-2"
+                              >
+                                <p className="text-gray-600 font-medium">
+                                  {key}:
+                                </p>
+                                <p className="text-gray-900 truncate">
+                                  {value?.toString() || "-"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleRowExpanded(rowId)}
+                          >
+                            Close Details
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
 
-          {/* Empty State */}
-          {localRows.length === 0 && (
-            <div className="p-8 text-center">
-              <p className="text-gray-500">No data to display</p>
-            </div>
-          )}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+              {/* Empty State */}
+              {localRows.length === 0 && (
+                <div className="p-8 text-center">
+                  <p className="text-gray-500">No data to display</p>
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 import {
   Upload,
   Play,
@@ -31,7 +31,12 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Textarea } from "../../components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../../components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { Badge } from "../../components/ui/badge";
 import { cn } from "../../components/ui/utils";
@@ -47,7 +52,7 @@ interface ParsedChoice {
 interface ParsedQuestion {
   identifier: string;
   title: string;
-  type: 'mcq' | 'textentry';
+  type: "mcq" | "textentry";
   stem: string;
   textEntryExpectedLength?: number;
   choices?: ParsedChoice[];
@@ -61,7 +66,7 @@ interface ParsedQuestion {
 
 interface FileMetadata {
   fileName: string;
-  format: 'xml' | 'json' | 'unknown';
+  format: "xml" | "json" | "unknown";
   qtiVersion: string;
   totalItems: number;
 }
@@ -70,7 +75,7 @@ interface QuestionNavigatorItem {
   index: number;
   identifier: string;
   title: string;
-  type: 'mcq' | 'textentry';
+  type: "mcq" | "textentry";
   preview: string;
 }
 
@@ -86,8 +91,32 @@ const serializer = new XMLSerializer();
 function sanitizeHTML(html: string): string {
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { mathMl: true, svg: true, html: true },
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'base', 'link', 'meta'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onkeydown', 'onkeyup', 'onkeypress'],
+    FORBID_TAGS: [
+      "script",
+      "style",
+      "iframe",
+      "object",
+      "embed",
+      "form",
+      "input",
+      "textarea",
+      "base",
+      "link",
+      "meta",
+    ],
+    FORBID_ATTR: [
+      "onerror",
+      "onload",
+      "onclick",
+      "onmouseover",
+      "onfocus",
+      "onblur",
+      "onchange",
+      "onsubmit",
+      "onkeydown",
+      "onkeyup",
+      "onkeypress",
+    ],
   });
 }
 
@@ -100,15 +129,13 @@ function sanitizeHTML(html: string): string {
  * malicious QTI XML (e.g. `<img onerror="...">`, `<script>`, event handlers).
  */
 function getInnerHTML(el: Element): string {
-  let html = '';
+  let html = "";
   for (let i = 0; i < el.childNodes.length; i++) {
     html += serializer.serializeToString(el.childNodes[i]);
   }
   // XMLSerializer adds xmlns declarations on every element; strip them so the
   // HTML output is clean for the browser to render via MathMLRenderer.
-  const raw = html
-    .replace(/ xmlns="[^"]*"/g, '')
-    .trim();
+  const raw = html.replace(/ xmlns="[^"]*"/g, "").trim();
   return sanitizeHTML(raw);
 }
 
@@ -117,40 +144,46 @@ function getInnerHTML(el: Element): string {
  * certain tag names (e.g. feedbackBlock, qti-modal-feedback) so their text
  * doesn't pollute the stem.
  */
-function getInnerHTMLExcluding(el: Element, excludeSelectors: string[]): string {
+function getInnerHTMLExcluding(
+  el: Element,
+  excludeSelectors: string[],
+): string {
   // Clone so we don't mutate the parsed document
   const clone = el.cloneNode(true) as Element;
   for (const sel of excludeSelectors) {
-    clone.querySelectorAll(sel).forEach(node => node.parentNode?.removeChild(node));
+    clone
+      .querySelectorAll(sel)
+      .forEach((node) => node.parentNode?.removeChild(node));
   }
   return getInnerHTML(clone);
 }
 
-const FEEDBACK_SELECTORS = 'feedbackBlock, modalFeedback, qti-modal-feedback, qti-feedback-block';
+const FEEDBACK_SELECTORS =
+  "feedbackBlock, modalFeedback, qti-modal-feedback, qti-feedback-block";
 
 function isIncorrectFeedbackNode(node: Element): boolean {
-  const identifier = (node.getAttribute('identifier') || '').toLowerCase();
+  const identifier = (node.getAttribute("identifier") || "").toLowerCase();
   const outcomeIdentifier = (
-    node.getAttribute('outcomeIdentifier')
-    || node.getAttribute('outcome-identifier')
-    || ''
+    node.getAttribute("outcomeIdentifier") ||
+    node.getAttribute("outcome-identifier") ||
+    ""
   ).toLowerCase();
 
   return (
-    identifier === 'incorrect'
-    || identifier.includes('incorrect')
-    || identifier.includes('wrong')
-    || outcomeIdentifier.includes('incorrect')
-    || outcomeIdentifier.includes('wrong')
+    identifier === "incorrect" ||
+    identifier.includes("incorrect") ||
+    identifier.includes("wrong") ||
+    outcomeIdentifier.includes("incorrect") ||
+    outcomeIdentifier.includes("wrong")
   );
 }
 
 function isCorrectFeedbackNode(node: Element): boolean {
-  const identifier = (node.getAttribute('identifier') || '').toLowerCase();
+  const identifier = (node.getAttribute("identifier") || "").toLowerCase();
   const outcomeIdentifier = (
-    node.getAttribute('outcomeIdentifier')
-    || node.getAttribute('outcome-identifier')
-    || ''
+    node.getAttribute("outcomeIdentifier") ||
+    node.getAttribute("outcome-identifier") ||
+    ""
   ).toLowerCase();
 
   if (isIncorrectFeedbackNode(node)) {
@@ -158,30 +191,39 @@ function isCorrectFeedbackNode(node: Element): boolean {
   }
 
   return (
-    identifier === 'correct'
-    || identifier.includes('correct')
-    || outcomeIdentifier.includes('correct')
+    identifier === "correct" ||
+    identifier.includes("correct") ||
+    outcomeIdentifier.includes("correct")
   );
 }
 
-function extractFeedback(item: Element, itemBody: Element | null): {
+function extractFeedback(
+  item: Element,
+  itemBody: Element | null,
+): {
   feedbackText: string;
   correctFeedback: string;
   incorrectFeedback: string;
 } {
-  let feedbackText = '';
-  let correctFeedback = '';
-  let incorrectFeedback = '';
+  let feedbackText = "";
+  let correctFeedback = "";
+  let incorrectFeedback = "";
 
-  const itemBodyFeedbacks = itemBody ? Array.from(itemBody.querySelectorAll(FEEDBACK_SELECTORS)) : [];
-  const itemLevelFeedbacks = Array.from(item.querySelectorAll(FEEDBACK_SELECTORS));
+  const itemBodyFeedbacks = itemBody
+    ? Array.from(itemBody.querySelectorAll(FEEDBACK_SELECTORS))
+    : [];
+  const itemLevelFeedbacks = Array.from(
+    item.querySelectorAll(FEEDBACK_SELECTORS),
+  );
 
   const seen = new Set<Element>();
-  const allFeedbacks = [...itemBodyFeedbacks, ...itemLevelFeedbacks].filter((fb) => {
-    if (seen.has(fb)) return false;
-    seen.add(fb);
-    return true;
-  });
+  const allFeedbacks = [...itemBodyFeedbacks, ...itemLevelFeedbacks].filter(
+    (fb) => {
+      if (seen.has(fb)) return false;
+      seen.add(fb);
+      return true;
+    },
+  );
 
   for (const fb of allFeedbacks) {
     const text = getInnerHTML(fb).trim();
@@ -208,8 +250,8 @@ function extractFeedback(item: Element, itemBody: Element | null): {
 // Rebuild a QTI XML document from a JSON-shaped question (matches the
 // shape the SourceViewer emits in JSON mode) so edits can round-trip.
 function jsonQuestionToXml(data: unknown): string {
-  if (!data || typeof data !== 'object') {
-    throw new Error('JSON must be a question object.');
+  if (!data || typeof data !== "object") {
+    throw new Error("JSON must be a question object.");
   }
   const q = data as {
     identifier?: string;
@@ -222,18 +264,18 @@ function jsonQuestionToXml(data: unknown): string {
     textEntryExpectedLength?: number;
   };
 
-  const identifier = q.identifier || 'edited-item';
-  const title = q.title || 'Edited Item';
+  const identifier = q.identifier || "edited-item";
+  const title = q.title || "Edited Item";
   const type = q.type;
-  const stem = q.stem || '';
+  const stem = q.stem || "";
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<assessmentItem identifier="${identifier}" title="${title}">\n`;
 
-  if (type === 'mcq') {
+  if (type === "mcq") {
     xml += `  <responseDeclaration identifier="RESPONSE">\n`;
     xml += `    <correctResponse>\n`;
-    xml += `      <value>${q.correctAnswer || ''}</value>\n`;
+    xml += `      <value>${q.correctAnswer || ""}</value>\n`;
     xml += `    </correctResponse>\n`;
     xml += `  </responseDeclaration>\n`;
     xml += `  <itemBody>\n`;
@@ -244,7 +286,7 @@ function jsonQuestionToXml(data: unknown): string {
     });
     xml += `    </choiceInteraction>\n`;
     xml += `  </itemBody>\n`;
-  } else if (type === 'textentry') {
+  } else if (type === "textentry") {
     xml += `  <responseDeclaration identifier="RESPONSE">\n`;
     xml += `    <correctResponse>\n`;
     (q.correctAnswers || []).forEach((a) => {
@@ -259,7 +301,9 @@ function jsonQuestionToXml(data: unknown): string {
     xml += `    </div>\n`;
     xml += `  </itemBody>\n`;
   } else {
-    throw new Error('Unsupported question type in JSON. Expected "mcq" or "textentry".');
+    throw new Error(
+      'Unsupported question type in JSON. Expected "mcq" or "textentry".',
+    );
   }
 
   xml += `</assessmentItem>`;
@@ -270,96 +314,104 @@ function jsonQuestionToXml(data: unknown): string {
 
 function parseQTIXml(xmlString: string): ParsedQuestion[] {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlString.trim(), 'application/xml');
+  const doc = parser.parseFromString(xmlString.trim(), "application/xml");
 
-  const parseError = doc.querySelector('parsererror');
+  const parseError = doc.querySelector("parsererror");
   if (parseError) {
-    throw new Error('Invalid XML: ' + parseError.textContent);
+    throw new Error("Invalid XML: " + parseError.textContent);
   }
 
   const questions: ParsedQuestion[] = [];
 
-  let items = doc.querySelectorAll('assessmentItem');
+  let items = doc.querySelectorAll("assessmentItem");
   if (items.length === 0) {
-    items = doc.querySelectorAll('qti-assessment-item');
+    items = doc.querySelectorAll("qti-assessment-item");
   }
 
-  const itemsToProcess = items.length > 0 ? Array.from(items) : [doc.documentElement];
+  const itemsToProcess =
+    items.length > 0 ? Array.from(items) : [doc.documentElement];
 
   for (const item of itemsToProcess) {
-    if (item.tagName === 'parsererror') continue;
+    if (item.tagName === "parsererror") continue;
 
-    const identifier = item.getAttribute('identifier') || 'unknown';
-    const title = item.getAttribute('title') || 'Untitled Question';
+    const identifier = item.getAttribute("identifier") || "unknown";
+    const title = item.getAttribute("title") || "Untitled Question";
 
-    let choiceInteraction = item.querySelector('choiceInteraction');
+    let choiceInteraction = item.querySelector("choiceInteraction");
     if (!choiceInteraction) {
-      choiceInteraction = item.querySelector('qti-choice-interaction');
+      choiceInteraction = item.querySelector("qti-choice-interaction");
     }
 
-    let textEntryInteraction = item.querySelector('textEntryInteraction');
+    let textEntryInteraction = item.querySelector("textEntryInteraction");
     if (!textEntryInteraction) {
-      textEntryInteraction = item.querySelector('qti-text-entry-interaction');
+      textEntryInteraction = item.querySelector("qti-text-entry-interaction");
     }
 
     if (choiceInteraction) {
-      let prompt = choiceInteraction.querySelector('prompt');
+      let prompt = choiceInteraction.querySelector("prompt");
       if (!prompt) {
-        prompt = choiceInteraction.querySelector('qti-prompt');
+        prompt = choiceInteraction.querySelector("qti-prompt");
       }
 
-      let itemBody = item.querySelector('itemBody');
+      let itemBody = item.querySelector("itemBody");
       if (!itemBody) {
-        itemBody = item.querySelector('qti-item-body');
+        itemBody = item.querySelector("qti-item-body");
       }
 
-      let stem = '';
+      let stem = "";
       if (prompt) {
         stem = getInnerHTML(prompt);
       } else if (itemBody) {
-        const pTags = itemBody.querySelectorAll('p, qti-content-body > *');
+        const pTags = itemBody.querySelectorAll("p, qti-content-body > *");
         for (const p of Array.from(pTags)) {
           if (!p.closest(FEEDBACK_SELECTORS)) {
             const html = getInnerHTML(p);
             if (html) {
-              stem += (stem ? '<br/>' : '') + html;
+              stem += (stem ? "<br/>" : "") + html;
             }
           }
         }
       }
 
-      let simpleChoices = choiceInteraction.querySelectorAll('simpleChoice');
+      let simpleChoices = choiceInteraction.querySelectorAll("simpleChoice");
       if (simpleChoices.length === 0) {
-        simpleChoices = choiceInteraction.querySelectorAll('qti-simple-choice');
+        simpleChoices = choiceInteraction.querySelectorAll("qti-simple-choice");
       }
 
-      const choices: ParsedChoice[] = Array.from(simpleChoices).map(choice => ({
-        identifier: choice.getAttribute('identifier') || '',
-        content: getInnerHTML(choice),
-      }));
+      const choices: ParsedChoice[] = Array.from(simpleChoices).map(
+        (choice) => ({
+          identifier: choice.getAttribute("identifier") || "",
+          content: getInnerHTML(choice),
+        }),
+      );
 
-      let correctAnswer = '';
-      let responseDecl = item.querySelector('responseDeclaration');
+      let correctAnswer = "";
+      let responseDecl = item.querySelector("responseDeclaration");
       if (!responseDecl) {
-        responseDecl = item.querySelector('qti-response-declaration');
+        responseDecl = item.querySelector("qti-response-declaration");
       }
 
       if (responseDecl) {
-        let correctValue = responseDecl.querySelector('correctResponse > value');
+        let correctValue = responseDecl.querySelector(
+          "correctResponse > value",
+        );
         if (!correctValue) {
-          correctValue = responseDecl.querySelector('qti-correct-response > qti-value');
+          correctValue = responseDecl.querySelector(
+            "qti-correct-response > qti-value",
+          );
         }
         if (correctValue) {
-          correctAnswer = correctValue.textContent?.trim() || '';
+          correctAnswer = correctValue.textContent?.trim() || "";
         }
       }
 
-      const { feedbackText, correctFeedback, incorrectFeedback } = extractFeedback(item, itemBody);
+      const { feedbackText, correctFeedback, incorrectFeedback } =
+        extractFeedback(item, itemBody);
 
       questions.push({
         identifier,
         title,
-        type: 'mcq',
+        type: "mcq",
         stem,
         choices,
         correctAnswer,
@@ -367,63 +419,73 @@ function parseQTIXml(xmlString: string): ParsedQuestion[] {
         correctFeedback,
         incorrectFeedback,
       });
-
     } else if (textEntryInteraction) {
-      const expectedLengthAttr = textEntryInteraction.getAttribute('expectedLength')
-        || textEntryInteraction.getAttribute('expected-length');
-      const parsedExpectedLength = expectedLengthAttr ? Number(expectedLengthAttr) : NaN;
-      const expectedLength = Number.isFinite(parsedExpectedLength) && parsedExpectedLength > 0
-        ? Math.round(parsedExpectedLength)
-        : undefined;
+      const expectedLengthAttr =
+        textEntryInteraction.getAttribute("expectedLength") ||
+        textEntryInteraction.getAttribute("expected-length");
+      const parsedExpectedLength = expectedLengthAttr
+        ? Number(expectedLengthAttr)
+        : NaN;
+      const expectedLength =
+        Number.isFinite(parsedExpectedLength) && parsedExpectedLength > 0
+          ? Math.round(parsedExpectedLength)
+          : undefined;
 
-      let itemBody = item.querySelector('itemBody');
+      let itemBody = item.querySelector("itemBody");
       if (!itemBody) {
-        itemBody = item.querySelector('qti-item-body');
+        itemBody = item.querySelector("qti-item-body");
       }
 
-      let stem = '';
+      let stem = "";
       if (itemBody) {
-        const pTags = itemBody.querySelectorAll('p, qti-content-body > *');
+        const pTags = itemBody.querySelectorAll("p, qti-content-body > *");
         for (const p of Array.from(pTags)) {
           if (!p.closest(FEEDBACK_SELECTORS)) {
             const html = getInnerHTML(p);
             if (html) {
-              stem += (stem ? '<br/>' : '') + html;
+              stem += (stem ? "<br/>" : "") + html;
             }
           }
         }
         if (!stem) {
           // Fallback: serialize the itemBody excluding interactions and feedback
           stem = getInnerHTMLExcluding(itemBody, [
-            'textEntryInteraction', 'qti-text-entry-interaction',
-            'feedbackBlock', 'modalFeedback', 'qti-modal-feedback', 'qti-feedback-block',
+            "textEntryInteraction",
+            "qti-text-entry-interaction",
+            "feedbackBlock",
+            "modalFeedback",
+            "qti-modal-feedback",
+            "qti-feedback-block",
           ]);
         }
       }
 
       const correctAnswers: string[] = [];
-      let responseDecl = item.querySelector('responseDeclaration');
+      let responseDecl = item.querySelector("responseDeclaration");
       if (!responseDecl) {
-        responseDecl = item.querySelector('qti-response-declaration');
+        responseDecl = item.querySelector("qti-response-declaration");
       }
 
       if (responseDecl) {
-        let values = responseDecl.querySelectorAll('correctResponse > value');
+        let values = responseDecl.querySelectorAll("correctResponse > value");
         if (values.length === 0) {
-          values = responseDecl.querySelectorAll('qti-correct-response > qti-value');
+          values = responseDecl.querySelectorAll(
+            "qti-correct-response > qti-value",
+          );
         }
-        values.forEach(v => {
+        values.forEach((v) => {
           const text = v.textContent?.trim();
           if (text) correctAnswers.push(text);
         });
       }
 
-      const { feedbackText, correctFeedback, incorrectFeedback } = extractFeedback(item, itemBody);
+      const { feedbackText, correctFeedback, incorrectFeedback } =
+        extractFeedback(item, itemBody);
 
       questions.push({
         identifier,
         title,
-        type: 'textentry',
+        type: "textentry",
         stem,
         textEntryExpectedLength: expectedLength,
         correctAnswers,
@@ -439,10 +501,19 @@ function parseQTIXml(xmlString: string): ParsedQuestion[] {
 
 // ── Feedback Block ─────────────────────────────────────────────────────────────
 
-function FeedbackBlock({ isCorrect, question }: { isCorrect: boolean; question: ParsedQuestion }) {
-  const correctChoice = question.type === 'mcq'
-    ? question.choices?.find((choice) => choice.identifier === question.correctAnswer)
-    : null;
+function FeedbackBlock({
+  isCorrect,
+  question,
+}: {
+  isCorrect: boolean;
+  question: ParsedQuestion;
+}) {
+  const correctChoice =
+    question.type === "mcq"
+      ? question.choices?.find(
+          (choice) => choice.identifier === question.correctAnswer,
+        )
+      : null;
 
   return (
     <div
@@ -450,7 +521,7 @@ function FeedbackBlock({ isCorrect, question }: { isCorrect: boolean; question: 
         "mt-4 flex items-start gap-2 rounded-xl p-3 transition-all duration-300",
         isCorrect
           ? "bg-card border-2 border-success"
-          : "bg-card border-2 border-destructive"
+          : "bg-card border-2 border-destructive",
       )}
     >
       {isCorrect ? (
@@ -462,30 +533,49 @@ function FeedbackBlock({ isCorrect, question }: { isCorrect: boolean; question: 
         <p className="font-semibold text-foreground">
           {isCorrect ? "Correct!" : "Incorrect"}
         </p>
-        {!isCorrect && question.type === 'mcq' && question.correctAnswer && (
+        {!isCorrect && question.type === "mcq" && question.correctAnswer && (
           <div className="text-sm mt-1 text-foreground">
             <p>The correct answer is:</p>
             {correctChoice?.content ? (
-              <MathMLRenderer content={correctChoice.content} className="mt-1 font-medium" inline />
+              <MathMLRenderer
+                content={correctChoice.content}
+                className="mt-1 font-medium"
+                inline
+              />
             ) : (
               <strong>{question.correctAnswer}</strong>
             )}
           </div>
         )}
-        {!isCorrect && question.type === 'textentry' && question.correctAnswers && question.correctAnswers.length > 0 && (
-          <p className="text-sm mt-1 text-foreground">
-            Expected answer: <strong>{question.correctAnswers.join(' / ')}</strong>
-          </p>
-        )}
+        {!isCorrect &&
+          question.type === "textentry" &&
+          question.correctAnswers &&
+          question.correctAnswers.length > 0 && (
+            <p className="text-sm mt-1 text-foreground">
+              Expected answer:{" "}
+              <strong>{question.correctAnswers.join(" / ")}</strong>
+            </p>
+          )}
         {isCorrect && question.correctFeedback && (
-          <MathMLRenderer content={question.correctFeedback} className="text-sm mt-1.5" />
+          <MathMLRenderer
+            content={question.correctFeedback}
+            className="text-sm mt-1.5"
+          />
         )}
         {!isCorrect && question.incorrectFeedback && (
-          <MathMLRenderer content={question.incorrectFeedback} className="text-sm mt-1.5" />
+          <MathMLRenderer
+            content={question.incorrectFeedback}
+            className="text-sm mt-1.5"
+          />
         )}
-        {!question.correctFeedback && !question.incorrectFeedback && question.feedbackText && (
-          <MathMLRenderer content={question.feedbackText} className="text-sm mt-1.5 opacity-90" />
-        )}
+        {!question.correctFeedback &&
+          !question.incorrectFeedback &&
+          question.feedbackText && (
+            <MathMLRenderer
+              content={question.feedbackText}
+              className="text-sm mt-1.5 opacity-90"
+            />
+          )}
       </div>
     </div>
   );
@@ -508,7 +598,9 @@ function FileHeader({ metadata, parsedQuestions }: FileHeaderProps) {
           <FileCode className="w-4.5 h-4.5 text-primary-foreground" />
         </div>
         <div className="flex items-center gap-2 min-w-0">
-          <h1 className="text-sm font-semibold text-foreground truncate">{metadata.fileName}</h1>
+          <h1 className="text-sm font-semibold text-foreground truncate">
+            {metadata.fileName}
+          </h1>
           <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
             {metadata.format.toUpperCase()}
           </span>
@@ -518,8 +610,11 @@ function FileHeader({ metadata, parsedQuestions }: FileHeaderProps) {
         </div>
       </div>
 
-      <Badge variant="secondary" className="bg-muted text-foreground hover:bg-muted transition-colors text-xs flex-shrink-0 border border-border">
-        {parsedQuestions.length} item{parsedQuestions.length !== 1 ? 's' : ''}
+      <Badge
+        variant="secondary"
+        className="bg-muted text-foreground hover:bg-muted transition-colors text-xs flex-shrink-0 border border-border"
+      >
+        {parsedQuestions.length} item{parsedQuestions.length !== 1 ? "s" : ""}
       </Badge>
     </div>
   );
@@ -604,10 +699,10 @@ function QuestionNavigator({
                 "px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors",
                 filters.has(type)
                   ? "bg-muted text-foreground border border-border/60"
-                  : "bg-card text-muted-foreground border border-border hover:bg-muted transition-colors"
+                  : "bg-card text-muted-foreground border border-border hover:bg-muted transition-colors",
               )}
             >
-              {type === 'mcq' ? 'MCQ' : 'Text Entry'}
+              {type === "mcq" ? "MCQ" : "Text Entry"}
             </button>
           ))}
         </div>
@@ -617,7 +712,9 @@ function QuestionNavigator({
       <div className="flex-1 overflow-y-auto min-w-0">
         {filteredQuestions.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground/50 text-xs">
-            {searchText || filters.size > 0 ? 'No questions match filter' : 'No questions loaded'}
+            {searchText || filters.size > 0
+              ? "No questions match filter"
+              : "No questions loaded"}
           </div>
         ) : (
           <div className="space-y-1 p-2">
@@ -629,24 +726,28 @@ function QuestionNavigator({
                   "w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all duration-200 border",
                   activeIndex === q.index
                     ? "bg-muted border-border/60 shadow-sm"
-                    : "border-transparent hover:bg-muted transition-colors"
+                    : "border-transparent hover:bg-muted transition-colors",
                 )}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-foreground">Q{q.index + 1}</span>
+                  <span className="font-semibold text-foreground">
+                    Q{q.index + 1}
+                  </span>
                   <Badge
                     variant="outline"
                     className={cn(
                       "text-xs h-5",
-                      q.type === 'mcq'
+                      q.type === "mcq"
                         ? "bg-muted text-foreground border-border/60"
-                        : "bg-warning-light text-warning border-amber-300"
+                        : "bg-warning-light text-warning border-amber-300",
                     )}
                   >
-                    {q.type === 'mcq' ? 'MCQ' : 'Text'}
+                    {q.type === "mcq" ? "MCQ" : "Text"}
                   </Badge>
                 </div>
-                <p className="text-foreground font-medium line-clamp-1">{q.title}</p>
+                <p className="text-foreground font-medium line-clamp-1">
+                  {q.title}
+                </p>
                 <p
                   className="text-muted-foreground/50 line-clamp-2 mt-0.5"
                   dangerouslySetInnerHTML={{ __html: sanitizeHTML(q.preview) }}
@@ -664,12 +765,20 @@ function QuestionNavigator({
 
 interface SourceViewerProps {
   question: ParsedQuestion | null;
-  sourceMode: 'xml' | 'json';
-  onSourceModeChange: (mode: 'xml' | 'json') => void;
-  onSave?: (editedContent: string, mode: 'xml' | 'json') => { ok: boolean; error?: string };
+  sourceMode: "xml" | "json";
+  onSourceModeChange: (mode: "xml" | "json") => void;
+  onSave?: (
+    editedContent: string,
+    mode: "xml" | "json",
+  ) => { ok: boolean; error?: string };
 }
 
-function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: SourceViewerProps) {
+function SourceViewer({
+  question,
+  sourceMode,
+  onSourceModeChange,
+  onSave,
+}: SourceViewerProps) {
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState("");
@@ -688,16 +797,19 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
   // Convert question back to XML
   const generateXml = (): string => {
     const serializer = new XMLSerializer();
-    const doc = new DOMParser().parseFromString('<?xml version="1.0"?><root/>', 'application/xml');
-    
+    const doc = new DOMParser().parseFromString(
+      '<?xml version="1.0"?><root/>',
+      "application/xml",
+    );
+
     // Build XML representation
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<assessmentItem identifier="${question.identifier}" title="${question.title}">\n`;
-    
-    if (question.type === 'mcq') {
+
+    if (question.type === "mcq") {
       xml += `  <responseDeclaration identifier="RESPONSE">\n`;
       xml += `    <correctResponse>\n`;
-      xml += `      <value>${question.correctAnswer || ''}</value>\n`;
+      xml += `      <value>${question.correctAnswer || ""}</value>\n`;
       xml += `    </correctResponse>\n`;
       xml += `  </responseDeclaration>\n`;
       xml += `  <itemBody>\n`;
@@ -723,7 +835,7 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
       xml += `    </div>\n`;
       xml += `  </itemBody>\n`;
     }
-    
+
     xml += `</assessmentItem>`;
     return xml;
   };
@@ -743,11 +855,11 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
         incorrectFeedback: question.incorrectFeedback,
       },
       null,
-      2
+      2,
     );
   };
 
-  const sourceContent = sourceMode === 'xml' ? generateXml() : generateJson();
+  const sourceContent = sourceMode === "xml" ? generateXml() : generateJson();
   const displayContent = isEditing ? editedContent : sourceContent;
 
   // Exit edit mode and clear errors when the selected question or mode changes.
@@ -762,7 +874,9 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
       setCopiedToClipboard(true);
       setTimeout(() => setCopiedToClipboard(false), 2000);
     } catch {
-      setEditError('Clipboard copy failed. Your browser may block clipboard access.');
+      setEditError(
+        "Clipboard copy failed. Your browser may block clipboard access.",
+      );
     }
   };
 
@@ -784,7 +898,7 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
     try {
       const text = await navigator.clipboard.readText();
       if (!text) {
-        setEditError('Clipboard is empty.');
+        setEditError("Clipboard is empty.");
         return;
       }
       if (!isEditing) {
@@ -796,7 +910,8 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
         if (el) {
           const start = el.selectionStart ?? editedContent.length;
           const end = el.selectionEnd ?? editedContent.length;
-          const next = editedContent.slice(0, start) + text + editedContent.slice(end);
+          const next =
+            editedContent.slice(0, start) + text + editedContent.slice(end);
           setEditedContent(next);
           setTimeout(() => {
             if (textareaRef.current) {
@@ -811,13 +926,13 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
       }
       setEditError(null);
     } catch {
-      setEditError('Paste failed. Your browser may block clipboard access.');
+      setEditError("Paste failed. Your browser may block clipboard access.");
     }
   };
 
   const handleSave = () => {
     if (!onSave) {
-      setEditError('Save is not available.');
+      setEditError("Save is not available.");
       return;
     }
     const result = onSave(editedContent, sourceMode);
@@ -827,7 +942,7 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 2000);
     } else {
-      setEditError(result.error || 'Failed to apply changes.');
+      setEditError(result.error || "Failed to apply changes.");
     }
   };
 
@@ -839,7 +954,10 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
           <Code className="w-4 h-4 text-muted-foreground" />
           <span className="text-xs font-semibold text-foreground">Source</span>
           {isEditing && (
-            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-border/60 text-foreground">
+            <Badge
+              variant="outline"
+              className="text-[10px] h-5 px-1.5 border-border/60 text-foreground"
+            >
               Editing
             </Badge>
           )}
@@ -847,12 +965,22 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
         <div className="flex items-center gap-1">
           <Tabs
             value={sourceMode}
-            onValueChange={(value) => onSourceModeChange(value as 'xml' | 'json')}
+            onValueChange={(value) =>
+              onSourceModeChange(value as "xml" | "json")
+            }
             className="w-auto"
           >
             <TabsList className="grid grid-cols-2 bg-muted h-7 border border-border">
-              <TabsTrigger value="xml" className="text-xs" disabled={isEditing}>XML</TabsTrigger>
-              <TabsTrigger value="json" className="text-xs" disabled={isEditing}>JSON</TabsTrigger>
+              <TabsTrigger value="xml" className="text-xs" disabled={isEditing}>
+                XML
+              </TabsTrigger>
+              <TabsTrigger
+                value="json"
+                className="text-xs"
+                disabled={isEditing}
+              >
+                JSON
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           <Button
@@ -916,17 +1044,21 @@ function SourceViewer({ question, sourceMode, onSourceModeChange, onSave }: Sour
           value={editedContent}
           onChange={(e) => setEditedContent(e.target.value)}
           onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
               e.preventDefault();
               handleSave();
-            } else if (e.key === 'Escape') {
+            } else if (e.key === "Escape") {
               e.preventDefault();
               handleCancelEdit();
             }
           }}
           spellCheck={false}
           className="flex-1 overflow-auto p-4 font-mono text-xs text-foreground bg-card resize-none outline-none border-0 focus:ring-2 focus:ring-slate-400 focus:ring-inset"
-          placeholder={sourceMode === 'xml' ? 'Paste or edit QTI XML…' : 'Paste or edit question JSON…'}
+          placeholder={
+            sourceMode === "xml"
+              ? "Paste or edit QTI XML…"
+              : "Paste or edit question JSON…"
+          }
         />
       ) : (
         <pre className="flex-1 overflow-auto p-4 font-mono text-xs text-foreground bg-card whitespace-pre-wrap break-words">
@@ -969,7 +1101,9 @@ function WarningPanel({ warnings, parseError }: WarningPanelProps) {
         <Alert className="border-[#F59E0B] bg-[#FFFBEB]">
           <AlertCircle className="h-4 w-4 text-[#D97706]" />
           <AlertTitle className="text-[#92400E]">Parse Error</AlertTitle>
-          <AlertDescription className="text-[#92400E] text-xs">{parseError}</AlertDescription>
+          <AlertDescription className="text-[#92400E] text-xs">
+            {parseError}
+          </AlertDescription>
         </Alert>
       )}
       {warnings.length > 0 && (
@@ -981,7 +1115,11 @@ function WarningPanel({ warnings, parseError }: WarningPanelProps) {
                 Q{w.questionIndex + 1}: {w.message}
               </li>
             ))}
-            {warnings.length > 5 && <li className="text-[#92400E]">... and {warnings.length - 5} more</li>}
+            {warnings.length > 5 && (
+              <li className="text-[#92400E]">
+                ... and {warnings.length - 5} more
+              </li>
+            )}
           </ul>
         </div>
       )}
@@ -1016,7 +1154,8 @@ function ControlsBar({
     <div className="bg-card border-t border-border px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground font-medium">
-          {totalQuestions > 0 ? `Question ${currentIndex + 1}` : 'No'} / {totalQuestions}
+          {totalQuestions > 0 ? `Question ${currentIndex + 1}` : "No"} /{" "}
+          {totalQuestions}
         </span>
       </div>
 
@@ -1043,12 +1182,13 @@ function ControlsBar({
         <div className="h-6 w-px bg-border" />
 
         <Button
-          variant={showCorrectAnswer ? 'default' : 'outline'}
+          variant={showCorrectAnswer ? "default" : "outline"}
           size="sm"
           onClick={onToggleCorrectAnswer}
           className={cn(
             "h-8 px-3 text-xs",
-            showCorrectAnswer && "bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-primary-foreground border-transparent"
+            showCorrectAnswer &&
+              "bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-primary-foreground border-transparent",
           )}
           title="Show/Hide correct answers"
         >
@@ -1066,12 +1206,13 @@ function ControlsBar({
         </Button>
 
         <Button
-          variant={showSourcePanel ? 'default' : 'outline'}
+          variant={showSourcePanel ? "default" : "outline"}
           size="sm"
           onClick={onToggleSourcePanel}
           className={cn(
             "h-8 px-3 text-xs",
-            showSourcePanel && "bg-[linear-gradient(120deg,_#2457b8_0%,_#5b3bb6_100%)] hover:brightness-95 text-primary-foreground border-transparent"
+            showSourcePanel &&
+              "bg-[linear-gradient(120deg,_#2457b8_0%,_#5b3bb6_100%)] hover:brightness-95 text-primary-foreground border-transparent",
           )}
           title="Toggle source panel"
         >
@@ -1115,16 +1256,22 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
         <span className="inline-block px-2.5 py-0.5 bg-accent text-accent-foreground rounded-full text-xs font-semibold">
           MCQ
         </span>
-        <span className="text-xs text-muted-foreground font-mono">{question.identifier}</span>
+        <span className="text-xs text-muted-foreground font-mono">
+          {question.identifier}
+        </span>
       </div>
 
-      <MathMLRenderer content={question.stem} className="text-base font-normal text-foreground mb-4 leading-relaxed" />
+      <MathMLRenderer
+        content={question.stem}
+        className="text-base font-normal text-foreground mb-4 leading-relaxed"
+      />
 
       <div className="space-y-2.5">
         {question.choices?.map((choice, index) => {
           const isSelected = selectedAnswer === choice.identifier;
           const isCorrectChoice = choice.identifier === question.correctAnswer;
-          const choiceLabel = index < 26 ? String.fromCharCode(65 + index) : `${index + 1}`;
+          const choiceLabel =
+            index < 26 ? String.fromCharCode(65 + index) : `${index + 1}`;
 
           return (
             <button
@@ -1136,11 +1283,23 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
               disabled={showResult}
               className={cn(
                 "w-full flex items-center gap-3 p-4 border rounded-xl text-left transition-all duration-200",
-                showResult && isCorrectChoice && "border-success bg-success-light",
-                showResult && isSelected && !isCorrectChoice && "border-destructive bg-destructive-light",
-                showResult && !isCorrectChoice && !isSelected && "border-border opacity-60",
-                !showResult && isSelected && "border-chart-1 bg-accent shadow-sm",
-                !showResult && !isSelected && "border-border hover:border-muted-foreground hover:bg-background/50",
+                showResult &&
+                  isCorrectChoice &&
+                  "border-success bg-success-light",
+                showResult &&
+                  isSelected &&
+                  !isCorrectChoice &&
+                  "border-destructive bg-destructive-light",
+                showResult &&
+                  !isCorrectChoice &&
+                  !isSelected &&
+                  "border-border opacity-60",
+                !showResult &&
+                  isSelected &&
+                  "border-chart-1 bg-accent shadow-sm",
+                !showResult &&
+                  !isSelected &&
+                  "border-border hover:border-muted-foreground hover:bg-background/50",
               )}
             >
               {/* Custom radio circle */}
@@ -1148,8 +1307,14 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
                 className={cn(
                   "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200",
                   showResult && isCorrectChoice && "border-success bg-success",
-                  showResult && isSelected && !isCorrectChoice && "border-destructive bg-destructive",
-                  showResult && !isCorrectChoice && !isSelected && "border-border",
+                  showResult &&
+                    isSelected &&
+                    !isCorrectChoice &&
+                    "border-destructive bg-destructive",
+                  showResult &&
+                    !isCorrectChoice &&
+                    !isSelected &&
+                    "border-border",
                   !showResult && isSelected && "border-chart-1 bg-chart-1",
                   !showResult && !isSelected && "border-muted-foreground/30",
                 )}
@@ -1165,8 +1330,14 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
                 )}
               </div>
 
-              <span className="font-medium text-muted-foreground min-w-[20px] text-sm">{choiceLabel}.</span>
-              <MathMLRenderer content={choice.content} className="text-foreground flex-1 text-sm" inline />
+              <span className="font-medium text-muted-foreground min-w-[20px] text-sm">
+                {choiceLabel}.
+              </span>
+              <MathMLRenderer
+                content={choice.content}
+                className="text-foreground flex-1 text-sm"
+                inline
+              />
             </button>
           );
         })}
@@ -1181,13 +1352,19 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
           Check Answer
         </Button>
         {showResult && (
-          <Button variant="outline" onClick={handleReset} className="rounded-lg border-border">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="rounded-lg border-border"
+          >
             Try Again
           </Button>
         )}
       </div>
 
-      {showResult && <FeedbackBlock isCorrect={isCorrect} question={question} />}
+      {showResult && (
+        <FeedbackBlock isCorrect={isCorrect} question={question} />
+      )}
     </div>
   );
 }
@@ -1195,7 +1372,7 @@ function MCQRenderer({ question }: { question: ParsedQuestion }) {
 // ── Text Entry Renderer Component ──────────────────────────────────────────────
 
 function TextEntryRenderer({ question }: { question: ParsedQuestion }) {
-  const [userAnswer, setUserAnswer] = useState('');
+  const [userAnswer, setUserAnswer] = useState("");
   const [showResult, setShowResult] = useState(false);
 
   const expectedLength = question.textEntryExpectedLength;
@@ -1209,13 +1386,14 @@ function TextEntryRenderer({ question }: { question: ParsedQuestion }) {
   };
 
   const handleReset = () => {
-    setUserAnswer('');
+    setUserAnswer("");
     setShowResult(false);
   };
 
-  const isCorrect = question.correctAnswers?.some(
-    ans => ans.toLowerCase().trim() === userAnswer.toLowerCase().trim()
-  ) || false;
+  const isCorrect =
+    question.correctAnswers?.some(
+      (ans) => ans.toLowerCase().trim() === userAnswer.toLowerCase().trim(),
+    ) || false;
 
   return (
     <div>
@@ -1223,17 +1401,27 @@ function TextEntryRenderer({ question }: { question: ParsedQuestion }) {
         <span className="inline-block px-2.5 py-0.5 bg-warning-light text-warning-foreground rounded-full text-xs font-semibold">
           Text Entry
         </span>
-        <span className="text-xs text-muted-foreground font-mono">{question.identifier}</span>
+        <span className="text-xs text-muted-foreground font-mono">
+          {question.identifier}
+        </span>
       </div>
 
-      <MathMLRenderer content={question.stem} className="text-base font-normal text-foreground mb-4 leading-relaxed" />
+      <MathMLRenderer
+        content={question.stem}
+        className="text-base font-normal text-foreground mb-4 leading-relaxed"
+      />
 
       <input
         type="text"
         value={userAnswer}
         size={expectedLength}
-        onChange={(e) => { if (!showResult) setUserAnswer(e.target.value); }}
-        onKeyDown={(e) => { if (e.key === 'Enter' && userAnswer.trim() && !showResult) handleCheck(); }}
+        onChange={(e) => {
+          if (!showResult) setUserAnswer(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && userAnswer.trim() && !showResult)
+            handleCheck();
+        }}
         placeholder="Type your answer here..."
         disabled={showResult}
         style={dynamicWidth ? { width: dynamicWidth } : undefined}
@@ -1249,13 +1437,19 @@ function TextEntryRenderer({ question }: { question: ParsedQuestion }) {
           Check Answer
         </Button>
         {showResult && (
-          <Button variant="outline" onClick={handleReset} className="rounded-lg border-border">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="rounded-lg border-border"
+          >
             Try Again
           </Button>
         )}
       </div>
 
-      {showResult && <FeedbackBlock isCorrect={isCorrect} question={question} />}
+      {showResult && (
+        <FeedbackBlock isCorrect={isCorrect} question={question} />
+      )}
     </div>
   );
 }
@@ -1314,23 +1508,25 @@ const SAMPLE_TEXTENTRY_XML = `<?xml version="1.0" encoding="UTF-8"?>
 export function QTIRenderer() {
   // ── File Input & Parsing ─────────────────────────────────────────────────────
   const [qtiInput, setQtiInput] = useState("");
-  const [inputMode, setInputMode] = useState<'xml' | 'zip' | 'folder' | 'json'>('xml');
-  
+  const [inputMode, setInputMode] = useState<"xml" | "zip" | "folder" | "json">(
+    "xml",
+  );
+
   // ── Parsed Questions ─────────────────────────────────────────────────────────
   const [parsedQuestions, setParsedQuestions] = useState<ParsedQuestion[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [hasRendered, setHasRendered] = useState(false);
-  
+
   // ── Navigation & Navigation Panel ────────────────────────────────────────────
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set());
-  
+
   // ── UI Toggles ───────────────────────────────────────────────────────────────
   const [showSourcePanel, setShowSourcePanel] = useState(true);
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
-  const [sourceMode, setSourceMode] = useState<'xml' | 'json'>('xml');
-  
+  const [sourceMode, setSourceMode] = useState<"xml" | "json">("xml");
+
   // ── File Refs ────────────────────────────────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
@@ -1339,15 +1535,16 @@ export function QTIRenderer() {
   // ── Computed Values ─────────────────────────────────────────────────────────
   const fileMetadata = useMemo<FileMetadata | null>(() => {
     if (!hasRendered || !qtiInput.trim()) return null;
-    
-    const fileName = inputMode === 'xml' || inputMode === 'json'
-      ? `input.${inputMode}`
-      : 'uploaded-file';
-    
+
+    const fileName =
+      inputMode === "xml" || inputMode === "json"
+        ? `input.${inputMode}`
+        : "uploaded-file";
+
     return {
       fileName,
-      format: (inputMode === 'json' ? 'json' : 'xml') as 'xml' | 'json',
-      qtiVersion: 'QTI 2.1',
+      format: (inputMode === "json" ? "json" : "xml") as "xml" | "json",
+      qtiVersion: "QTI 2.1",
       totalItems: parsedQuestions.length,
     };
   }, [inputMode, qtiInput, hasRendered, parsedQuestions]);
@@ -1355,10 +1552,10 @@ export function QTIRenderer() {
   const questionNavigatorItems = useMemo<QuestionNavigatorItem[]>(() => {
     return parsedQuestions.map((q, index) => {
       // Extract plain text preview from stem, removing HTML
-      const tempDiv = document.createElement('div');
+      const tempDiv = document.createElement("div");
       tempDiv.innerHTML = sanitizeHTML(q.stem);
       const preview = tempDiv.textContent || q.stem;
-      
+
       return {
         index,
         identifier: q.identifier,
@@ -1371,22 +1568,37 @@ export function QTIRenderer() {
 
   const warnings = useMemo<{ questionIndex: number; message: string }[]>(() => {
     const warningsList: { questionIndex: number; message: string }[] = [];
-    
+
     parsedQuestions.forEach((q, index) => {
-      if (q.type === 'mcq' && !q.correctAnswer) {
-        warningsList.push({ questionIndex: index, message: 'Missing correct answer' });
+      if (q.type === "mcq" && !q.correctAnswer) {
+        warningsList.push({
+          questionIndex: index,
+          message: "Missing correct answer",
+        });
       }
-      if (q.type === 'textentry' && (!q.correctAnswers || q.correctAnswers.length === 0)) {
-        warningsList.push({ questionIndex: index, message: 'Missing correct answer(s)' });
+      if (
+        q.type === "textentry" &&
+        (!q.correctAnswers || q.correctAnswers.length === 0)
+      ) {
+        warningsList.push({
+          questionIndex: index,
+          message: "Missing correct answer(s)",
+        });
       }
       if (!q.stem || q.stem.trim().length === 0) {
-        warningsList.push({ questionIndex: index, message: 'Empty question stem' });
+        warningsList.push({
+          questionIndex: index,
+          message: "Empty question stem",
+        });
       }
-      if (q.type === 'mcq' && (!q.choices || q.choices.length < 2)) {
-        warningsList.push({ questionIndex: index, message: 'MCQ must have at least 2 options' });
+      if (q.type === "mcq" && (!q.choices || q.choices.length < 2)) {
+        warningsList.push({
+          questionIndex: index,
+          message: "MCQ must have at least 2 options",
+        });
       }
     });
-    
+
     return warningsList;
   }, [parsedQuestions]);
 
@@ -1402,7 +1614,7 @@ export function QTIRenderer() {
 
     const input = xml.trim();
     if (!input) {
-      setParseError('Please enter some QTI XML content.');
+      setParseError("Please enter some QTI XML content.");
       return;
     }
 
@@ -1414,15 +1626,17 @@ export function QTIRenderer() {
       }
       setParsedQuestions(questions);
     } catch (error) {
-      setParseError(error instanceof Error ? error.message : 'Failed to parse QTI XML');
+      setParseError(
+        error instanceof Error ? error.message : "Failed to parse QTI XML",
+      );
     }
   };
 
   const handleRender = () => {
-    if (inputMode === 'json') {
+    if (inputMode === "json") {
       const raw = qtiInput.trim();
       if (!raw) {
-        setParseError('Please enter JSON content.');
+        setParseError("Please enter JSON content.");
         setHasRendered(true);
         setParsedQuestions([]);
         return;
@@ -1430,20 +1644,29 @@ export function QTIRenderer() {
 
       try {
         const parsedJson = JSON.parse(raw);
-        const xml = typeof parsedJson === 'string'
-          ? parsedJson
-          : parsedJson.xml || parsedJson.qtiXml || parsedJson.qti || parsedJson.content;
+        const xml =
+          typeof parsedJson === "string"
+            ? parsedJson
+            : parsedJson.xml ||
+              parsedJson.qtiXml ||
+              parsedJson.qti ||
+              parsedJson.content;
 
-        if (typeof xml !== 'string') {
-          setParseError('JSON must contain XML string in one of: xml, qtiXml, qti, or content.');
+        if (typeof xml !== "string") {
+          setParseError(
+            "JSON must contain XML string in one of: xml, qtiXml, qti, or content.",
+          );
           setHasRendered(true);
           setParsedQuestions([]);
           return;
         }
 
-        parseAndRenderXml(xml, 'No supported question types found in the JSON payload.');
+        parseAndRenderXml(
+          xml,
+          "No supported question types found in the JSON payload.",
+        );
       } catch {
-        setParseError('Invalid JSON input.');
+        setParseError("Invalid JSON input.");
         setHasRendered(true);
         setParsedQuestions([]);
       }
@@ -1452,7 +1675,7 @@ export function QTIRenderer() {
 
     parseAndRenderXml(
       qtiInput,
-      'No supported question types found. Make sure your XML contains <choiceInteraction> or <textEntryInteraction>.'
+      "No supported question types found. Make sure your XML contains <choiceInteraction> or <textEntryInteraction>.",
     );
   };
 
@@ -1464,8 +1687,11 @@ export function QTIRenderer() {
     reader.onload = (event) => {
       const content = event.target?.result as string;
       setQtiInput(content);
-      setInputMode('xml');
-      parseAndRenderXml(content, 'No supported question types found in the uploaded file.');
+      setInputMode("xml");
+      parseAndRenderXml(
+        content,
+        "No supported question types found in the uploaded file.",
+      );
     };
     reader.readAsText(file);
   };
@@ -1477,67 +1703,74 @@ export function QTIRenderer() {
     try {
       const zip = await JSZip.loadAsync(file);
       const xmlFiles = Object.values(zip.files).filter(
-        (zipFile) => !zipFile.dir && zipFile.name.toLowerCase().endsWith('.xml')
+        (zipFile) =>
+          !zipFile.dir && zipFile.name.toLowerCase().endsWith(".xml"),
       );
 
       if (xmlFiles.length === 0) {
         setHasRendered(true);
         setParsedQuestions([]);
-        setParseError('No .xml files found inside the ZIP archive.');
+        setParseError("No .xml files found inside the ZIP archive.");
         return;
       }
 
-      const firstXml = await xmlFiles[0].async('string');
+      const firstXml = await xmlFiles[0].async("string");
       setQtiInput(firstXml);
-      setInputMode('xml');
-      parseAndRenderXml(firstXml, 'No supported question types found in the ZIP XML file.');
+      setInputMode("xml");
+      parseAndRenderXml(
+        firstXml,
+        "No supported question types found in the ZIP XML file.",
+      );
     } catch {
       setHasRendered(true);
       setParsedQuestions([]);
-      setParseError('Failed to read ZIP archive.');
+      setParseError("Failed to read ZIP archive.");
     }
   };
 
   const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).filter((file) =>
-      file.name.toLowerCase().endsWith('.xml')
+      file.name.toLowerCase().endsWith(".xml"),
     );
 
     if (files.length === 0) {
       setHasRendered(true);
       setParsedQuestions([]);
-      setParseError('No .xml files found in the selected folder.');
+      setParseError("No .xml files found in the selected folder.");
       return;
     }
 
     try {
       const firstXml = await files[0].text();
       setQtiInput(firstXml);
-      setInputMode('xml');
-      parseAndRenderXml(firstXml, 'No supported question types found in the folder XML file.');
+      setInputMode("xml");
+      parseAndRenderXml(
+        firstXml,
+        "No supported question types found in the folder XML file.",
+      );
     } catch {
       setHasRendered(true);
       setParsedQuestions([]);
-      setParseError('Failed to read folder contents.');
+      setParseError("Failed to read folder contents.");
     }
   };
 
   const handleDownloadXml = () => {
     if (!qtiInput.trim()) return;
-    const blob = new Blob([qtiInput], { type: 'application/xml' });
+    const blob = new Blob([qtiInput], { type: "application/xml" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = `qti-export-${Date.now()}.xml`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleLoadSample = (type: 'mcq' | 'textentry') => {
-    const xml = type === 'mcq' ? SAMPLE_MCQ_XML : SAMPLE_TEXTENTRY_XML;
+  const handleLoadSample = (type: "mcq" | "textentry") => {
+    const xml = type === "mcq" ? SAMPLE_MCQ_XML : SAMPLE_TEXTENTRY_XML;
     setQtiInput(xml);
-    setInputMode('xml');
-    parseAndRenderXml(xml, 'Failed to parse sample XML.');
+    setInputMode("xml");
+    parseAndRenderXml(xml, "Failed to parse sample XML.");
   };
 
   const handleClear = () => {
@@ -1557,7 +1790,9 @@ export function QTIRenderer() {
   };
 
   const handleNext = () => {
-    setActiveQuestionIndex(Math.min(parsedQuestions.length - 1, activeQuestionIndex + 1));
+    setActiveQuestionIndex(
+      Math.min(parsedQuestions.length - 1, activeQuestionIndex + 1),
+    );
   };
 
   const handleSelectQuestion = (index: number) => {
@@ -1580,32 +1815,35 @@ export function QTIRenderer() {
     setActiveQuestionIndex(0);
   };
 
-  const questionsToRender = parsedQuestions.length > 0
-    ? [parsedQuestions[activeQuestionIndex]]
-    : [];
+  const questionsToRender =
+    parsedQuestions.length > 0 ? [parsedQuestions[activeQuestionIndex]] : [];
 
   // Apply edits made in the Source panel back to the current question.
   const handleSourceSave = (
     editedContent: string,
-    mode: 'xml' | 'json'
+    mode: "xml" | "json",
   ): { ok: boolean; error?: string } => {
     if (parsedQuestions.length === 0) {
-      return { ok: false, error: 'No question selected to update.' };
+      return { ok: false, error: "No question selected to update." };
     }
     const trimmed = editedContent.trim();
     if (!trimmed) {
-      return { ok: false, error: 'Source content is empty.' };
+      return { ok: false, error: "Source content is empty." };
     }
 
     try {
       let xmlToParse: string;
-      if (mode === 'json') {
+      if (mode === "json") {
         const parsed = JSON.parse(trimmed);
         // Support either a raw QTI question JSON (rebuild XML) or a wrapper
         // carrying an xml string (same shape handleRender accepts for top-level JSON input).
-        if (typeof parsed === 'string') {
+        if (typeof parsed === "string") {
           xmlToParse = parsed;
-        } else if (parsed && typeof parsed === 'object' && typeof (parsed as Record<string, unknown>).xml === 'string') {
+        } else if (
+          parsed &&
+          typeof parsed === "object" &&
+          typeof (parsed as Record<string, unknown>).xml === "string"
+        ) {
           xmlToParse = (parsed as { xml: string }).xml;
         } else {
           xmlToParse = jsonQuestionToXml(parsed);
@@ -1616,7 +1854,10 @@ export function QTIRenderer() {
 
       const questions = parseQTIXml(xmlToParse);
       if (questions.length === 0) {
-        return { ok: false, error: 'No supported question found in the edited source.' };
+        return {
+          ok: false,
+          error: "No supported question found in the edited source.",
+        };
       }
 
       const updated = [...parsedQuestions];
@@ -1627,7 +1868,10 @@ export function QTIRenderer() {
     } catch (error) {
       return {
         ok: false,
-        error: error instanceof Error ? error.message : 'Failed to parse edited source.',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to parse edited source.",
       };
     }
   };
@@ -1645,20 +1889,23 @@ export function QTIRenderer() {
             <div className="w-24 h-24 rounded-2xl bg-[#E0F2FE] flex items-center justify-center mx-auto mb-6">
               <FileJson className="w-12 h-12 text-[#0F6CBD]" />
             </div>
-            <h2 className="text-lg font-semibold text-[#111827] mb-2">QTI Preview & Debugging</h2>
+            <h2 className="text-lg font-semibold text-[#111827] mb-2">
+              QTI Preview & Debugging
+            </h2>
             <p className="text-sm text-[#475569] mb-6">
-              Load QTI XML or JSON to browse questions with instant navigation, source viewing, and validation.
+              Load QTI XML or JSON to browse questions with instant navigation,
+              source viewing, and validation.
             </p>
             <div className="flex gap-3 justify-center mb-6">
               <Button
-                onClick={() => handleLoadSample('mcq')}
+                onClick={() => handleLoadSample("mcq")}
                 className="bg-[linear-gradient(120deg,_#2457b8_0%,_#1f9d86_100%)] hover:brightness-95 text-primary-foreground rounded-lg"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 MCQ Example
               </Button>
               <Button
-                onClick={() => handleLoadSample('textentry')}
+                onClick={() => handleLoadSample("textentry")}
                 variant="outline"
                 className="rounded-lg border-[#E2E8F0]"
               >
@@ -1666,7 +1913,9 @@ export function QTIRenderer() {
               </Button>
             </div>
             <div className="border-t border-[#E2E8F0] pt-6">
-              <p className="text-xs text-[#94A3B8] mb-4">Or paste your QTI content:</p>
+              <p className="text-xs text-[#94A3B8] mb-4">
+                Or paste your QTI content:
+              </p>
               <div className="flex gap-2 justify-center">
                 <Button
                   variant="outline"
@@ -1693,10 +1942,15 @@ export function QTIRenderer() {
       ) : parseError ? (
         // Error State
         <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
-          <Alert variant="destructive" className="max-w-md border-[#FCA5A5] bg-[#FEF2F2]">
+          <Alert
+            variant="destructive"
+            className="max-w-md border-[#FCA5A5] bg-[#FEF2F2]"
+          >
             <AlertCircle className="h-5 w-5" />
             <AlertTitle>Parse Error</AlertTitle>
-            <AlertDescription className="text-sm mt-2">{parseError}</AlertDescription>
+            <AlertDescription className="text-sm mt-2">
+              {parseError}
+            </AlertDescription>
           </Alert>
         </div>
       ) : (
@@ -1710,7 +1964,12 @@ export function QTIRenderer() {
               </Panel>
 
               {/* Panel 2: Question Navigator */}
-              <Panel defaultSize={22} minSize={18} maxSize={35} className="flex flex-col min-w-0">
+              <Panel
+                defaultSize={22}
+                minSize={18}
+                maxSize={35}
+                className="flex flex-col min-w-0"
+              >
                 <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-card/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 mr-0">
                   <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
                     <QuestionNavigator
@@ -1730,15 +1989,23 @@ export function QTIRenderer() {
               <PanelResizeHandle className="w-2 rounded-full bg-[#d7e5ff] hover:bg-[#2457b8] transition-colors cursor-col-resize" />
 
               {/* Panel 3: Preview */}
-              <Panel defaultSize={showSourcePanel ? 40 : 78} minSize={35} className="flex flex-col min-w-0">
+              <Panel
+                defaultSize={showSourcePanel ? 40 : 78}
+                minSize={35}
+                className="flex flex-col min-w-0"
+              >
                 <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-card/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 ml-0 mr-0">
                   <CardContent className="flex-1 flex flex-col overflow-y-auto overflow-x-visible p-6">
                     {questionsToRender.length > 0 && (
                       <div className="space-y-6">
                         {questionsToRender.map((question) => (
                           <div key={question.identifier}>
-                            {question.type === 'mcq' && <MCQRenderer question={question} />}
-                            {question.type === 'textentry' && <TextEntryRenderer question={question} />}
+                            {question.type === "mcq" && (
+                              <MCQRenderer question={question} />
+                            )}
+                            {question.type === "textentry" && (
+                              <TextEntryRenderer question={question} />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1753,11 +2020,20 @@ export function QTIRenderer() {
                   <PanelResizeHandle className="w-2 rounded-full bg-[#d7e5ff] hover:bg-[#2457b8] transition-colors cursor-col-resize" />
 
                   {/* Panel 4: Source Viewer */}
-                  <Panel defaultSize={38} minSize={25} maxSize={50} className="flex flex-col min-w-0">
+                  <Panel
+                    defaultSize={38}
+                    minSize={25}
+                    maxSize={50}
+                    className="flex flex-col min-w-0"
+                  >
                     <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-[#d7e5ff] bg-card/95 overflow-hidden rounded-lg m-4 mt-0 mb-0 ml-0">
                       <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
                         <SourceViewer
-                          question={questionsToRender.length > 0 ? questionsToRender[0] : null}
+                          question={
+                            questionsToRender.length > 0
+                              ? questionsToRender[0]
+                              : null
+                          }
                           sourceMode={sourceMode}
                           onSourceModeChange={setSourceMode}
                           onSave={handleSourceSave}
@@ -1771,7 +2047,9 @@ export function QTIRenderer() {
           </div>
 
           {/* ── Warning Panel ─────────────────────────────────────────────────── */}
-          {warnings.length > 0 && <WarningPanel warnings={warnings} parseError={null} />}
+          {warnings.length > 0 && (
+            <WarningPanel warnings={warnings} parseError={null} />
+          )}
 
           {/* ── Controls Bar ──────────────────────────────────────────────────── */}
           <ControlsBar
@@ -1780,7 +2058,9 @@ export function QTIRenderer() {
             onPrevious={handlePrevious}
             onNext={handleNext}
             showCorrectAnswer={showCorrectAnswer}
-            onToggleCorrectAnswer={() => setShowCorrectAnswer(!showCorrectAnswer)}
+            onToggleCorrectAnswer={() =>
+              setShowCorrectAnswer(!showCorrectAnswer)
+            }
             showSourcePanel={showSourcePanel}
             onToggleSourcePanel={() => setShowSourcePanel(!showSourcePanel)}
           />
@@ -1789,14 +2069,29 @@ export function QTIRenderer() {
 
       {/* ── Input Editor Panel (collapsible overlay/modal approach) ───────────── */}
       {(!hasRendered || parseError) && (
-        <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4" style={{ display: 'none' }}>
+        <div
+          className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4"
+          style={{ display: "none" }}
+        >
           {/* This could be a modal for editing - kept for reference */}
         </div>
       )}
 
       {/* ── Hidden File Inputs ────────────────────────────────────────────────── */}
-      <input ref={fileInputRef} type="file" accept=".xml" onChange={handleFileUpload} className="hidden" />
-      <input ref={zipInputRef} type="file" accept=".zip" onChange={handleZipUpload} className="hidden" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xml"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+      <input
+        ref={zipInputRef}
+        type="file"
+        accept=".zip"
+        onChange={handleZipUpload}
+        className="hidden"
+      />
       <input
         ref={folderInputRef}
         type="file"

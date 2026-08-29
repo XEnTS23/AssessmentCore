@@ -3,14 +3,14 @@
  * Maps question metadata to QTI outcome declarations and scoring
  */
 
-import { OutcomeDeclaration, ResponseDeclaration } from './types';
+import { OutcomeDeclaration, ResponseDeclaration } from "./types";
 
 /**
  * Outcome Configuration from Question Metadata
  */
 export interface OutcomeConfig {
   points?: number; // Question points (default: 1)
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   weight?: number; // Question weight multiplier
   penaltyFactor?: number; // Penalty for incorrect (0-1)
   timeLimit?: number; // Time limit in seconds
@@ -24,21 +24,23 @@ export class OutcomeMapper {
    * Build standard outcome declarations
    * Creates SCORE and MAXSCORE outcomes with metadata
    */
-  static buildStandardOutcomes(config: OutcomeConfig = {}): OutcomeDeclaration[] {
+  static buildStandardOutcomes(
+    config: OutcomeConfig = {},
+  ): OutcomeDeclaration[] {
     const maxScore = config.points || 1;
 
     return [
       {
-        identifier: 'MAXSCORE',
-        cardinality: 'single',
-        baseType: 'float',
+        identifier: "MAXSCORE",
+        cardinality: "single",
+        baseType: "float",
         defaultValue: maxScore.toString(),
       },
       {
-        identifier: 'SCORE',
-        cardinality: 'single',
-        baseType: 'float',
-        defaultValue: '0',
+        identifier: "SCORE",
+        cardinality: "single",
+        baseType: "float",
+        defaultValue: "0",
       },
     ];
   }
@@ -46,32 +48,34 @@ export class OutcomeMapper {
   /**
    * Build extended outcomes with additional metadata
    */
-  static buildExtendedOutcomes(config: OutcomeConfig = {}): OutcomeDeclaration[] {
+  static buildExtendedOutcomes(
+    config: OutcomeConfig = {},
+  ): OutcomeDeclaration[] {
     const outcomes = this.buildStandardOutcomes(config);
 
     // Add FEEDBACK outcome if needed
     outcomes.push({
-      identifier: 'FEEDBACK',
-      cardinality: 'single',
-      baseType: 'identifier',
-      defaultValue: 'none',
+      identifier: "FEEDBACK",
+      cardinality: "single",
+      baseType: "identifier",
+      defaultValue: "none",
     });
 
     // Add completion status
     outcomes.push({
-      identifier: 'completionStatus',
-      cardinality: 'single',
-      baseType: 'identifier',
-      defaultValue: 'not_attempted',
+      identifier: "completionStatus",
+      cardinality: "single",
+      baseType: "identifier",
+      defaultValue: "not_attempted",
     });
 
     // Add duration tracking
     if (config.timeLimit) {
       outcomes.push({
-        identifier: 'duration',
-        cardinality: 'single',
-        baseType: 'integer',
-        defaultValue: '0',
+        identifier: "duration",
+        cardinality: "single",
+        baseType: "integer",
+        defaultValue: "0",
       });
     }
 
@@ -83,7 +87,7 @@ export class OutcomeMapper {
    */
   static mapResponseWithPoints(
     baseDeclaration: ResponseDeclaration,
-    points: number
+    points: number,
   ): ResponseDeclaration {
     // Add mapping for point-based scoring
     if (points !== 1) {
@@ -92,7 +96,7 @@ export class OutcomeMapper {
         mapping: {
           defaultValue: 0,
           mappingEntries: baseDeclaration.correctResponse
-            ? baseDeclaration.correctResponse.values.map(value => ({
+            ? baseDeclaration.correctResponse.values.map((value) => ({
                 mapKey: value,
                 mappedValue: points,
               }))
@@ -110,12 +114,12 @@ export class OutcomeMapper {
   static createPartialCreditMapping(
     correctAnswers: string[],
     fullCredit: number,
-    partialCreditRules: Array<{ value: string; creditRatio: number }>
+    partialCreditRules: Array<{ value: string; creditRatio: number }>,
   ): Array<{ mapKey: string; mappedValue: number }> {
     const mappingEntries: Array<{ mapKey: string; mappedValue: number }> = [];
 
     // Full credit answers
-    correctAnswers.forEach(answer => {
+    correctAnswers.forEach((answer) => {
       mappingEntries.push({
         mapKey: answer,
         mappedValue: fullCredit,
@@ -123,7 +127,7 @@ export class OutcomeMapper {
     });
 
     // Partial credit answers
-    partialCreditRules.forEach(rule => {
+    partialCreditRules.forEach((rule) => {
       mappingEntries.push({
         mapKey: rule.value,
         mappedValue: fullCredit * rule.creditRatio,
@@ -136,14 +140,14 @@ export class OutcomeMapper {
   /**
    * Calculate difficulty score (for analytics)
    */
-  static mapDifficultyToScore(difficulty?: 'easy' | 'medium' | 'hard'): number {
+  static mapDifficultyToScore(difficulty?: "easy" | "medium" | "hard"): number {
     const difficultyMap = {
       easy: 0.3,
       medium: 0.5,
       hard: 0.8,
     };
 
-    return difficultyMap[difficulty || 'medium'];
+    return difficultyMap[difficulty || "medium"];
   }
 
   /**
@@ -151,14 +155,14 @@ export class OutcomeMapper {
    */
   static buildWeightedOutcome(
     basePoints: number,
-    weight: number
+    weight: number,
   ): OutcomeDeclaration {
     const weightedMax = basePoints * weight;
 
     return {
-      identifier: 'MAXSCORE',
-      cardinality: 'single',
-      baseType: 'float',
+      identifier: "MAXSCORE",
+      cardinality: "single",
+      baseType: "float",
       defaultValue: weightedMax.toString(),
     };
   }
@@ -168,9 +172,9 @@ export class OutcomeMapper {
    */
   static buildCustomOutcome(
     identifier: string,
-    baseType: 'identifier' | 'string' | 'integer' | 'float' | 'boolean',
+    baseType: "identifier" | "string" | "integer" | "float" | "boolean",
     defaultValue: string | number,
-    cardinality: 'single' | 'multiple' | 'ordered' = 'single'
+    cardinality: "single" | "multiple" | "ordered" = "single",
   ): OutcomeDeclaration {
     return {
       identifier,
@@ -208,36 +212,37 @@ export function getOutcomesFromMetadata(metadata: {
 /**
  * Validate outcome declarations
  */
-export function validateOutcomes(
-  outcomes: OutcomeDeclaration[]
-): { valid: boolean; errors: string[] } {
+export function validateOutcomes(outcomes: OutcomeDeclaration[]): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   // Check for required SCORE outcome
-  const hasScore = outcomes.some(o => o.identifier === 'SCORE');
+  const hasScore = outcomes.some((o) => o.identifier === "SCORE");
   if (!hasScore) {
-    errors.push('Missing required SCORE outcome declaration');
+    errors.push("Missing required SCORE outcome declaration");
   }
 
   // Check for MAXSCORE
-  const hasMaxScore = outcomes.some(o => o.identifier === 'MAXSCORE');
+  const hasMaxScore = outcomes.some((o) => o.identifier === "MAXSCORE");
   if (!hasMaxScore) {
-    errors.push('Missing MAXSCORE outcome declaration');
+    errors.push("Missing MAXSCORE outcome declaration");
   }
 
   // Check for duplicate identifiers
-  const identifiers = outcomes.map(o => o.identifier);
+  const identifiers = outcomes.map((o) => o.identifier);
   const duplicates = identifiers.filter(
-    (id, index) => identifiers.indexOf(id) !== index
+    (id, index) => identifiers.indexOf(id) !== index,
   );
   if (duplicates.length > 0) {
-    errors.push(`Duplicate outcome identifiers: ${duplicates.join(', ')}`);
+    errors.push(`Duplicate outcome identifiers: ${duplicates.join(", ")}`);
   }
 
   // Validate data types
-  outcomes.forEach(outcome => {
-    if (!outcome.identifier || outcome.identifier.trim() === '') {
-      errors.push('Outcome identifier cannot be empty');
+  outcomes.forEach((outcome) => {
+    if (!outcome.identifier || outcome.identifier.trim() === "") {
+      errors.push("Outcome identifier cannot be empty");
     }
 
     if (!outcome.baseType) {

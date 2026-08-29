@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req: Request) => {
@@ -52,13 +53,14 @@ serve(async (req: Request) => {
 
     // 1. Download the raw, messy image bytes from the storage bucket
     console.log(`Downloading raw crop from storage...`);
-    const { data: fileData, error: downloadError } = await supabaseAdmin
-      .storage
+    const { data: fileData, error: downloadError } = await supabaseAdmin.storage
       .from("ocr-diagrams")
       .download(filePath);
 
     if (downloadError || !fileData) {
-      throw new Error(`Failed to download file from storage: ${downloadError?.message}`);
+      throw new Error(
+        `Failed to download file from storage: ${downloadError?.message}`,
+      );
     }
 
     const rawBytes = new Uint8Array(await fileData.arrayBuffer());
@@ -71,8 +73,8 @@ serve(async (req: Request) => {
 
     console.log(`Sending buffer to Render diagram cleaner asynchronously...`);
     const formData = new FormData();
-    const imageBlob = new Blob([rawBytes], { type: 'image/jpeg' });
-    formData.append('file', imageBlob, 'crop.jpg');
+    const imageBlob = new Blob([rawBytes], { type: "image/jpeg" });
+    formData.append("file", imageBlob, "crop.jpg");
 
     const cleanerApiKey = Deno.env.get("DIAGRAM_CLEANER_API_KEY");
     const fetchHeaders = new Headers();
@@ -89,34 +91,44 @@ serve(async (req: Request) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Cleaner service returned status ${response.status}: ${errText}`);
+      throw new Error(
+        `Cleaner service returned status ${response.status}: ${errText}`,
+      );
     }
 
     // 3. Catch the clean PNG array buffer returned by the Render microservice
     const cleanArrayBuffer = await response.arrayBuffer();
     const cleanUint8Array = new Uint8Array(cleanArrayBuffer);
-    console.log("Successfully received clean vector-rendered PNG from microservice.");
+    console.log(
+      "Successfully received clean vector-rendered PNG from microservice.",
+    );
 
     // 4. Upload (Overwrite) the clean bytes directly back to the EXACT SAME file path
     console.log(`Overwriting ${filePath} with clean PNG...`);
-    const { error: uploadError } = await supabaseAdmin
-      .storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("ocr-diagrams")
-      .upload(filePath, cleanUint8Array, { 
-        contentType: "image/png", 
-        upsert: true 
+      .upload(filePath, cleanUint8Array, {
+        contentType: "image/png",
+        upsert: true,
       });
 
     if (uploadError) {
-      throw new Error(`Failed to upload clean image back to storage: ${uploadError.message}`);
+      throw new Error(
+        `Failed to upload clean image back to storage: ${uploadError.message}`,
+      );
     }
 
     console.log(`Successfully completed diagram cleanup for ${filePath}`);
-    return new Response(JSON.stringify({ success: true, message: "Diagram cleaned and updated." }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Diagram cleaned and updated.",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      },
+    );
   } catch (error) {
     console.error("Error in cleanup-diagram webhook:", error);
     // Return 200 to acknowledge the webhook, otherwise Supabase might retry it

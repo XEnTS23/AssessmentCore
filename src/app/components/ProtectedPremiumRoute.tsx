@@ -5,7 +5,9 @@ interface ProtectedPremiumRouteProps {
   children: React.ReactNode;
 }
 
-export function ProtectedPremiumRoute({ children }: ProtectedPremiumRouteProps) {
+export function ProtectedPremiumRoute({
+  children,
+}: ProtectedPremiumRouteProps) {
   const { userUsage, loading, isAuthenticated } = useAuth();
 
   if (loading) {

@@ -24,14 +24,14 @@ function col(row: any, colName: string | undefined): string {
 function getValidationResultForRow(
   validationResults: Map<string, any>,
   row: any,
-  rowIndex: number
+  rowIndex: number,
 ): any {
-  const explicitRowKey = row?.__rowKey ? String(row.__rowKey) : '';
+  const explicitRowKey = row?.__rowKey ? String(row.__rowKey) : "";
   if (explicitRowKey && validationResults.has(explicitRowKey)) {
     return validationResults.get(explicitRowKey);
   }
 
-  const explicitId = row?.id != null ? String(row.id).trim() : '';
+  const explicitId = row?.id != null ? String(row.id).trim() : "";
   if (explicitId && validationResults.has(explicitId)) {
     return validationResults.get(explicitId);
   }
@@ -54,11 +54,13 @@ function getValidationResultForRow(
 export function convertToMoodleXML(
   editedRows: any[],
   columnMapping: any,
-  validationResults: Map<string, any>
+  validationResults: Map<string, any>,
 ): string {
   // Filter out rejected questions
   const validQuestions = editedRows.filter(
-    (row, rowIndex) => getValidationResultForRow(validationResults, row, rowIndex)?.status !== "rejected"
+    (row, rowIndex) =>
+      getValidationResultForRow(validationResults, row, rowIndex)?.status !==
+      "rejected",
   );
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -69,7 +71,12 @@ export function convertToMoodleXML(
     const questionType = detectQuestionType(question, columnMapping);
 
     if (questionType === "MCQ" || questionType === "MSQ") {
-      xml += buildMoodleMultiChoice(question, columnMapping, questionType, questionNumber);
+      xml += buildMoodleMultiChoice(
+        question,
+        columnMapping,
+        questionType,
+        questionNumber,
+      );
     } else if (questionType === "ESSAY") {
       xml += buildMoodleEssay(question, columnMapping, questionNumber);
     } else {
@@ -88,7 +95,7 @@ function buildMoodleMultiChoice(
   question: any,
   columnMapping: any,
   questionType: string,
-  questionNumber: number
+  questionNumber: number,
 ): string {
   const questionText = col(question, columnMapping.questionCol);
   const correctAnswer = col(question, columnMapping.answerCol);
@@ -97,13 +104,17 @@ function buildMoodleMultiChoice(
 
   // Gather option values from optionCols array
   const optionCols: string[] = columnMapping.optionCols || [];
-  const options = optionCols.map((c: string) => col(question, c)).filter(Boolean);
+  const options = optionCols
+    .map((c: string) => col(question, c))
+    .filter(Boolean);
 
   // Figure out which option index is correct
   const answerIndex = getAnswerIndex(correctAnswer, options);
 
   const isSingle = questionType !== "MSQ";
-  const nameText = questionText ? questionText.substring(0, 80) : `Question ${questionNumber}`;
+  const nameText = questionText
+    ? questionText.substring(0, 80)
+    : `Question ${questionNumber}`;
 
   let xml = '  <question type="multichoice">\n';
   xml += `    <name>\n      <text>${escapeXML(nameText)}</text>\n    </name>\n`;
@@ -139,12 +150,14 @@ function buildMoodleMultiChoice(
 function buildMoodleEssay(
   question: any,
   columnMapping: any,
-  questionNumber: number
+  questionNumber: number,
 ): string {
   const questionText = col(question, columnMapping.questionCol);
   const explanation = col(question, columnMapping.solutionCol);
   const points = col(question, columnMapping.pointsCol) || "1";
-  const nameText = questionText ? questionText.substring(0, 80) : `Question ${questionNumber}`;
+  const nameText = questionText
+    ? questionText.substring(0, 80)
+    : `Question ${questionNumber}`;
 
   let xml = '  <question type="essay">\n';
   xml += `    <name>\n      <text>${escapeXML(nameText)}</text>\n    </name>\n`;
@@ -170,13 +183,15 @@ function buildMoodleEssay(
 function buildMoodleShortAnswer(
   question: any,
   columnMapping: any,
-  questionNumber: number
+  questionNumber: number,
 ): string {
   const questionText = col(question, columnMapping.questionCol);
   const correctAnswer = col(question, columnMapping.answerCol);
   const explanation = col(question, columnMapping.solutionCol);
   const points = col(question, columnMapping.pointsCol) || "1";
-  const nameText = questionText ? questionText.substring(0, 80) : `Question ${questionNumber}`;
+  const nameText = questionText
+    ? questionText.substring(0, 80)
+    : `Question ${questionNumber}`;
 
   let xml = '  <question type="shortanswer">\n';
   xml += `    <name>\n      <text>${escapeXML(nameText)}</text>\n    </name>\n`;
@@ -207,7 +222,9 @@ function buildMoodleShortAnswer(
 function detectQuestionType(question: any, columnMapping: any): string {
   // Check if optionCols exist and have non-empty values in this row
   const optionCols: string[] = columnMapping.optionCols || [];
-  const filledOptions = optionCols.filter((c: string) => col(question, c) !== "");
+  const filledOptions = optionCols.filter(
+    (c: string) => col(question, c) !== "",
+  );
 
   if (filledOptions.length >= 2) {
     const correctAnswer = col(question, columnMapping.answerCol);
@@ -245,7 +262,8 @@ function getAnswerIndex(answer: string, options: string[]): number {
   }
   // Full-text match
   const idx = options.findIndex(
-    (o) => String(o).toLowerCase().trim() === String(answer).toLowerCase().trim()
+    (o) =>
+      String(o).toLowerCase().trim() === String(answer).toLowerCase().trim(),
   );
   if (idx !== -1) return idx;
 
@@ -273,7 +291,7 @@ export function escapeXML(text: string): string {
 export function convertToQTI21(
   editedRows: any[],
   columnMapping: any,
-  validationResults: Map<string, any>
+  validationResults: Map<string, any>,
 ): string {
   // TODO: Implement QTI 2.1 conversion
   console.warn("QTI 2.1 conversion not yet implemented");
@@ -287,16 +305,18 @@ export function convertToQTI21(
 export function convertToCanvas(
   editedRows: any[],
   columnMapping: any,
-  validationResults: Map<string, any>
+  validationResults: Map<string, any>,
 ): string {
   const validQuestions = editedRows.filter(
-    (row, rowIndex) => getValidationResultForRow(validationResults, row, rowIndex)?.status !== "rejected"
+    (row, rowIndex) =>
+      getValidationResultForRow(validationResults, row, rowIndex)?.status !==
+      "rejected",
   );
 
   const assessmentId = `assessment_${Date.now()}`;
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<questestinterop>\n';
+  xml += "<questestinterop>\n";
   xml += `  <assessment ident="${assessmentId}" title="Canvas Question Export">\n`;
   xml += '    <section ident="root_section">\n';
 
@@ -309,71 +329,77 @@ export function convertToCanvas(
     const detectedType = detectQuestionType(question, columnMapping);
 
     xml += `      <item ident="${escapeXML(itemId)}" title="${escapeXML(
-      questionText.substring(0, 80) || `Question ${index + 1}`
+      questionText.substring(0, 80) || `Question ${index + 1}`,
     )}">\n`;
-    xml += '        <itemmetadata>\n';
-    xml += '          <qtimetadata>\n';
+    xml += "        <itemmetadata>\n";
+    xml += "          <qtimetadata>\n";
     xml += `            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry>${escapeXML(points)}</fieldentry></qtimetadatafield>\n`;
-    xml += '          </qtimetadata>\n';
-    xml += '        </itemmetadata>\n';
-    xml += '        <presentation>\n';
+    xml += "          </qtimetadata>\n";
+    xml += "        </itemmetadata>\n";
+    xml += "        <presentation>\n";
     xml += `          <material><mattext texttype="text/html"><![CDATA[${questionText}]]></mattext></material>\n`;
 
     if (detectedType === "MCQ" || detectedType === "MSQ") {
       const optionCols: string[] = columnMapping.optionCols || [];
-      const options = optionCols.map((c: string) => col(question, c)).filter(Boolean);
+      const options = optionCols
+        .map((c: string) => col(question, c))
+        .filter(Boolean);
       const answerIndex = getAnswerIndex(correctAnswer, options);
 
-      xml += '          <response_lid ident="response1" rcardinality="Single">\n';
-      xml += '            <render_choice>\n';
+      xml +=
+        '          <response_lid ident="response1" rcardinality="Single">\n';
+      xml += "            <render_choice>\n";
       options.forEach((optText, optIdx) => {
         const optIdent = `opt_${String.fromCharCode(65 + optIdx)}`;
         xml += `              <response_label ident="${optIdent}">\n`;
         xml += `                <material><mattext texttype="text/plain"><![CDATA[${optText}]]></mattext></material>\n`;
-        xml += '              </response_label>\n';
+        xml += "              </response_label>\n";
       });
-      xml += '            </render_choice>\n';
-      xml += '          </response_lid>\n';
+      xml += "            </render_choice>\n";
+      xml += "          </response_lid>\n";
 
       const correctOptIdent = `opt_${String.fromCharCode(65 + answerIndex)}`;
-      xml += '        </presentation>\n';
-      xml += '        <resprocessing>\n';
-      xml += '          <outcomes><decvar maxvalue="100" minvalue="0" varname="SCORE" vartype="Decimal"/></outcomes>\n';
+      xml += "        </presentation>\n";
+      xml += "        <resprocessing>\n";
+      xml +=
+        '          <outcomes><decvar maxvalue="100" minvalue="0" varname="SCORE" vartype="Decimal"/></outcomes>\n';
       xml += '          <respcondition continue="No">\n';
-      xml += '            <conditionvar>\n';
+      xml += "            <conditionvar>\n";
       xml += `              <varequal respident="response1">${correctOptIdent}</varequal>\n`;
-      xml += '            </conditionvar>\n';
+      xml += "            </conditionvar>\n";
       xml += '            <setvar action="Set" varname="SCORE">100</setvar>\n';
-      xml += '          </respcondition>\n';
-      xml += '        </resprocessing>\n';
+      xml += "          </respcondition>\n";
+      xml += "        </resprocessing>\n";
     } else {
-      xml += '          <response_str ident="response1" rcardinality="Single">\n';
+      xml +=
+        '          <response_str ident="response1" rcardinality="Single">\n';
       xml += '            <render_fib fibtype="String" prompt="Box" />\n';
-      xml += '          </response_str>\n';
-      xml += '        </presentation>\n';
-      xml += '        <resprocessing>\n';
-      xml += '          <outcomes><decvar maxvalue="100" minvalue="0" varname="SCORE" vartype="Decimal"/></outcomes>\n';
+      xml += "          </response_str>\n";
+      xml += "        </presentation>\n";
+      xml += "        <resprocessing>\n";
+      xml +=
+        '          <outcomes><decvar maxvalue="100" minvalue="0" varname="SCORE" vartype="Decimal"/></outcomes>\n';
       xml += '          <respcondition continue="No">\n';
-      xml += '            <conditionvar>\n';
+      xml += "            <conditionvar>\n";
       xml += `              <varequal respident="response1">${escapeXML(correctAnswer)}</varequal>\n`;
-      xml += '            </conditionvar>\n';
+      xml += "            </conditionvar>\n";
       xml += '            <setvar action="Set" varname="SCORE">100</setvar>\n';
-      xml += '          </respcondition>\n';
-      xml += '        </resprocessing>\n';
+      xml += "          </respcondition>\n";
+      xml += "        </resprocessing>\n";
     }
 
     if (explanation) {
       xml += '        <itemfeedback ident="general_fb">\n';
       xml += `          <material><mattext texttype="text/html"><![CDATA[${explanation}]]></mattext></material>\n`;
-      xml += '        </itemfeedback>\n';
+      xml += "        </itemfeedback>\n";
     }
 
-    xml += '      </item>\n';
+    xml += "      </item>\n";
   });
 
-  xml += '    </section>\n';
-  xml += '  </assessment>\n';
-  xml += '</questestinterop>\n';
+  xml += "    </section>\n";
+  xml += "  </assessment>\n";
+  xml += "</questestinterop>\n";
 
   return xml;
 }
@@ -385,7 +411,7 @@ export function convertToCanvas(
 export function convertToBlackboard(
   editedRows: any[],
   columnMapping: any,
-  validationResults: Map<string, any>
+  validationResults: Map<string, any>,
 ): string {
   // TODO: Implement Blackboard conversion
   console.warn("Blackboard conversion not yet implemented");
@@ -399,7 +425,7 @@ export function convertToBlackboard(
 export function convertToD2L(
   editedRows: any[],
   columnMapping: any,
-  validationResults: Map<string, any>
+  validationResults: Map<string, any>,
 ): string {
   // TODO: Implement D2L conversion
   console.warn("D2L conversion not yet implemented");
@@ -413,7 +439,7 @@ export function convertToD2L(
 export function convertToSCORM(
   editedRows: any[],
   columnMapping: any,
-  validationResults: Map<string, any>
+  validationResults: Map<string, any>,
 ): string {
   // TODO: Implement SCORM conversion
   console.warn("SCORM conversion not yet implemented");

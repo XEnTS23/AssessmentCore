@@ -16,7 +16,7 @@ import {
   ItemSessionControl,
   TimeLimits,
   VariableMapping,
-} from './testStructure';
+} from "./testStructure";
 
 /**
  * Test Builder Class
@@ -36,11 +36,13 @@ export class TestBuilder {
     const test: AssessmentTest = {
       identifier: this.config.testIdentifier,
       title: this.config.testTitle,
-      toolName: this.config.toolName || 'AC Question Bank',
-      toolVersion: this.config.toolVersion || '1.0.0',
+      toolName: this.config.toolName || "AC Question Bank",
+      toolVersion: this.config.toolVersion || "1.0.0",
       outcomeDeclarations: this.buildOutcomeDeclarations(),
       testParts: this.buildTestParts(),
-      outcomeProcessing: this.config.aggregateScores ? this.buildOutcomeProcessing() : undefined,
+      outcomeProcessing: this.config.aggregateScores
+        ? this.buildOutcomeProcessing()
+        : undefined,
       timeLimits: this.config.timeLimits,
     };
 
@@ -55,9 +57,9 @@ export class TestBuilder {
 
     // Total score outcome
     outcomes.push({
-      identifier: 'TOTAL_SCORE',
-      cardinality: 'single',
-      baseType: 'float',
+      identifier: "TOTAL_SCORE",
+      cardinality: "single",
+      baseType: "float",
       defaultValue: 0,
       normalMaximum: this.calculateMaxScore(),
       normalMinimum: 0,
@@ -65,26 +67,26 @@ export class TestBuilder {
 
     // Pass/fail outcome
     outcomes.push({
-      identifier: 'PASS',
-      cardinality: 'single',
-      baseType: 'boolean',
+      identifier: "PASS",
+      cardinality: "single",
+      baseType: "boolean",
       defaultValue: false,
     });
 
     // Number completed
     outcomes.push({
-      identifier: 'NUM_COMPLETED',
-      cardinality: 'single',
-      baseType: 'integer',
+      identifier: "NUM_COMPLETED",
+      cardinality: "single",
+      baseType: "integer",
       defaultValue: 0,
     });
 
     // Percentage score
     if (this.config.normalizeScores) {
       outcomes.push({
-        identifier: 'PERCENT_SCORE',
-        cardinality: 'single',
-        baseType: 'float',
+        identifier: "PERCENT_SCORE",
+        cardinality: "single",
+        baseType: "float",
         defaultValue: 0,
         normalMaximum: 100,
         normalMinimum: 0,
@@ -108,11 +110,11 @@ export class TestBuilder {
    * Build test parts
    */
   private buildTestParts(): TestPart[] {
-    const navigationMode = this.config.navigationMode || 'linear';
-    const submissionMode = this.config.submissionMode || 'individual';
+    const navigationMode = this.config.navigationMode || "linear";
+    const submissionMode = this.config.submissionMode || "individual";
 
     const testPart: TestPart = {
-      identifier: 'PART_1',
+      identifier: "PART_1",
       navigationMode,
       submissionMode,
       itemSessionControl: this.buildItemSessionControl(),
@@ -141,21 +143,21 @@ export class TestBuilder {
    * Build assessment sections based on grouping strategy
    */
   private buildAssessmentSections(): AssessmentSection[] {
-    const strategy = this.config.groupingStrategy || 'single-section';
+    const strategy = this.config.groupingStrategy || "single-section";
 
     switch (strategy) {
-      case 'single-section':
+      case "single-section":
         return [this.buildSingleSection()];
-      
-      case 'by-category':
+
+      case "by-category":
         return this.buildSectionsByCategory();
-      
-      case 'by-difficulty':
+
+      case "by-difficulty":
         return this.buildSectionsByDifficulty();
-      
-      case 'custom':
+
+      case "custom":
         return this.buildCustomSections();
-      
+
       default:
         return [this.buildSingleSection()];
     }
@@ -166,10 +168,12 @@ export class TestBuilder {
    */
   private buildSingleSection(): AssessmentSection {
     return {
-      identifier: 'SECTION_1',
-      title: 'All Questions',
+      identifier: "SECTION_1",
+      title: "All Questions",
       visible: true,
-      assessmentItemRefs: this.config.items.map(item => this.buildItemRef(item)),
+      assessmentItemRefs: this.config.items.map((item) =>
+        this.buildItemRef(item),
+      ),
       ordering: this.config.shuffle ? { shuffle: true } : undefined,
     };
   }
@@ -181,8 +185,8 @@ export class TestBuilder {
     const categorizedItems = new Map<string, TestItemConfig[]>();
 
     // Group items by category
-    this.config.items.forEach(item => {
-      const category = item.category || 'Uncategorized';
+    this.config.items.forEach((item) => {
+      const category = item.category || "Uncategorized";
       if (!categorizedItems.has(category)) {
         categorizedItems.set(category, []);
       }
@@ -198,7 +202,7 @@ export class TestBuilder {
         identifier: `SECTION_${sectionIndex}`,
         title: category,
         visible: true,
-        assessmentItemRefs: items.map(item => this.buildItemRef(item)),
+        assessmentItemRefs: items.map((item) => this.buildItemRef(item)),
         ordering: this.config.shuffle ? { shuffle: true } : undefined,
       });
       sectionIndex++;
@@ -211,12 +215,12 @@ export class TestBuilder {
    * Build sections grouped by difficulty
    */
   private buildSectionsByDifficulty(): AssessmentSection[] {
-    const difficulties = ['Easy', 'Medium', 'Hard'];
+    const difficulties = ["Easy", "Medium", "Hard"];
     const sections: AssessmentSection[] = [];
 
     difficulties.forEach((difficulty, index) => {
-      const items = this.config.items.filter(item => 
-        item.category?.toLowerCase() === difficulty.toLowerCase()
+      const items = this.config.items.filter(
+        (item) => item.category?.toLowerCase() === difficulty.toLowerCase(),
       );
 
       if (items.length > 0) {
@@ -224,7 +228,7 @@ export class TestBuilder {
           identifier: `SECTION_${index + 1}`,
           title: `${difficulty} Questions`,
           visible: true,
-          assessmentItemRefs: items.map(item => this.buildItemRef(item)),
+          assessmentItemRefs: items.map((item) => this.buildItemRef(item)),
           ordering: this.config.shuffle ? { shuffle: true } : undefined,
         });
       }
@@ -237,26 +241,33 @@ export class TestBuilder {
    * Build custom sections from configuration
    */
   private buildCustomSections(): AssessmentSection[] {
-    if (!this.config.customSections || this.config.customSections.length === 0) {
+    if (
+      !this.config.customSections ||
+      this.config.customSections.length === 0
+    ) {
       return [this.buildSingleSection()];
     }
 
-    return this.config.customSections.map(sectionConfig => {
-      const items = this.config.items.filter(item =>
-        sectionConfig.itemIdentifiers.includes(item.itemIdentifier)
+    return this.config.customSections.map((sectionConfig) => {
+      const items = this.config.items.filter((item) =>
+        sectionConfig.itemIdentifiers.includes(item.itemIdentifier),
       );
 
       return {
         identifier: sectionConfig.identifier,
         title: sectionConfig.title,
         visible: true,
-        assessmentItemRefs: items.map(item => this.buildItemRef(item)),
+        assessmentItemRefs: items.map((item) => this.buildItemRef(item)),
         ordering: sectionConfig.shuffle ? { shuffle: true } : undefined,
         timeLimits: sectionConfig.timeLimits,
-        rubricBlocks: sectionConfig.rubric ? [{
-          view: 'candidate',
-          content: sectionConfig.rubric,
-        }] : undefined,
+        rubricBlocks: sectionConfig.rubric
+          ? [
+              {
+                view: "candidate",
+                content: sectionConfig.rubric,
+              },
+            ]
+          : undefined,
       };
     });
   }
@@ -288,9 +299,9 @@ export class TestBuilder {
 
     // Map SCORE to TOTAL_SCORE with weight
     mappings.push({
-      sourceIdentifier: 'SCORE',
-      targetIdentifier: 'TOTAL_SCORE',
-      transform: item.weight && item.weight !== 1 ? 'multiply' : 'identity',
+      sourceIdentifier: "SCORE",
+      targetIdentifier: "TOTAL_SCORE",
+      transform: item.weight && item.weight !== 1 ? "multiply" : "identity",
       transformValue: item.weight,
     });
 
@@ -304,13 +315,14 @@ export class TestBuilder {
     // Note: In practice, QTI 3.0 outcome processing uses complex XML expressions
     // For now, we rely on variable mappings to sum scores automatically
     // Custom logic would be added here for complex scoring scenarios
-    
+
     return {
       outcomeRules: [
         {
-          type: 'setOutcomeValue',
-          identifier: 'PASS',
-          expression: 'gte(variable(TOTAL_SCORE), multiply(variable(TOTAL_SCORE.max), 0.6))',
+          type: "setOutcomeValue",
+          identifier: "PASS",
+          expression:
+            "gte(variable(TOTAL_SCORE), multiply(variable(TOTAL_SCORE.max), 0.6))",
         },
       ],
     };
@@ -322,10 +334,11 @@ export class TestBuilder {
   toXML(): string {
     const test = this.build();
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<qti-assessment-test\n';
+    xml += "<qti-assessment-test\n";
     xml += '  xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"\n';
     xml += '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n';
-    xml += '  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0_v1p0.xsd"\n';
+    xml +=
+      '  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0_v1p0.xsd"\n';
     xml += `  identifier="${this.escapeXml(test.identifier)}"\n`;
     xml += `  title="${this.escapeXml(test.title)}"\n`;
     if (test.toolName) {
@@ -334,7 +347,7 @@ export class TestBuilder {
     if (test.toolVersion) {
       xml += `  tool-version="${this.escapeXml(test.toolVersion)}"\n`;
     }
-    xml += '>\n';
+    xml += ">\n";
 
     // Outcome declarations
     if (test.outcomeDeclarations && test.outcomeDeclarations.length > 0) {
@@ -347,7 +360,7 @@ export class TestBuilder {
     }
 
     // Test parts
-    test.testParts.forEach(testPart => {
+    test.testParts.forEach((testPart) => {
       xml += this.testPartToXML(testPart);
     });
 
@@ -356,17 +369,19 @@ export class TestBuilder {
       xml += this.outcomeProcessingToXML(test.outcomeProcessing);
     }
 
-    xml += '</qti-assessment-test>\n';
+    xml += "</qti-assessment-test>\n";
     return xml;
   }
 
   /**
    * Convert outcome declarations to XML
    */
-  private outcomeDeclarationsToXML(declarations: TestOutcomeDeclaration[]): string {
-    let xml = '';
-    declarations.forEach(decl => {
-      xml += '  <qti-outcome-declaration';
+  private outcomeDeclarationsToXML(
+    declarations: TestOutcomeDeclaration[],
+  ): string {
+    let xml = "";
+    declarations.forEach((decl) => {
+      xml += "  <qti-outcome-declaration";
       xml += ` identifier="${this.escapeXml(decl.identifier)}"`;
       xml += ` cardinality="${decl.cardinality}"`;
       if (decl.baseType) {
@@ -378,16 +393,16 @@ export class TestBuilder {
       if (decl.normalMinimum !== undefined) {
         xml += ` normal-minimum="${decl.normalMinimum}"`;
       }
-      xml += '>\n';
+      xml += ">\n";
 
       // Default value
       if (decl.defaultValue !== undefined) {
-        xml += '    <qti-default-value>\n';
+        xml += "    <qti-default-value>\n";
         xml += `      <qti-value>${this.escapeXml(String(decl.defaultValue))}</qti-value>\n`;
-        xml += '    </qti-default-value>\n';
+        xml += "    </qti-default-value>\n";
       }
 
-      xml += '  </qti-outcome-declaration>\n';
+      xml += "  </qti-outcome-declaration>\n";
     });
     return xml;
   }
@@ -395,7 +410,10 @@ export class TestBuilder {
   /**
    * Convert time limits to XML
    */
-  private timeLimitsToXML(timeLimits: TimeLimits, indent: string = '  '): string {
+  private timeLimitsToXML(
+    timeLimits: TimeLimits,
+    indent: string = "  ",
+  ): string {
     let xml = `${indent}<qti-time-limits`;
     if (timeLimits.minTime !== undefined) {
       xml += ` min-time="${timeLimits.minTime}"`;
@@ -406,7 +424,7 @@ export class TestBuilder {
     if (timeLimits.allowLateSubmission !== undefined) {
       xml += ` allow-late-submission="${timeLimits.allowLateSubmission}"`;
     }
-    xml += ' />\n';
+    xml += " />\n";
     return xml;
   }
 
@@ -414,11 +432,11 @@ export class TestBuilder {
    * Convert test part to XML
    */
   private testPartToXML(testPart: TestPart): string {
-    let xml = '  <qti-test-part';
+    let xml = "  <qti-test-part";
     xml += ` identifier="${this.escapeXml(testPart.identifier)}"`;
     xml += ` navigation-mode="${testPart.navigationMode}"`;
     xml += ` submission-mode="${testPart.submissionMode}"`;
-    xml += '>\n';
+    xml += ">\n";
 
     // Item session control
     if (testPart.itemSessionControl) {
@@ -427,15 +445,15 @@ export class TestBuilder {
 
     // Time limits
     if (testPart.timeLimits) {
-      xml += this.timeLimitsToXML(testPart.timeLimits, '    ');
+      xml += this.timeLimitsToXML(testPart.timeLimits, "    ");
     }
 
     // Assessment sections
-    testPart.assessmentSections.forEach(section => {
+    testPart.assessmentSections.forEach((section) => {
       xml += this.assessmentSectionToXML(section);
     });
 
-    xml += '  </qti-test-part>\n';
+    xml += "  </qti-test-part>\n";
     return xml;
   }
 
@@ -443,7 +461,7 @@ export class TestBuilder {
    * Convert item session control to XML
    */
   private itemSessionControlToXML(control: ItemSessionControl): string {
-    let xml = '    <qti-item-session-control';
+    let xml = "    <qti-item-session-control";
     if (control.maxAttempts !== undefined) {
       xml += ` max-attempts="${control.maxAttempts}"`;
     }
@@ -462,26 +480,29 @@ export class TestBuilder {
     if (control.validateResponses !== undefined) {
       xml += ` validate-responses="${control.validateResponses}"`;
     }
-    xml += ' />\n';
+    xml += " />\n";
     return xml;
   }
 
   /**
    * Convert assessment section to XML
    */
-  private assessmentSectionToXML(section: AssessmentSection, indent: string = '    '): string {
+  private assessmentSectionToXML(
+    section: AssessmentSection,
+    indent: string = "    ",
+  ): string {
     let xml = `${indent}<qti-assessment-section`;
     xml += ` identifier="${this.escapeXml(section.identifier)}"`;
     xml += ` title="${this.escapeXml(section.title)}"`;
     if (section.visible !== undefined) {
       xml += ` visible="${section.visible}"`;
     }
-    xml += '>\n';
+    xml += ">\n";
 
     // Rubric blocks
     if (section.rubricBlocks && section.rubricBlocks.length > 0) {
-      section.rubricBlocks.forEach(rubric => {
-        xml += `${indent}  <qti-rubric-block view="${rubric.view || 'candidate'}">\n`;
+      section.rubricBlocks.forEach((rubric) => {
+        xml += `${indent}  <qti-rubric-block view="${rubric.view || "candidate"}">\n`;
         xml += `${indent}    ${rubric.content}\n`;
         xml += `${indent}  </qti-rubric-block>\n`;
       });
@@ -494,18 +515,18 @@ export class TestBuilder {
 
     // Time limits
     if (section.timeLimits) {
-      xml += this.timeLimitsToXML(section.timeLimits, indent + '  ');
+      xml += this.timeLimitsToXML(section.timeLimits, indent + "  ");
     }
 
     // Item references
-    section.assessmentItemRefs.forEach(itemRef => {
-      xml += this.assessmentItemRefToXML(itemRef, indent + '  ');
+    section.assessmentItemRefs.forEach((itemRef) => {
+      xml += this.assessmentItemRefToXML(itemRef, indent + "  ");
     });
 
     // Nested sections
     if (section.assessmentSections && section.assessmentSections.length > 0) {
-      section.assessmentSections.forEach(nestedSection => {
-        xml += this.assessmentSectionToXML(nestedSection, indent + '  ');
+      section.assessmentSections.forEach((nestedSection) => {
+        xml += this.assessmentSectionToXML(nestedSection, indent + "  ");
       });
     }
 
@@ -516,7 +537,10 @@ export class TestBuilder {
   /**
    * Convert assessment item ref to XML
    */
-  private assessmentItemRefToXML(itemRef: AssessmentItemRef, indent: string): string {
+  private assessmentItemRefToXML(
+    itemRef: AssessmentItemRef,
+    indent: string,
+  ): string {
     let xml = `${indent}<qti-assessment-item-ref`;
     xml += ` identifier="${this.escapeXml(itemRef.identifier)}"`;
     xml += ` href="${this.escapeXml(itemRef.href)}"`;
@@ -532,16 +556,16 @@ export class TestBuilder {
 
     // Self-closing or with children
     if (!itemRef.variableMappings || itemRef.variableMappings.length === 0) {
-      xml += ' />\n';
+      xml += " />\n";
     } else {
-      xml += '>\n';
-      
+      xml += ">\n";
+
       // Variable mappings
-      itemRef.variableMappings.forEach(mapping => {
+      itemRef.variableMappings.forEach((mapping) => {
         xml += `${indent}  <qti-variable-mapping`;
         xml += ` source-identifier="${this.escapeXml(mapping.sourceIdentifier)}"`;
         xml += ` target-identifier="${this.escapeXml(mapping.targetIdentifier)}"`;
-        xml += ' />\n';
+        xml += " />\n";
       });
 
       xml += `${indent}</qti-assessment-item-ref>\n`;
@@ -554,33 +578,35 @@ export class TestBuilder {
    * Convert outcome processing to XML
    */
   private outcomeProcessingToXML(processing: OutcomeProcessing): string {
-    let xml = '  <qti-outcome-processing>\n';
-    
+    let xml = "  <qti-outcome-processing>\n";
+
     // Simple pass/fail logic
     xml += '    <qti-set-outcome-value identifier="PASS">\n';
-    xml += '      <qti-gte>\n';
+    xml += "      <qti-gte>\n";
     xml += '        <qti-variable identifier="TOTAL_SCORE" />\n';
-    xml += '        <qti-product>\n';
-    xml += '          <qti-variable identifier="TOTAL_SCORE" property="normalMaximum" />\n';
+    xml += "        <qti-product>\n";
+    xml +=
+      '          <qti-variable identifier="TOTAL_SCORE" property="normalMaximum" />\n';
     xml += '          <qti-base-value base-type="float">0.6</qti-base-value>\n';
-    xml += '        </qti-product>\n';
-    xml += '      </qti-gte>\n';
-    xml += '    </qti-set-outcome-value>\n';
+    xml += "        </qti-product>\n";
+    xml += "      </qti-gte>\n";
+    xml += "    </qti-set-outcome-value>\n";
 
     // Calculate percentage if needed
     if (this.config.normalizeScores) {
       xml += '    <qti-set-outcome-value identifier="PERCENT_SCORE">\n';
-      xml += '      <qti-product>\n';
-      xml += '        <qti-divide>\n';
+      xml += "      <qti-product>\n";
+      xml += "        <qti-divide>\n";
       xml += '          <qti-variable identifier="TOTAL_SCORE" />\n';
-      xml += '          <qti-variable identifier="TOTAL_SCORE" property="normalMaximum" />\n';
-      xml += '        </qti-divide>\n';
+      xml +=
+        '          <qti-variable identifier="TOTAL_SCORE" property="normalMaximum" />\n';
+      xml += "        </qti-divide>\n";
       xml += '        <qti-base-value base-type="float">100</qti-base-value>\n';
-      xml += '      </qti-product>\n';
-      xml += '    </qti-set-outcome-value>\n';
+      xml += "      </qti-product>\n";
+      xml += "    </qti-set-outcome-value>\n";
     }
 
-    xml += '  </qti-outcome-processing>\n';
+    xml += "  </qti-outcome-processing>\n";
     return xml;
   }
 
@@ -589,11 +615,11 @@ export class TestBuilder {
    */
   private escapeXml(text: string): string {
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 }
 

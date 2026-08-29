@@ -35,33 +35,39 @@ A complete authentication and feature-gating system for the Batch QTI Creator to
 ## 📦 What's Included
 
 ### 1. **Authentication System**
-   - Registration with email, name, and password
-   - Email verification via OTP (One-Time Password)
-   - Secure login/logout
-   - Persistent session management
-   - Password strength validation
+
+- Registration with email, name, and password
+- Email verification via OTP (One-Time Password)
+- Secure login/logout
+- Persistent session management
+- Password strength validation
 
 ### 2. **Files Created/Modified**
 
 #### New Services:
+
 - `src/services/supabaseClient.ts` - Supabase client initialization
 - `src/services/authService.ts` - All authentication API calls
 
 #### New Context:
+
 - `src/contexts/AuthContext.tsx` - Global auth state management with useAuth hook
 
 #### New Auth Pages:
+
 - `src/pages/auth/RegisterPage.tsx` - User registration
 - `src/pages/auth/LoginPage.tsx` - User login
 - `src/pages/auth/VerifyEmailPage.tsx` - Email verification
 - `src/pages/PricingPage.tsx` - Pricing and upgrade options
 
 #### Modified Files:
+
 - `src/app/routes.ts` - Added new routes
 - `src/app/App.tsx` - Wrapped app with AuthProvider
 - `src/app/pages/workspace/BatchCreator.tsx` - Added auth protection and usage tracking
 
 #### Configuration & Docs:
+
 - `.env.example` - Environment variables template
 - `docs/DATABASE_SETUP.sql` - Database schema with RLS policies
 - `docs/AUTH_IMPLEMENTATION_GUIDE.md` - Complete setup guide
@@ -71,6 +77,7 @@ A complete authentication and feature-gating system for the Batch QTI Creator to
 Two main tables:
 
 **`user_profiles`** - Stores user information
+
 ```sql
 - id (UUID, Primary Key)
 - email (TEXT, Unique)
@@ -80,6 +87,7 @@ Two main tables:
 ```
 
 **`user_usage`** - Tracks QTI exports per user
+
 ```sql
 - user_id (UUID, Primary Key, Foreign Key)
 - exports_count (INTEGER, default 0)
@@ -95,6 +103,7 @@ Both tables have **Row Level Security (RLS)** enabled to ensure users can only a
 ## 🚀 Quick Start
 
 ### 1. Create Supabase Project
+
 ```bash
 # Go to https://app.supabase.com
 # Create new project
@@ -102,6 +111,7 @@ Both tables have **Row Level Security (RLS)** enabled to ensure users can only a
 ```
 
 ### 2. Set Environment Variables
+
 ```bash
 # Create .env.local in project root
 VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -109,12 +119,14 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
 ### 3. Set Up Database
+
 ```bash
 # In Supabase SQL Editor, run:
 # Contents of docs/DATABASE_SETUP.sql
 ```
 
 ### 4. Test It Out
+
 ```bash
 npm run dev
 # Navigate to workspace → Batch QTI Creator
@@ -127,6 +139,7 @@ npm run dev
 ### Authentication Flow
 
 1. **Registration**
+
    - User enters: Email, Name, Password (8+ chars)
    - Password confirmation required
    - Input validation on client side
@@ -134,12 +147,14 @@ npm run dev
    - Profile stored in `user_profiles` table
 
 2. **Email Verification**
+
    - Supabase sends OTP to email automatically
    - User has 6-digit code
    - Can resend code (with 60-second cooldown)
    - After verification, email_confirmed status is set
 
 3. **Login**
+
    - Email and password required
    - Session persisted in browser
    - Auth state restored on page refresh
@@ -151,11 +166,13 @@ npm run dev
 ### Batch Creator Protection
 
 **Unauthenticated Users:**
+
 - See a lock icon modal
 - Option to register or login
 - Benefits of free trial displayed
 
 **Authenticated Users (Quota Available):**
+
 - Full access to batch creator
 - Can upload CSV/Excel files
 - Can validate questions
@@ -163,6 +180,7 @@ npm run dev
 - Export is tracked in `user_usage` table
 
 **Exceeded Quota:**
+
 - After 1st export, user is redirected to pricing page
 - Shows "Quota Reached" message
 - Displays Pro/Enterprise plan benefits
@@ -186,6 +204,7 @@ Every successful QTI export:
 ### Change Free Tier Limit
 
 In `src/app/pages/workspace/BatchCreator.tsx`:
+
 ```tsx
 // Change from 1 to 5 free exports
 const canUseFeature = !userUsage || userUsage.exports_count < 5;
@@ -194,6 +213,7 @@ const canUseFeature = !userUsage || userUsage.exports_count < 5;
 ### Change Verification Method
 
 From OTP to Magic Link in `src/services/authService.ts`:
+
 ```tsx
 // In verifyEmail function, change:
 type: 'email',  // → 'magic_link'
@@ -202,12 +222,13 @@ type: 'email',  // → 'magic_link'
 ### Customize Pricing Page
 
 Edit pricing tiers in `src/pages/PricingPage.tsx`:
+
 ```tsx
 const pricingTiers: PricingTier[] = [
   {
-    name: 'Pro',
-    price: '$29',
-    features: ['Your custom features here'],
+    name: "Pro",
+    price: "$29",
+    features: ["Your custom features here"],
     // ... other properties
   },
 ];
@@ -223,16 +244,16 @@ const pricingTiers: PricingTier[] = [
 // In PricingPage.tsx handleUpgrade function
 const handleUpgrade = async (tier: string) => {
   const stripe = await loadStripe(process.env.VITE_STRIPE_KEY!);
-  
-  const response = await fetch('/api/create-checkout', {
-    method: 'POST',
+
+  const response = await fetch("/api/create-checkout", {
+    method: "POST",
     body: JSON.stringify({
       tier,
       userId: user?.id,
-      email: user?.email
-    })
+      email: user?.email,
+    }),
   });
-  
+
   const { sessionId } = await response.json();
   await stripe?.redirectToCheckout({ sessionId });
 };
@@ -245,13 +266,13 @@ const handleUpgrade = async (tier: string) => {
   const options = {
     key: process.env.VITE_RAZORPAY_KEY_ID,
     amount: getTierPrice(tier) * 100, // in paise
-    currency: 'INR',
+    currency: "INR",
     handler: async (response) => {
       // Verify payment with your backend
       await updateUserTier(user?.id, tier);
-    }
+    },
   };
-  
+
   const razorpay = new window.Razorpay(options);
   razorpay.open();
 };
@@ -288,16 +309,19 @@ You can add admin features by:
 ## ⚠️ Important Notes
 
 1. **Environment Variables**
+
    - `VITE_` prefix makes variables available to frontend (safe)
    - Never expose secret API keys
    - Always use `.env.local` (never commit)
 
 2. **Email Confirmation**
+
    - Uses Supabase SMTP by default
    - Change email provider in Supabase settings
    - Configure email templates for branding
 
 3. **Database Size Limits**
+
    - Supabase free tier: 0.5 GB
    - Pro tier: 2 GB + $10 per GB
    - Suitable for up to 1000+ users on free tier
@@ -311,6 +335,7 @@ You can add admin features by:
 ## 🐛 Troubleshooting
 
 ### "Supabase environment variables are not set"
+
 ```
 ✓ Check .env.local exists
 ✓ Check variable names match (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
@@ -318,6 +343,7 @@ You can add admin features by:
 ```
 
 ### "Email verification not received"
+
 ```
 ✓ Check spam folder
 ✓ Verify Supabase email provider is enabled
@@ -326,6 +352,7 @@ You can add admin features by:
 ```
 
 ### "User can access feature after quota"
+
 ```
 ✓ Clear browser cache and localStorage
 ✓ Verify canUseFeature logic in BatchCreator
@@ -334,6 +361,7 @@ You can add admin features by:
 ```
 
 ### "CORS errors"
+
 ```
 ✓ Use Supabase client (automatically handles CORS)
 ✓ Check browser console for specific error
@@ -345,20 +373,24 @@ You can add admin features by:
 ## 📈 Getting to Production
 
 1. **Create Production Supabase Project**
+
    - Separate from development
    - Run DATABASE_SETUP.sql there too
    - Different credentials
 
 2. **Environment Variables**
+
    - Set in hosting provider (Vercel, Netlify, etc.)
    - Never commit `.env.local`
 
 3. **Email Provider**
+
    - Set up SendGrid/Postmark/custom SMTP
    - Configure sender name and address
    - Test email delivery
 
 4. **Payment Processor**
+
    - Integrate Stripe/Razorpay
    - Set up webhooks for payments
    - Test checkout flow
@@ -396,6 +428,7 @@ You can add admin features by:
 ## ❓ Questions?
 
 Refer to:
+
 1. `docs/AUTH_IMPLEMENTATION_GUIDE.md` - Complete setup guide
 2. `docs/DATABASE_SETUP.sql` - Database schema
 3. Code comments in `src/services/authService.ts`

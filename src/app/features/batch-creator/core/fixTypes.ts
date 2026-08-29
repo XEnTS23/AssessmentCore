@@ -1,4 +1,4 @@
-import { QuestionRow } from './rowTypes';
+import { QuestionRow } from "./rowTypes";
 
 // ─── Row Patch ───────────────────────────────────────────────────────
 
@@ -14,6 +14,25 @@ export interface RowPatch {
   changes: RowPatchChange[];
 }
 
+export type PatchFailureReason =
+  | "row_mismatch"
+  | "empty_patch"
+  | "invalid_path"
+  | "unsafe_path"
+  | "duplicate_path"
+  | "missing_parent"
+  | "stale_value"
+  | "no_change"
+  | "validation_regression"
+  | "target_issue_not_resolved";
+
+export interface PatchIssueProfile {
+  block: number;
+  review: number;
+  warning: number;
+  info: number;
+}
+
 // ─── Fix Suggestion ──────────────────────────────────────────────────
 
 export interface FixSuggestion {
@@ -25,7 +44,7 @@ export interface FixSuggestion {
   /** Human-readable label for UI display */
   label: string;
   /** How confident the system is about this fix */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
   /** If true, the system may apply this fix without user confirmation */
   autoApplicable: boolean;
   /** If true, the user must explicitly approve before applying */
@@ -48,6 +67,13 @@ export interface PatchResult {
   issuesBefore: number;
   /** Validation issues after the patch */
   issuesAfter: number;
+  /** Machine-readable explanation when the patch was rejected. */
+  failureReason?: PatchFailureReason;
+  /** Field that caused a precondition or path failure, when applicable. */
+  failurePath?: string;
+  /** Severity-aware issue counts used for regression decisions. */
+  issueProfileBefore: PatchIssueProfile;
+  issueProfileAfter: PatchIssueProfile;
 }
 
 // ─── Suggestion Engine Result ────────────────────────────────────────

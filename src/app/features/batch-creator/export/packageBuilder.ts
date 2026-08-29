@@ -12,21 +12,29 @@
  * real ZIP.  For JSON we just produce a single file download.
  */
 
-import { QuestionRow } from '../core/rowTypes';
-import { ExportConfig } from '../core/exportTypes';
-import { BuildResult, GeneratedArtifact, BuildError, BuildWarning } from '../core/buildTypes';
-import { buildJsonExport } from '../builders/jsonBuilder';
-import { buildQti21Export } from '../builders/qti21Builder';
-import { buildQti30Export } from '../builders/qti30Builder';
+import { QuestionRow } from "../core/rowTypes";
+import { ExportConfig } from "../core/exportTypes";
+import {
+  BuildResult,
+  GeneratedArtifact,
+  BuildError,
+  BuildWarning,
+} from "../core/buildTypes";
+import { buildJsonExport } from "../builders/jsonBuilder";
+import { buildQti21Export } from "../builders/qti21Builder";
+import { buildQti30Export } from "../builders/qti30Builder";
 import {
   validateJsonArtifact,
   validateXmlArtifact,
+  validateQti21Artifact,
   validateQti30Artifact,
-} from './artifactValidator';
+} from "./artifactValidator";
+import { evaluateExportReadinessGate } from "./exportReadinessGate";
+import { createWorkflowOperation } from "../observability/workflowTelemetry";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type PackageFormat = 'single_file' | 'zip';
+export type PackageFormat = "single_file" | "zip";
 
 export interface PackageResult {
   buildResult: BuildResult;
@@ -46,24 +54,62 @@ export interface PackageResult {
 
 // ─── Main Entry ───────────────────────────────────────────────────────────────
 
-export async function buildAndPackage(
+async function buildAndPackageInternal(
   rows: QuestionRow[],
   config: ExportConfig,
 ): Promise<PackageResult> {
+  // Stored row statuses are not trusted at this final boundary. Re-run the
+  // current validation and readiness rules before any artifact is generated.
+  const readinessGate = evaluateExportReadinessGate(rows, config);
+  if (!readinessGate.isReady) {
+    const buildResult: BuildResult = {
+      success: false,
+      artifacts: [],
+      warnings: readinessGate.warnings,
+      errors: readinessGate.blockers,
+    };
+    return {
+      buildResult,
+      validatedArtifacts: [],
+      validationErrors: readinessGate.blockers,
+      validationWarnings: readinessGate.warnings,
+      downloadBlob: null,
+      downloadFileName: "",
+      isDownloadReady: false,
+    };
+  }
+
+  const validatedRows = readinessGate.rows;
+
   // 1. Build
   let buildResult: BuildResult;
   try {
-    if (config.target === 'json' || config.target === 'custom_lms') {
-      buildResult = buildJsonExport(rows, config);
-    } else if (config.target === 'qti_2_1') {
-      buildResult = buildQti21Export(rows, config);
-    } else if (config.target === 'qti_3_0') {
-      buildResult = buildQti30Export(rows, config);
+    if (config.target === "json" || config.target === "custom_lms") {
+      buildResult = buildJsonExport(validatedRows, config);
+    } else if (config.target === "qti_2_1") {
+      buildResult = buildQti21Export(validatedRows, config);
+    } else if (config.target === "qti_3_0") {
+      buildResult = buildQti30Export(validatedRows, config);
     } else {
-      buildResult = { success: false, artifacts: [], warnings: [], errors: [{ code: 'UNKNOWN_TARGET', message: `Unknown export target: ${config.target}` }] };
+      buildResult = {
+        success: false,
+        artifacts: [],
+        warnings: [],
+        errors: [
+          {
+            code: "UNKNOWN_TARGET",
+            message: `Unknown export target: ${config.target}`,
+          },
+        ],
+      };
     }
   } catch (e: any) {
-    buildResult = { success: false, artifacts: [], warnings: [], errors: [{ code: 'BUILD_EXCEPTION', message: e?.message ?? String(e) }] };
+    buildResult = {
+      success: false,
+      artifacts: [],
+      warnings: [],
+      errors: [{ code: "BUILD_EXCEPTION", message: e?.message ?? String(e) }],
+    };
   }
 
   if (!buildResult.success || buildResult.artifacts.length === 0) {
@@ -71,9 +117,9 @@ export async function buildAndPackage(
       buildResult,
       validatedArtifacts: [],
       validationErrors: buildResult.errors,
-      validationWarnings: buildResult.warnings,
+      validationWarnings: [...readinessGate.warnings, ...buildResult.warnings],
       downloadBlob: null,
-      downloadFileName: '',
+      downloadFileName: "",
       isDownloadReady: false,
     };
   }
@@ -86,10 +132,12 @@ export async function buildAndPackage(
   for (const artifact of buildResult.artifacts) {
     let result: { isValid: boolean; errors: BuildError[] };
 
-    if (artifact.mimeType === 'application/json') {
+    if (artifact.mimeType === "application/json") {
       result = validateJsonArtifact(artifact);
-    } else if (config.target === 'qti_3_0') {
+    } else if (config.target === "qti_3_0") {
       result = validateQti30Artifact(artifact);
+    } else if (config.target === "qti_2_1") {
+      result = validateQti21Artifact(artifact);
     } else {
       result = validateXmlArtifact(artifact);
     }
@@ -105,17 +153,21 @@ export async function buildAndPackage(
 
   // 3. Package into blob
   let downloadBlob: Blob | null = null;
-  let downloadFileName = '';
+  let downloadFileName = "";
 
   if (isDownloadReady) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
 
     if (validatedArtifacts.length === 1) {
       // Single file
       const a = validatedArtifacts[0];
-      downloadBlob = typeof a.data === 'string'
-        ? new Blob([a.data], { type: a.mimeType })
-        : a.data;
+      downloadBlob =
+        typeof a.data === "string"
+          ? new Blob([a.data], { type: a.mimeType })
+          : a.data;
       downloadFileName = a.fileName;
     } else {
       // Multi-file → ZIP
@@ -128,7 +180,11 @@ export async function buildAndPackage(
     buildResult,
     validatedArtifacts,
     validationErrors,
-    validationWarnings: [...buildResult.warnings, ...validationWarnings],
+    validationWarnings: [
+      ...readinessGate.warnings,
+      ...buildResult.warnings,
+      ...validationWarnings,
+    ],
     downloadBlob,
     downloadFileName,
     isDownloadReady,
@@ -139,6 +195,31 @@ export async function buildAndPackage(
 // Implements the ZIP local file + central directory structure manually.
 // This avoids a large dependency (JSZip) for what is a straightforward use-case.
 
+export async function buildAndPackage(
+  rows: QuestionRow[],
+  config: ExportConfig,
+): Promise<PackageResult> {
+  const operation = createWorkflowOperation("build", { rows: rows.length });
+  try {
+    const result = await buildAndPackageInternal(rows, config);
+    if (result.isDownloadReady) {
+      operation.complete({
+        artifacts: result.validatedArtifacts.length,
+        warnings: result.validationWarnings.length,
+      });
+    } else {
+      operation.fail(result.validationErrors[0]?.code || "BUILD_NOT_READY", {
+        errors: result.validationErrors.length,
+        warnings: result.validationWarnings.length,
+      });
+    }
+    return result;
+  } catch (error) {
+    operation.fail("BUILD_EXCEPTION");
+    throw error;
+  }
+}
+
 async function buildZipBlob(artifacts: GeneratedArtifact[]): Promise<Blob> {
   const encoder = new TextEncoder();
   const localHeaders: Uint8Array[] = [];
@@ -148,9 +229,10 @@ async function buildZipBlob(artifacts: GeneratedArtifact[]): Promise<Blob> {
   let offset = 0;
 
   for (const artifact of artifacts) {
-    const data: Uint8Array = typeof artifact.data === 'string'
-      ? encoder.encode(artifact.data)
-      : new Uint8Array(await (artifact.data as Blob).arrayBuffer());
+    const data: Uint8Array =
+      typeof artifact.data === "string"
+        ? encoder.encode(artifact.data)
+        : new Uint8Array(await (artifact.data as Blob).arrayBuffer());
 
     const nameBytes = encoder.encode(artifact.fileName);
     const crc = crc32(data);
@@ -161,7 +243,14 @@ async function buildZipBlob(artifacts: GeneratedArtifact[]): Promise<Blob> {
     localHeaders.push(data);
     offset += localHeader.length + data.length;
 
-    centralDirectories.push(buildCentralDirectoryHeader(nameBytes, data, crc, offsets[offsets.length - 1]));
+    centralDirectories.push(
+      buildCentralDirectoryHeader(
+        nameBytes,
+        data,
+        crc,
+        offsets[offsets.length - 1],
+      ),
+    );
   }
 
   const cdStart = offset;
@@ -170,7 +259,7 @@ async function buildZipBlob(artifacts: GeneratedArtifact[]): Promise<Blob> {
 
   return new Blob(
     [...localHeaders, ...centralDirectories, eocd] as BlobPart[],
-    { type: 'application/zip' },
+    { type: "application/zip" },
   );
 }
 
@@ -180,70 +269,87 @@ function u16le(n: number): Uint8Array {
   return new Uint8Array([n & 0xff, (n >> 8) & 0xff]);
 }
 function u32le(n: number): Uint8Array {
-  return new Uint8Array([n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, (n >> 24) & 0xff]);
+  return new Uint8Array([
+    n & 0xff,
+    (n >> 8) & 0xff,
+    (n >> 16) & 0xff,
+    (n >> 24) & 0xff,
+  ]);
 }
 function concat(...arrays: Uint8Array[]): Uint8Array {
   const total = arrays.reduce((s, a) => s + a.length, 0);
   const out = new Uint8Array(total);
   let pos = 0;
-  for (const a of arrays) { out.set(a, pos); pos += a.length; }
+  for (const a of arrays) {
+    out.set(a, pos);
+    pos += a.length;
+  }
   return out;
 }
 
-function buildLocalFileHeader(name: Uint8Array, data: Uint8Array, crc: number): Uint8Array {
+function buildLocalFileHeader(
+  name: Uint8Array,
+  data: Uint8Array,
+  crc: number,
+): Uint8Array {
   return concat(
-    new Uint8Array([0x50, 0x4b, 0x03, 0x04]),   // signature
-    u16le(20),      // version needed
-    u16le(0),       // flags
-    u16le(0),       // compression (stored)
-    u16le(0),       // mod time
-    u16le(0),       // mod date
+    new Uint8Array([0x50, 0x4b, 0x03, 0x04]), // signature
+    u16le(20), // version needed
+    u16le(0), // flags
+    u16le(0), // compression (stored)
+    u16le(0), // mod time
+    u16le(0), // mod date
     u32le(crc),
     u32le(data.length),
     u32le(data.length),
     u16le(name.length),
-    u16le(0),       // extra field length
+    u16le(0), // extra field length
     name,
   );
 }
 
 function buildCentralDirectoryHeader(
-  name: Uint8Array, data: Uint8Array, crc: number, localOffset: number,
+  name: Uint8Array,
+  data: Uint8Array,
+  crc: number,
+  localOffset: number,
 ): Uint8Array {
   return concat(
-    new Uint8Array([0x50, 0x4b, 0x01, 0x02]),  // signature
-    u16le(20),      // version made by
-    u16le(20),      // version needed
-    u16le(0),       // flags
-    u16le(0),       // compression
-    u16le(0),       // mod time
-    u16le(0),       // mod date
+    new Uint8Array([0x50, 0x4b, 0x01, 0x02]), // signature
+    u16le(20), // version made by
+    u16le(20), // version needed
+    u16le(0), // flags
+    u16le(0), // compression
+    u16le(0), // mod time
+    u16le(0), // mod date
     u32le(crc),
     u32le(data.length),
     u32le(data.length),
     u16le(name.length),
-    u16le(0),       // extra
-    u16le(0),       // comment
-    u16le(0),       // disk start
-    u16le(0),       // internal attrs
-    u32le(0),       // external attrs
+    u16le(0), // extra
+    u16le(0), // comment
+    u16le(0), // disk start
+    u16le(0), // internal attrs
+    u32le(0), // external attrs
     u32le(localOffset),
     name,
   );
 }
 
 function buildEndOfCentralDirectory(
-  count: number, cdSize: number, cdStart: number,
+  count: number,
+  cdSize: number,
+  cdStart: number,
 ): Uint8Array {
   return concat(
-    new Uint8Array([0x50, 0x4b, 0x05, 0x06]),  // signature
-    u16le(0),           // disk number
-    u16le(0),           // disk with CD
+    new Uint8Array([0x50, 0x4b, 0x05, 0x06]), // signature
+    u16le(0), // disk number
+    u16le(0), // disk with CD
     u16le(count),
     u16le(count),
     u32le(cdSize),
     u32le(cdStart),
-    u16le(0),           // comment length
+    u16le(0), // comment length
   );
 }
 
@@ -253,7 +359,7 @@ const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
     let c = n;
-    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
     t[n] = c;
   }
   return t;

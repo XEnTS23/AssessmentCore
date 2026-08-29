@@ -1,6 +1,7 @@
 # AssessmentCore Validation Rules and Autofix Features
 
 ## Overview
+
 AssessmentCore implements a comprehensive validation and autofix system for educational assessment questions. The system validates against 25+ structural and semantic rules and provides multiple autofix mechanisms ranging from deterministic cleaning to AI-powered corrections.
 
 ## Validation Rules
@@ -10,10 +11,12 @@ The system uses a declarative rule engine with rules categorized by question typ
 ### Core Validation Rules
 
 #### General Rules (Apply to All Types)
+
 - **REQUIRED_QUESTION_FIELD_RULE**: Question text/stem is required for export mapping
 - **WHITESPACE_AUTOFIX_RULE**: Detects leading/trailing/extra whitespace that needs cleaning
 
 #### MCQ (Multiple Choice Question) Rules
+
 - **REQUIRED_OPTIONS_RULE**: Requires at least optionA and optionB to be non-empty
 - **MCQ_MIN_OPTIONS_RULE**: Requires at least 2 options
 - **MCQ_OPTION_TEXT_NOT_EMPTY_RULE**: Every option must have non-empty text
@@ -29,6 +32,7 @@ The system uses a declarative rule engine with rules categorized by question typ
 - **MCQ_SUSPECT_TYPE_RULE**: Detects suspicious question types (single option, true/false options)
 
 #### MSQ (Multiple Selection Question) Rules
+
 - **MSQ_HAS_CORRECT_ANSWERS_RULE**: At least one correct answer must be provided
 - **MSQ_ANSWER_IDENTIFIER_VALID_RULE**: Answer identifiers must be valid
 - **MSQ_OPTIONS_UNIQUE_RULE**: Option identifiers must be unique
@@ -41,11 +45,13 @@ The system uses a declarative rule engine with rules categorized by question typ
 - **MSQ_EXACT_SET_MATCH_RULE**: Answers must exactly match the expected set
 
 #### MSQ/ORDER Specific Rules
+
 - **DELIMITER_FORMAT_RULE**: Answer must use pipe delimiter only (e.g., A|B|C) with no trailing/leading/double pipes
 
 ### Rule Categories and Severities
+
 - **Categories**: structural, content_quality, type_suspicion
-- **Severities**: 
+- **Severities**:
   - `block`: Critical issues preventing export
   - `review`: Issues requiring manual review
   - `warning`: Minor issues that may be autofixed
@@ -57,7 +63,9 @@ AssessmentCore provides multiple levels of autofix capabilities:
 ### 1. 3-Pass Deterministic Cleaning Pipeline (No AI)
 
 #### PASS 1: Character-Level Cleaning
+
 Applied to all mapped columns (questions, options, answers):
+
 - **INVISIBLE_CHAR_REMOVAL**: Removes zero-width spaces, BOM characters, soft hyphens
 - **LINE_BREAK_NORMALIZATION**: Converts all line breaks to Unix-style (\n)
 - **TRIM**: Removes leading/trailing whitespace
@@ -67,13 +75,16 @@ Applied to all mapped columns (questions, options, answers):
 - **NULL_COERCION**: Converts placeholder values (null, undefined, na, n/a, -, empty) to special null tokens
 
 #### PASS 2: Structural Cleaning & Alignment
+
 - **COLUMN_FALLBACK**: Uses fallback columns when primary columns are missing
 - **STRUCTURE_FIX**: Fixes structural inconsistencies in data layout
 - **OPTION_CLEANUP**: Cleans and normalizes option formatting
 - **ANSWER_ALIGNMENT**: Aligns answers with available options
 
 #### PASS 3: Suggestion-Based Remediation
+
 Generates human-readable correction suggestions for remaining issues:
+
 - **MISSING_ANSWER_SINGLE_OPTION**: When answer is null but only one option exists (HIGH confidence)
 - **PLACEHOLDER_ANSWER**: When answer was null-coerced from placeholder tokens (MEDIUM confidence)
 - **MISSING_ANSWER_MULTIPLE_OPTIONS**: When answer is null with multiple options (MEDIUM confidence)
@@ -89,12 +100,14 @@ PASS 3 suggestions can be executed with per-row rollback safety - changes are ap
 ### 2. AI-Based Autofix Features
 
 #### Stem Autofix (`auto-fix-stem`)
+
 - **Purpose**: Rewrites question stems to resolve grammar, logic, clarity, and factual issues
 - **Input**: Original stem, question type, options, correct answers, detected issues
 - **Process**: Uses Groq AI to generate corrected stem while preserving meaning and intent
 - **Safety**: Maintains educational content and scoring logic
 
 #### QTI XML Autofix (`auto-fix-qti`)
+
 - **Purpose**: Fixes QTI XML structure and MathML formatting issues
 - **Input**: QTI XML content, provider (Groq/Gemini), QTI version
 - **Process**: Corrects XML well-formedness, QTI structural issues, and ensures clean Presentation MathML
@@ -105,7 +118,9 @@ PASS 3 suggestions can be executed with per-row rollback safety - changes are ap
   - No direct content in `<math>` tags
 
 ### 3. AI Audit System (Gate 2)
+
 While primarily for validation, the AI audit system can identify issues that may trigger autofix:
+
 - **audit-row**: Single row semantic audit using Groq
 - **audit-batch**: Bulk audit using Gemini (50 rows per call)
 - **Issue Types**: grammar, logic, clarity, factual

@@ -3,10 +3,13 @@
  * Generates compliant QTI 2.1 XML for ordering questions.
  */
 
-import { Question, QuestionBuilder, GenerationError } from '../../types';
-import { escapeXml } from '../../xmlUtils';
-import { validateXml } from '../../xmlValidator';
-import { convertTextWithMath, stripMath } from '../../../app/utils/mathmlConverter';
+import { Question, QuestionBuilder, GenerationError } from "../../types";
+import { escapeXml } from "../../xmlUtils";
+import { validateXml } from "../../xmlValidator";
+import {
+  convertTextWithMath,
+  stripMath,
+} from "../../../app/utils/mathmlConverter";
 
 class OrderBuilder implements QuestionBuilder {
   async generate(question: Question): Promise<string> {
@@ -15,16 +18,20 @@ class OrderBuilder implements QuestionBuilder {
   }
 
   private validateQuestion(question: Question): void {
-    if (!question.identifier || question.identifier.trim() === '') {
-      throw new Error('Question identifier is required');
+    if (!question.identifier || question.identifier.trim() === "") {
+      throw new Error("Question identifier is required");
     }
 
-    if (!question.stem || question.stem.trim() === '') {
-      throw new Error('Question stem is required');
+    if (!question.stem || question.stem.trim() === "") {
+      throw new Error("Question stem is required");
     }
 
-    if (!question.options || !Array.isArray(question.options) || question.options.length < 2) {
-      throw new Error('Order interaction requires at least 2 items');
+    if (
+      !question.options ||
+      !Array.isArray(question.options) ||
+      question.options.length < 2
+    ) {
+      throw new Error("Order interaction requires at least 2 items");
     }
   }
 
@@ -32,8 +39,11 @@ class OrderBuilder implements QuestionBuilder {
     return question.options.map((_, index) => String.fromCharCode(65 + index));
   }
 
-  private parseOrderedCorrectIds(question: Question, choiceIdentifiers: string[]): string[] {
-    const raw = String(question.correct_answer || '').trim();
+  private parseOrderedCorrectIds(
+    question: Question,
+    choiceIdentifiers: string[],
+  ): string[] {
+    const raw = String(question.correct_answer || "").trim();
     if (!raw) {
       return choiceIdentifiers;
     }
@@ -70,13 +80,13 @@ class OrderBuilder implements QuestionBuilder {
           const identifier = choiceIdentifiers[index];
           const optionContent = await convertTextWithMath(option);
           return `      <simpleChoice identifier="${identifier}">${optionContent}</simpleChoice>`;
-        })
+        }),
       )
-    ).join('\n');
+    ).join("\n");
 
     const correctResponseValues = correctIds
       .map((id) => `      <value>${id}</value>`)
-      .join('\n');
+      .join("\n");
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1"
@@ -142,17 +152,21 @@ export async function generateOrderXml(question: Question): Promise<string> {
 }
 
 export async function generateAndValidateOrder(
-  question: Question
+  question: Question,
 ): Promise<{ xml: string } | { error: GenerationError }> {
   try {
     const xml = await generateOrderXml(question);
     const builder = createOrderBuilder();
 
-    if (!xml.includes('<orderInteraction') || !xml.includes('cardinality="ordered"')) {
+    if (
+      !xml.includes("<orderInteraction") ||
+      !xml.includes('cardinality="ordered"')
+    ) {
       return {
         error: {
-          code: 'XML_VALIDATION_FAILED',
-          message: 'Order interaction structure is missing required ordered response elements',
+          code: "XML_VALIDATION_FAILED",
+          message:
+            "Order interaction structure is missing required ordered response elements",
         },
       };
     }
@@ -160,8 +174,8 @@ export async function generateAndValidateOrder(
     if (!builder.validate(xml)) {
       return {
         error: {
-          code: 'XML_VALIDATION_FAILED',
-          message: 'Generated XML failed base validation',
+          code: "XML_VALIDATION_FAILED",
+          message: "Generated XML failed base validation",
         },
       };
     }
@@ -170,7 +184,7 @@ export async function generateAndValidateOrder(
   } catch (error) {
     return {
       error: {
-        code: 'ORDER_GENERATION_ERROR',
+        code: "ORDER_GENERATION_ERROR",
         message: error instanceof Error ? error.message : String(error),
         details: error,
       },

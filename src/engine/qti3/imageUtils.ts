@@ -3,8 +3,8 @@
  * Extract, validate, and organize images for QTI packages
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 export interface ImageFile {
   filename: string;
@@ -49,19 +49,19 @@ export function getMimeType(filename: string): string {
   const ext = path.extname(filename).toLowerCase();
 
   const mimeTypes: { [key: string]: string } = {
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.webp': 'image/webp',
-    '.pdf': 'application/pdf',
-    '.mp3': 'audio/mpeg',
-    '.wav': 'audio/wav',
-    '.mp4': 'video/mp4',
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+    ".pdf": "application/pdf",
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+    ".mp4": "video/mp4",
   };
 
-  return mimeTypes[ext] || 'application/octet-stream';
+  return mimeTypes[ext] || "application/octet-stream";
 }
 
 /**
@@ -77,7 +77,7 @@ export function createImageMap(sourceDir: string): Map<string, string> {
 
   const files = fs.readdirSync(sourceDir);
 
-  files.forEach(file => {
+  files.forEach((file) => {
     const filePath = path.join(sourceDir, file);
     const stat = fs.statSync(filePath);
 
@@ -94,14 +94,14 @@ export function createImageMap(sourceDir: string): Map<string, string> {
  */
 export function validateImageReferences(
   imageReferences: string[],
-  imageMap: Map<string, string>
+  imageMap: Map<string, string>,
 ): {
   valid: boolean;
   missing: string[];
 } {
   const missing: string[] = [];
 
-  imageReferences.forEach(img => {
+  imageReferences.forEach((img) => {
     if (!imageMap.has(img)) {
       missing.push(img);
     }
@@ -117,9 +117,10 @@ export function validateImageReferences(
  * Get image dimensions (if available)
  * Note: This would need 'image-size' or similar package in real implementation
  */
-export function getImageDimensions(
-  filepath: string
-): { width?: number; height?: number } {
+export function getImageDimensions(filepath: string): {
+  width?: number;
+  height?: number;
+} {
   // Placeholder - actual implementation would parse image metadata
   return {};
 }
@@ -130,7 +131,7 @@ export function getImageDimensions(
 export function copyImages(
   sourceMap: Map<string, string>,
   destinationDir: string,
-  imagesToCopy: string[]
+  imagesToCopy: string[],
 ): ImageFile[] {
   const copied: ImageFile[] = [];
 
@@ -139,7 +140,7 @@ export function copyImages(
     fs.mkdirSync(destinationDir, { recursive: true });
   }
 
-  imagesToCopy.forEach(filename => {
+  imagesToCopy.forEach((filename) => {
     const sourcePath = sourceMap.get(filename);
     if (sourcePath && fs.existsSync(sourcePath)) {
       const destinationPath = path.join(destinationDir, filename);
@@ -164,20 +165,23 @@ export function copyImages(
  */
 export function updateImagePathsInXML(
   xml: string,
-  imageFilenames: string[]
+  imageFilenames: string[],
 ): string {
   let updated = xml;
 
-  imageFilenames.forEach(filename => {
+  imageFilenames.forEach((filename) => {
     // Replace various image reference patterns with relative path
     const patterns = [
-      new RegExp(`src="[^"]*${filename}"`, 'g'),
-      new RegExp(`src='[^']*${filename}'`, 'g'),
-      new RegExp(`\\(.*?${filename}\\)`, 'g'),
+      new RegExp(`src="[^"]*${filename}"`, "g"),
+      new RegExp(`src='[^']*${filename}'`, "g"),
+      new RegExp(`\\(.*?${filename}\\)`, "g"),
     ];
 
-    patterns.forEach(pattern => {
-      updated = updated.replace(pattern, new RegExp(pattern).source.replace(filename, `images/${filename}`));
+    patterns.forEach((pattern) => {
+      updated = updated.replace(
+        pattern,
+        new RegExp(pattern).source.replace(filename, `images/${filename}`),
+      );
     });
   });
 

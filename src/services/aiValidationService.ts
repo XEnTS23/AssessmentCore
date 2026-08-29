@@ -4,12 +4,12 @@
  * Gemini / Groq API keys are never exposed in the browser bundle.
  */
 
-import { supabase } from './supabaseClient';
+import { supabase } from "./supabaseClient";
 
-export type AIProvider = 'groq' | 'gemini';
+export type AIProvider = "groq" | "gemini";
 
 export interface AIValidationIssue {
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
   message: string;
   element?: string;
 }
@@ -32,7 +32,7 @@ export function isProviderConfigured(_provider: AIProvider): boolean {
 }
 
 export function getAvailableProviders(): AIProvider[] {
-  return ['gemini', 'groq'];
+  return ["gemini", "groq"];
 }
 
 // ── Batch Validation ─────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ export async function validateBatch(
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
 
-    const { data, error } = await supabase.functions.invoke('validate-qti', {
+    const { data, error } = await supabase.functions.invoke("validate-qti", {
       body: {
         xmlContent: item.xmlContent,
         fileName: item.fileName,
@@ -66,11 +66,12 @@ export async function validateBatch(
         isValid: true,
         issues: [
           {
-            severity: 'warning',
-            message: `AI validation could not complete: ${error?.message ?? 'Unknown error'}`,
+            severity: "warning",
+            message: `AI validation could not complete: ${error?.message ?? "Unknown error"}`,
           },
         ],
-        summary: 'AI validation encountered an error — manual review recommended',
+        summary:
+          "AI validation encountered an error — manual review recommended",
       });
     } else {
       results.push(data as AIValidationItem);
@@ -89,7 +90,7 @@ export async function autoFixXml(
   xmlContent: string,
   qtiVersion: string,
 ): Promise<string> {
-  const { data, error } = await supabase.functions.invoke('auto-fix-qti', {
+  const { data, error } = await supabase.functions.invoke("auto-fix-qti", {
     body: { xmlContent, provider, qtiVersion },
   });
 
@@ -97,8 +98,8 @@ export async function autoFixXml(
     throw new Error(`Auto-fix failed: ${error.message}`);
   }
 
-  if (!data?.fixedXml || typeof data.fixedXml !== 'string') {
-    throw new Error('Auto-fix response did not include fixedXml');
+  if (!data?.fixedXml || typeof data.fixedXml !== "string") {
+    throw new Error("Auto-fix response did not include fixedXml");
   }
 
   return data.fixedXml;

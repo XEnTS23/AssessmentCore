@@ -1,4 +1,4 @@
-import type { User } from '@supabase/supabase-js';
+import type { User } from "@supabase/supabase-js";
 
 export interface AuthResponse {
   success: boolean;
@@ -31,7 +31,11 @@ export interface AuthContextType {
   userProfile: UserProfile | null;
   userUsage: UserUsage | null;
   login: (email: string, password: string) => Promise<AuthResponse>;
-  register: (email: string, password: string, name: string) => Promise<AuthResponse>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+  ) => Promise<AuthResponse>;
   logout: () => Promise<AuthResponse>;
   verifyEmail: (email: string, token: string) => Promise<AuthResponse>;
   resendVerificationEmail: (email: string) => Promise<AuthResponse>;

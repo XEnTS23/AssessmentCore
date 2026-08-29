@@ -7,18 +7,21 @@ This implementation adds a complete authentication and feature-gating system to 
 ### Features Implemented:
 
 1. **User Authentication**
+
    - Email/Password Registration
    - Email Verification via OTP
    - Login/Logout functionality
    - Persistent session management
 
 2. **Batch Creator Protection**
+
    - Unauthenticated users see a registration prompt
    - Free users get 1 QTI export per month
    - After first export, users are redirected to pricing page
    - Authenticated users with quota can use batch creator
 
 3. **Usage Tracking**
+
    - Tracks number of QTI exports per user
    - Stores export history in database
    - Prevents quota abuse
@@ -107,6 +110,7 @@ src/
 ## API Endpoints Used
 
 ### Authentication
+
 - `signUp()` - Register new user
 - `signInWithPassword()` - Login user
 - `verifyOtp()` - Verify email with code
@@ -115,6 +119,7 @@ src/
 - `resend()` - Resend verification email
 
 ### Database
+
 - `user_profiles` - User information
 - `user_usage` - Export tracking
 
@@ -130,7 +135,7 @@ Use this hook in any component to access auth state and functions:
 import { useAuth } from '../contexts/AuthContext';
 
 function MyComponent() {
-  const { 
+  const {
     user,                      // Current user object
     isAuthenticated,           // Boolean
     loading,                   // Loading state
@@ -177,6 +182,7 @@ To change from 1 free export to a different number:
 ### Customize Pricing Page
 
 Edit `src/app/pages/PricingPage.tsx`:
+
 - Update `pricingTiers` array with your plans
 - Modify the `handleUpgrade()` function to integrate with payment provider
 - Update FAQ questions and answers
@@ -184,6 +190,7 @@ Edit `src/app/pages/PricingPage.tsx`:
 ### Change Email Verification Method
 
 Currently uses OTP (One-Time Password). To use magic links instead:
+
 1. Change `verify_email` to `magic_link` in `authService.ts`
 2. Modify verification page to handle magic link flow
 
@@ -196,9 +203,9 @@ Currently uses OTP (One-Time Password). To use magic links instead:
 ```tsx
 const handleUpgrade = async (tier: string) => {
   const stripe = await loadStripe(process.env.VITE_STRIPE_PUBLIC_KEY!);
-  const response = await fetch('/api/checkout-session', {
-    method: 'POST',
-    body: JSON.stringify({ tier, userId: user.id })
+  const response = await fetch("/api/checkout-session", {
+    method: "POST",
+    body: JSON.stringify({ tier, userId: user.id }),
   });
   const session = await response.json();
   await stripe?.redirectToCheckout({ sessionId: session.id });
@@ -212,12 +219,12 @@ const handleUpgrade = async (tier: string) => {
   const options = {
     key: process.env.VITE_RAZORPAY_KEY_ID,
     amount: getPriceInPaise(tier),
-    currency: 'INR',
-    name: 'AssessmentCore',
+    currency: "INR",
+    name: "AssessmentCore",
     description: `${tier} Plan`,
     handler: (response) => {
       // Verify payment and update user tier
-    }
+    },
   };
   const razorpay = new window.Razorpay(options);
   razorpay.open();
@@ -229,20 +236,24 @@ const handleUpgrade = async (tier: string) => {
 ## Troubleshooting
 
 ### Issue: "Supabase environment variables are not set"
+
 - Solution: Make sure `.env.local` file exists with correct values
 - Restart dev server after adding env variables
 
 ### Issue: "Email verification not working"
+
 - Solution: Check Supabase email provider settings
 - Verify email template is configured
 - Check spam folder for verification email
 
 ### Issue: "User can access batch creator even after quota"
+
 - Solution: Clear browser cache/localStorage
 - Check that `user_usage` table has correct data
 - Verify RLS policies are enabled
 
 ### Issue: "CORS errors"
+
 - Solution: These should be handled automatically by Supabase
 - If persists, check Supabase project CORS settings
 

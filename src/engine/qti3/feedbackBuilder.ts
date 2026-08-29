@@ -3,18 +3,18 @@
  * Creates QTI 3.0 modal feedback based on outcomes
  */
 
-import { ModalFeedback } from './types';
+import { ModalFeedback } from "./types";
 
 /**
  * Feedback Type
  */
-export type FeedbackType = 
-  | 'correct'       // Show when answer is correct
-  | 'incorrect'     // Show when answer is incorrect
-  | 'partial'       // Show when partial credit awarded
-  | 'hint'          // Show as hint before answering
-  | 'solution'      // Show full solution
-  | 'custom';       // Custom condition
+export type FeedbackType =
+  | "correct" // Show when answer is correct
+  | "incorrect" // Show when answer is incorrect
+  | "partial" // Show when partial credit awarded
+  | "hint" // Show as hint before answering
+  | "solution" // Show full solution
+  | "custom"; // Custom condition
 
 /**
  * Feedback Configuration
@@ -23,7 +23,7 @@ export interface FeedbackConfig {
   identifier: string;
   type: FeedbackType;
   content: string;
-  showHide: 'show' | 'hide';
+  showHide: "show" | "hide";
   outcomeIdentifier?: string;
   condition?: string; // Custom condition expression
 }
@@ -40,7 +40,7 @@ export class FeedbackBuilder {
       identifier: config.identifier,
       showHide: config.showHide,
       content: config.content,
-      outcomeIdentifier: config.outcomeIdentifier || 'SCORE',
+      outcomeIdentifier: config.outcomeIdentifier || "SCORE",
     };
   }
 
@@ -50,34 +50,34 @@ export class FeedbackBuilder {
   static buildMultiple(
     correctFeedback?: string,
     incorrectFeedback?: string,
-    solution?: string
+    solution?: string,
   ): ModalFeedback[] {
     const feedbacks: ModalFeedback[] = [];
 
     if (correctFeedback) {
       feedbacks.push({
-        identifier: 'feedback_correct',
-        showHide: 'show',
+        identifier: "feedback_correct",
+        showHide: "show",
         content: correctFeedback,
-        outcomeIdentifier: 'SCORE',
+        outcomeIdentifier: "SCORE",
       });
     }
 
     if (incorrectFeedback) {
       feedbacks.push({
-        identifier: 'feedback_incorrect',
-        showHide: 'show',
+        identifier: "feedback_incorrect",
+        showHide: "show",
         content: incorrectFeedback,
-        outcomeIdentifier: 'SCORE',
+        outcomeIdentifier: "SCORE",
       });
     }
 
     if (solution) {
       feedbacks.push({
-        identifier: 'feedback_solution',
-        showHide: 'show',
+        identifier: "feedback_solution",
+        showHide: "show",
         content: solution,
-        outcomeIdentifier: 'SCORE',
+        outcomeIdentifier: "SCORE",
       });
     }
 
@@ -92,7 +92,7 @@ export class FeedbackBuilder {
 
     let xml = `  <modalFeedback 
     identifier="${feedback.identifier}" 
-    outcomeIdentifier="${feedback.outcomeIdentifier || 'SCORE'}" 
+    outcomeIdentifier="${feedback.outcomeIdentifier || "SCORE"}" 
     showHide="${feedback.showHide}">`;
 
     xml += `\n    <p>${escaped}</p>`;
@@ -105,7 +105,7 @@ export class FeedbackBuilder {
    * Convert multiple feedbacks to XML
    */
   static multipleToXML(feedbacks: ModalFeedback[]): string {
-    return feedbacks.map(fb => this.toXML(fb)).join('\n\n');
+    return feedbacks.map((fb) => this.toXML(fb)).join("\n\n");
   }
 
   /**
@@ -115,13 +115,13 @@ export class FeedbackBuilder {
   static buildConditionalFeedback(
     identifier: string,
     content: string,
-    scoreCondition: 'perfect' | 'partial' | 'zero'
+    scoreCondition: "perfect" | "partial" | "zero",
   ): ModalFeedback {
     return {
       identifier,
-      showHide: 'show',
+      showHide: "show",
       content,
-      outcomeIdentifier: 'SCORE',
+      outcomeIdentifier: "SCORE",
     };
   }
 
@@ -130,10 +130,10 @@ export class FeedbackBuilder {
    */
   static fromExplanation(explanation: string): ModalFeedback {
     return {
-      identifier: 'feedback_explanation',
-      showHide: 'show',
+      identifier: "feedback_explanation",
+      showHide: "show",
       content: explanation,
-      outcomeIdentifier: 'SCORE',
+      outcomeIdentifier: "SCORE",
     };
   }
 
@@ -142,8 +142,8 @@ export class FeedbackBuilder {
    */
   static buildHint(hint: string): ModalFeedback {
     return {
-      identifier: 'hint',
-      showHide: 'show',
+      identifier: "hint",
+      showHide: "show",
       content: hint,
     };
   }
@@ -153,8 +153,8 @@ export class FeedbackBuilder {
    */
   static buildSolution(solution: string): ModalFeedback {
     return {
-      identifier: 'solution',
-      showHide: 'show',
+      identifier: "solution",
+      showHide: "show",
       content: solution,
     };
   }
@@ -163,13 +163,13 @@ export class FeedbackBuilder {
    * Escape XML special characters in feedback content
    */
   private static escapeXml(text: string): string {
-    if (!text) return '';
+    if (!text) return "";
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 
   /**
@@ -179,7 +179,7 @@ export class FeedbackBuilder {
   static addFeedbackDisplayRule(
     responseProcessingXML: string,
     correctFeedbackId: string,
-    incorrectFeedbackId: string
+    incorrectFeedbackId: string,
   ): string {
     // Insert feedback outcome setting before closing responseProcessing tag
     const feedbackRule = `
@@ -201,8 +201,8 @@ export class FeedbackBuilder {
     </responseCondition>`;
 
     return responseProcessingXML.replace(
-      '</responseProcessing>',
-      `${feedbackRule}\n  </responseProcessing>`
+      "</responseProcessing>",
+      `${feedbackRule}\n  </responseProcessing>`,
     );
   }
 }
@@ -233,19 +233,19 @@ export function createFeedbackFromQuestion(questionData: {
 
   if (questionData.correctMessage) {
     feedbacks.push({
-      identifier: 'feedback_correct',
-      showHide: 'show',
+      identifier: "feedback_correct",
+      showHide: "show",
       content: questionData.correctMessage,
-      outcomeIdentifier: 'SCORE',
+      outcomeIdentifier: "SCORE",
     });
   }
 
   if (questionData.incorrectMessage) {
     feedbacks.push({
-      identifier: 'feedback_incorrect',
-      showHide: 'show',
+      identifier: "feedback_incorrect",
+      showHide: "show",
       content: questionData.incorrectMessage,
-      outcomeIdentifier: 'SCORE',
+      outcomeIdentifier: "SCORE",
     });
   }
 
@@ -255,20 +255,21 @@ export function createFeedbackFromQuestion(questionData: {
 /**
  * Validate feedback structure
  */
-export function validateFeedback(
-  feedback: ModalFeedback
-): { valid: boolean; errors: string[] } {
+export function validateFeedback(feedback: ModalFeedback): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
-  if (!feedback.identifier || feedback.identifier.trim() === '') {
-    errors.push('Feedback identifier is required');
+  if (!feedback.identifier || feedback.identifier.trim() === "") {
+    errors.push("Feedback identifier is required");
   }
 
-  if (!feedback.content || feedback.content.trim() === '') {
-    errors.push('Feedback content is required');
+  if (!feedback.content || feedback.content.trim() === "") {
+    errors.push("Feedback content is required");
   }
 
-  if (!['show', 'hide'].includes(feedback.showHide)) {
+  if (!["show", "hide"].includes(feedback.showHide)) {
     errors.push(`Invalid showHide value: ${feedback.showHide}`);
   }
 

@@ -25,7 +25,9 @@ export function ForgotPasswordPage() {
     if (response.success) {
       setSuccess(true);
     } else {
-      setError(response.error || "Failed to send reset email. Please try again.");
+      setError(
+        response.error || "Failed to send reset email. Please try again.",
+      );
     }
     setLoading(false);
   };
@@ -37,7 +39,10 @@ export function ForgotPasswordPage() {
       footer={
         <>
           Remembered your password?{" "}
-          <Link to="/auth/login" className="font-medium text-foreground/80 hover:text-foreground">
+          <Link
+            to="/auth/login"
+            className="font-medium text-foreground/80 hover:text-foreground"
+          >
             Back to sign in
           </Link>
         </>

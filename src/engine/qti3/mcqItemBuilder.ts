@@ -11,19 +11,20 @@ import {
   OutcomeDeclaration,
   ChoiceInteraction,
   Choice,
-} from './types';
-import { ResponseProcessingBuilder } from './responseProcessingBuilder';
-import { OutcomeMapper, getOutcomesFromMetadata } from './outcomeMapper';
-import { FeedbackBuilder, createFeedbackFromQuestion } from './feedbackBuilder';
-import { MetadataMapper, extractMetadata } from './metadataMapper';
-import { StimulusBuilder } from './stimulusBuilder';
-import { convertTextWithMath } from '../../app/utils/mathmlConverter';
+} from "./types";
+import { ResponseProcessingBuilder } from "./responseProcessingBuilder";
+import { OutcomeMapper, getOutcomesFromMetadata } from "./outcomeMapper";
+import { FeedbackBuilder, createFeedbackFromQuestion } from "./feedbackBuilder";
+import { MetadataMapper, extractMetadata } from "./metadataMapper";
+import { StimulusBuilder } from "./stimulusBuilder";
+import { convertTextWithMath } from "../../app/utils/mathmlConverter";
 
 export class MCQItemBuilder {
-  private readonly NAMESPACE = 'http://www.imsglobal.org/xsd/imsqti_v3p0';
-  private readonly XSI_NAMESPACE = 'http://www.w3.org/2001/XMLSchema-instance';
-  private readonly MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
-  private readonly SCHEMA_LOCATION = 'http://www.imsglobal.org/xsd/qti/qtiv3p0/imsqti_v3p0.xsd';
+  private readonly NAMESPACE = "http://www.imsglobal.org/xsd/imsqti_v3p0";
+  private readonly XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance";
+  private readonly MATHML_NAMESPACE = "http://www.w3.org/1998/Math/MathML";
+  private readonly SCHEMA_LOCATION =
+    "http://www.imsglobal.org/xsd/qti/qtiv3p0/imsqti_v3p0.xsd";
 
   /**
    * Build MCQ assessment item from Excel question
@@ -52,8 +53,8 @@ export class MCQItemBuilder {
       };
     } catch (error) {
       return {
-        xml: '',
-        itemId: '',
+        xml: "",
+        itemId: "",
         images: [],
         errors: [error instanceof Error ? error.message : String(error)],
       };
@@ -64,24 +65,50 @@ export class MCQItemBuilder {
    * Validate MCQ question data
    */
   private validate(question: any): void {
-    if (!question.question || question.question.trim() === '') {
-      throw new Error('Question text is required');
+    if (!question.question || question.question.trim() === "") {
+      throw new Error("Question text is required");
     }
 
-    if (!question.options || !Array.isArray(question.options) || question.options.length < 2) {
-      throw new Error('MCQ must have at least 2 options');
+    if (
+      !question.options ||
+      !Array.isArray(question.options) ||
+      question.options.length < 2
+    ) {
+      throw new Error("MCQ must have at least 2 options");
     }
 
-    if (!question.correctAnswer || question.correctAnswer.trim() === '') {
-      throw new Error('Correct answer is required');
+    if (!question.correctAnswer || question.correctAnswer.trim() === "") {
+      throw new Error("Correct answer is required");
     }
 
     // Validate correct answer is valid
-    const validAnswers = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', '1', '2', '3', '4', '5', '6', '7', '8'];
+    const validAnswers = [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+    ];
     const answer = String(question.correctAnswer).toUpperCase().trim();
 
-    if (!validAnswers.includes(answer) && parseInt(answer) > question.options.length) {
-      throw new Error(`Correct answer "${answer}" is invalid for ${question.options.length} options`);
+    if (
+      !validAnswers.includes(answer) &&
+      parseInt(answer) > question.options.length
+    ) {
+      throw new Error(
+        `Correct answer "${answer}" is invalid for ${question.options.length} options`,
+      );
     }
   }
 
@@ -131,9 +158,16 @@ export class MCQItemBuilder {
   /**
    * Build complete QTI assessment item structure
    */
-  private async buildItem(question: any, itemId: string, imageMap?: Map<string, string>): Promise<QTIAssessmentItem> {
+  private async buildItem(
+    question: any,
+    itemId: string,
+    imageMap?: Map<string, string>,
+  ): Promise<QTIAssessmentItem> {
     // Normalize correct answer
-    const correctAnswer = this.normalizeAnswer(question.correctAnswer, question.options.length);
+    const correctAnswer = this.normalizeAnswer(
+      question.correctAnswer,
+      question.options.length,
+    );
 
     // Build response declaration
     const responseDeclaration = this.buildResponseDeclaration(correctAnswer);
@@ -153,9 +187,9 @@ export class MCQItemBuilder {
     // Build response processing
     const responseProcessing = {
       xml: ResponseProcessingBuilder.buildMatchCorrect({
-        template: 'match_correct',
-        responseIdentifier: 'RESPONSE',
-        outcomeIdentifier: 'SCORE',
+        template: "match_correct",
+        responseIdentifier: "RESPONSE",
+        outcomeIdentifier: "SCORE",
       }),
     };
 
@@ -208,9 +242,9 @@ export class MCQItemBuilder {
    */
   private buildResponseDeclaration(correctAnswer: string): ResponseDeclaration {
     return {
-      identifier: 'RESPONSE',
-      cardinality: 'single',
-      baseType: 'identifier',
+      identifier: "RESPONSE",
+      cardinality: "single",
+      baseType: "identifier",
       correctResponse: {
         values: [correctAnswer],
       },
@@ -236,12 +270,12 @@ export class MCQItemBuilder {
     const choices = await this.buildChoices(question.options);
 
     const choiceInteraction: ChoiceInteraction = {
-      type: 'choice',
-      responseIdentifier: 'RESPONSE',
+      type: "choice",
+      responseIdentifier: "RESPONSE",
       maxChoices: 1, // Single choice for MCQ
       shuffle: false,
       choices,
-      content: '', // Set during XML generation
+      content: "", // Set during XML generation
     };
 
     return {
@@ -254,19 +288,22 @@ export class MCQItemBuilder {
   /**
    * Process question text and replace image paths
    */
-  private processQuestionText(text: string, imageMap?: Map<string, string>): string {
+  private processQuestionText(
+    text: string,
+    imageMap?: Map<string, string>,
+  ): string {
     let processed = text;
 
     if (imageMap) {
       imageMap.forEach((filepath, filename) => {
         // Replace various image formats with relative path
         const patterns = [
-          new RegExp(`!\\[.*?\\]\\(${filename}\\)`, 'gi'),
-          new RegExp(`src="${filename}"`, 'gi'),
-          new RegExp(`src='${filename}'`, 'gi'),
+          new RegExp(`!\\[.*?\\]\\(${filename}\\)`, "gi"),
+          new RegExp(`src="${filename}"`, "gi"),
+          new RegExp(`src='${filename}'`, "gi"),
         ];
 
-        patterns.forEach(pattern => {
+        patterns.forEach((pattern) => {
           processed = processed.replace(pattern, `src="images/${filename}"`);
         });
       });
@@ -284,7 +321,7 @@ export class MCQItemBuilder {
         identifier: String.fromCharCode(65 + index),
         content: await convertTextWithMath(option),
         fixed: false,
-      }))
+      })),
     );
   }
 
@@ -293,7 +330,7 @@ export class MCQItemBuilder {
    */
   private sanitizeTitle(text: string): string {
     return text
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
       .substring(0, 100) // Limit to 100 chars
       .trim();
   }
@@ -303,13 +340,13 @@ export class MCQItemBuilder {
    * Note: For content with math, use convertTextWithMath instead
    */
   private escapeXml(text: string): string {
-    if (!text) return '';
+    if (!text) return "";
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 
   /**
@@ -334,39 +371,39 @@ export class MCQItemBuilder {
       const metadata = MetadataMapper.toQTIMetadata(item.metadata);
       if (metadata.lomXML) {
         xml += metadata.lomXML;
-        xml += '\n';
+        xml += "\n";
       }
     }
 
     // Add response declaration
     xml += this.responseDeclarationToXML(item.responseDeclaration);
-    xml += '\n\n';
+    xml += "\n\n";
 
     // Add outcome declarations
-    item.outcomeDeclarations.forEach(od => {
+    item.outcomeDeclarations.forEach((od) => {
       xml += this.outcomeDeclarationToXML(od);
-      xml += '\n';
+      xml += "\n";
     });
-    xml += '\n';
+    xml += "\n";
 
     // Add item body
     xml += this.itemBodyToXML(item.itemBody);
-    xml += '\n\n';
+    xml += "\n\n";
 
     // Add response processing
     xml += this.responseProcessingToXML(item.responseProcessing);
-    xml += '\n';
+    xml += "\n";
 
     // Add feedback if exists
     if (item.feedbacks && item.feedbacks.length > 0) {
-      xml += '\n';
-      item.feedbacks.forEach(fb => {
+      xml += "\n";
+      item.feedbacks.forEach((fb) => {
         xml += this.feedbackToXML(fb);
-        xml += '\n';
+        xml += "\n";
       });
     }
 
-    xml += '</assessmentItem>';
+    xml += "</assessmentItem>";
 
     return xml;
   }
@@ -381,14 +418,14 @@ export class MCQItemBuilder {
     baseType="${rd.baseType}">`;
 
     if (rd.correctResponse) {
-      xml += '\n    <correctResponse>';
-      rd.correctResponse.values.forEach(value => {
+      xml += "\n    <correctResponse>";
+      rd.correctResponse.values.forEach((value) => {
         xml += `\n      <value>${this.escapeXml(value)}</value>`;
       });
-      xml += '\n    </correctResponse>';
+      xml += "\n    </correctResponse>";
     }
 
-    xml += '\n  </responseDeclaration>';
+    xml += "\n  </responseDeclaration>";
     return xml;
   }
 
@@ -405,7 +442,7 @@ export class MCQItemBuilder {
       xml += `\n    <defaultValue>\n      <value>${od.defaultValue}</value>\n    </defaultValue>`;
     }
 
-    xml += '\n  </outcomeDeclaration>';
+    xml += "\n  </outcomeDeclaration>";
     return xml;
   }
 
@@ -413,7 +450,7 @@ export class MCQItemBuilder {
    * Item body to XML (with MathML support)
    */
   private itemBodyToXML(itemBody: any): string {
-    let xml = '  <itemBody>\n    <div>';
+    let xml = "  <itemBody>\n    <div>";
 
     if (itemBody.stimulusRef) {
       xml += `\n${StimulusBuilder.buildReference(itemBody.stimulusRef)}`;
@@ -424,17 +461,22 @@ export class MCQItemBuilder {
 
     // Add interactions
     itemBody.interactions.forEach((interaction: ChoiceInteraction) => {
-      xml += '\n      <choiceInteraction responseIdentifier="' + interaction.responseIdentifier + '" shuffle="false" maxChoices="' + interaction.maxChoices + '">';
+      xml +=
+        '\n      <choiceInteraction responseIdentifier="' +
+        interaction.responseIdentifier +
+        '" shuffle="false" maxChoices="' +
+        interaction.maxChoices +
+        '">';
 
-      interaction.choices.forEach(choice => {
+      interaction.choices.forEach((choice) => {
         // choice.content already contains converted MathML from buildChoices
         xml += `\n        <simpleChoice identifier="${choice.identifier}">${choice.content}</simpleChoice>`;
       });
 
-      xml += '\n      </choiceInteraction>';
+      xml += "\n      </choiceInteraction>";
     });
 
-    xml += '\n    </div>\n  </itemBody>';
+    xml += "\n    </div>\n  </itemBody>";
     return xml;
   }
 
@@ -448,7 +490,7 @@ export class MCQItemBuilder {
     if (rp.template) {
       return `  <responseProcessing template="http://www.imsglobal.org/question/qti_v3p0/rptemplates/${rp.template}" />`;
     }
-    return '';
+    return "";
   }
 
   /**

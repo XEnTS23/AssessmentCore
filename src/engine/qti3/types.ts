@@ -3,9 +3,15 @@
  * Core data structures for QTI 3.0 assessment items
  */
 
-export type InteractionType = 'choice' | 'textEntry' | 'extended' | 'stimulus';
-export type Cardinality = 'single' | 'multiple' | 'ordered' | 'record';
-export type BaseType = 'identifier' | 'string' | 'integer' | 'float' | 'boolean' | 'file';
+export type InteractionType = "choice" | "textEntry" | "extended" | "stimulus";
+export type Cardinality = "single" | "multiple" | "ordered" | "record";
+export type BaseType =
+  | "identifier"
+  | "string"
+  | "integer"
+  | "float"
+  | "boolean"
+  | "file";
 
 /**
  * QTI Assessment Item - Root structure for a question
@@ -16,14 +22,14 @@ export interface QTIAssessmentItem {
   title: string; // Question title/name
   adaptive: boolean; // Whether item is adaptive
   timeDependent: boolean; // Whether time affects scoring
-  
+
   // Core elements
   responseDeclaration: ResponseDeclaration;
   outcomeDeclarations: OutcomeDeclaration[];
   itemBody: ItemBody;
   responseProcessing: ResponseProcessing;
   feedbacks?: ModalFeedback[];
-  
+
   // Metadata (flexible to support both simple and full LOM metadata)
   metadata?: any; // ItemMetadata | QuestionMetadata from metadataMapper
 }
@@ -79,7 +85,7 @@ export interface Interaction {
  * Choice Interaction - MCQ or Multiple Select
  */
 export interface ChoiceInteraction extends Interaction {
-  type: 'choice';
+  type: "choice";
   maxChoices: number; // 1 for MCQ, 0 or more for multi-select
   shuffle: boolean;
   choices: Choice[];
@@ -98,10 +104,10 @@ export interface Choice {
  * Text Entry Interaction - Short answer
  */
 export interface TextEntryInteraction extends Interaction {
-  type: 'textEntry';
+  type: "textEntry";
   expectedLength?: number;
   patternMask?: string;
-  format?: 'plain' | 'html' | 'mathml';
+  format?: "plain" | "html" | "mathml";
 }
 
 /**
@@ -117,7 +123,7 @@ export interface ResponseProcessing {
  */
 export interface ModalFeedback {
   identifier: string;
-  showHide: 'show' | 'hide';
+  showHide: "show" | "hide";
   content: string;
   outcomeIdentifier?: string; // When to show this feedback
 }
@@ -126,7 +132,7 @@ export interface ModalFeedback {
  * Item Metadata
  */
 export interface ItemMetadata {
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   subject?: string;
   topic?: string;
   keywords?: string[];
@@ -143,7 +149,7 @@ export interface ItemMetadata {
 export interface ExcelQuestionRow {
   id?: string;
   question: string; // Question text
-  type: 'mcq' | 'textEntry'; // Question type
+  type: "mcq" | "textEntry"; // Question type
   options?: string[]; // For MCQ: [optionA, optionB, optionC, optionD]
   correctAnswer: string; // For MCQ: "A", For text: "answer text"
   explanation?: string;
@@ -162,7 +168,7 @@ export interface ExcelQuestionRow {
  */
 export interface ItemBuilderInput {
   questionData: ExcelQuestionRow;
-  questionType: 'mcq' | 'textEntry';
+  questionType: "mcq" | "textEntry";
   imageMap?: Map<string, string>; // filename -> filepath
 }
 

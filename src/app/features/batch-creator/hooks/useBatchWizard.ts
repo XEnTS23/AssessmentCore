@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
-import type { WizardStage } from '../core/stageTypes';
-import { ExportConfig } from '../core/exportTypes';
-import { DEFAULT_EXPORT_CONFIG } from '../configuration/defaultExportConfig';
+import { useState, useMemo, useCallback } from "react";
+import type { WizardStage } from "../core/stageTypes";
+import { ExportConfig } from "../core/exportTypes";
+import { DEFAULT_EXPORT_CONFIG } from "../configuration/defaultExportConfig";
 
 // ─── Stage metadata ──────────────────────────────────────────────────────────
 
@@ -14,12 +14,42 @@ export interface StageDefinition {
 }
 
 const ALL_STAGES: StageDefinition[] = [
-  { id: 'UPLOAD',        label: 'Upload',         description: 'Upload your spreadsheet or CSV',          premiumOnly: false },
-  { id: 'VALIDATION',    label: 'Validation',      description: 'Validate all questions against rules',    premiumOnly: false },
-  { id: 'MANUAL_FIX',    label: 'Fix & Clean',     description: 'Apply auto-fixes and manual corrections', premiumOnly: false },
-  { id: 'AI_AUDIT',      label: 'AI Audit',        description: 'AI-powered quality audit',                premiumOnly: true  },
-  { id: 'CONFIGURE',     label: 'Configure',       description: 'Set export format and options',           premiumOnly: true  },
-  { id: 'BUILD_PREVIEW', label: 'Build & Preview',  description: 'Generate XML and download package',       premiumOnly: true  },
+  {
+    id: "UPLOAD",
+    label: "Upload",
+    description: "Upload your spreadsheet or CSV",
+    premiumOnly: false,
+  },
+  {
+    id: "VALIDATION",
+    label: "Validation",
+    description: "Validate all questions against rules",
+    premiumOnly: false,
+  },
+  {
+    id: "MANUAL_FIX",
+    label: "Fix & Clean",
+    description: "Apply auto-fixes and manual corrections",
+    premiumOnly: false,
+  },
+  {
+    id: "AI_AUDIT",
+    label: "AI Audit",
+    description: "AI-powered quality audit",
+    premiumOnly: true,
+  },
+  {
+    id: "CONFIGURE",
+    label: "Configure",
+    description: "Set export format and options",
+    premiumOnly: true,
+  },
+  {
+    id: "BUILD_PREVIEW",
+    label: "Build & Preview",
+    description: "Generate XML and download package",
+    premiumOnly: true,
+  },
 ];
 
 // ─── Hook return type ────────────────────────────────────────────────────────
@@ -73,12 +103,14 @@ export function useBatchWizard(options: {
 }): UseBatchWizardReturn {
   const { isPremium, enableAiAudit = true } = options;
 
-  const [currentStage, setCurrentStage] = useState<WizardStage>('UPLOAD');
+  const [currentStage, setCurrentStage] = useState<WizardStage>("UPLOAD");
 
   // ── TEMPORARY mock completion flags ──────────────────────────────────────
   // These will be replaced by real stage-level hooks (useUploadStage, etc.)
   // that compute completion from actual business state.
-  const [mockCompletion, setMockCompletion] = useState<Record<WizardStage, boolean>>({
+  const [mockCompletion, setMockCompletion] = useState<
+    Record<WizardStage, boolean>
+  >({
     UPLOAD: false,
     VALIDATION: false,
     MANUAL_FIX: false,
@@ -87,34 +119,45 @@ export function useBatchWizard(options: {
     BUILD_PREVIEW: false,
   });
 
-  const __mockSetComplete = useCallback((stage: WizardStage, complete: boolean) => {
-    setMockCompletion(prev => {
-      if (prev[stage] === complete) return prev;
-      return { ...prev, [stage]: complete };
-    });
-  }, []);
+  const __mockSetComplete = useCallback(
+    (stage: WizardStage, complete: boolean) => {
+      setMockCompletion((prev) => {
+        if (prev[stage] === complete) return prev;
+        return { ...prev, [stage]: complete };
+      });
+    },
+    [],
+  );
   // ── END temporary mock ──────────────────────────────────────────────────
 
   // ── Export config (shared from ConfigureStage → BuildPreviewStage) ───────
-  const [exportConfig, setExportConfig] = useState<ExportConfig>(DEFAULT_EXPORT_CONFIG);
-  const __setExportConfig = useCallback((c: ExportConfig) => setExportConfig(c), []);
+  const [exportConfig, setExportConfig] = useState<ExportConfig>(
+    DEFAULT_EXPORT_CONFIG,
+  );
+  const __setExportConfig = useCallback(
+    (c: ExportConfig) => setExportConfig(c),
+    [],
+  );
   // ── END export config ────────────────────────────────────────────────────
 
   // ── Pipeline Data (shared across stages) ─────────────────────────────────
   const [processedRows, setProcessedRows] = useState<any[]>([]);
-  const __setProcessedRows = useCallback((rows: any[]) => setProcessedRows(rows), []);
+  const __setProcessedRows = useCallback(
+    (rows: any[]) => setProcessedRows(rows),
+    [],
+  );
   // ── END Pipeline Data ────────────────────────────────────────────────────
 
   // Compute visible stages (optionally exclude AI_AUDIT)
   const stages = useMemo(() => {
-    return ALL_STAGES.filter(s => {
-      if (s.id === 'AI_AUDIT' && !enableAiAudit) return false;
+    return ALL_STAGES.filter((s) => {
+      if (s.id === "AI_AUDIT" && !enableAiAudit) return false;
       return true;
     });
   }, [enableAiAudit]);
 
   const currentStageIndex = useMemo(
-    () => stages.findIndex(s => s.id === currentStage),
+    () => stages.findIndex((s) => s.id === currentStage),
     [stages, currentStage],
   );
 
@@ -133,7 +176,7 @@ export function useBatchWizard(options: {
 
   const canNavigateTo = useCallback(
     (stage: WizardStage): boolean => {
-      const targetIndex = stages.findIndex(s => s.id === stage);
+      const targetIndex = stages.findIndex((s) => s.id === stage);
       if (targetIndex < 0) return false;
 
       // Can always go backwards
@@ -147,7 +190,8 @@ export function useBatchWizard(options: {
       for (let i = 0; i < targetIndex; i++) {
         const priorStageId = stages[i].id;
         // AI_AUDIT is optional, so it doesn't block forward navigation
-        if (!isStageComplete(priorStageId) && priorStageId !== 'AI_AUDIT') return false;
+        if (!isStageComplete(priorStageId) && priorStageId !== "AI_AUDIT")
+          return false;
       }
 
       return true;

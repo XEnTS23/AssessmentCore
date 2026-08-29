@@ -8,10 +8,19 @@
  * sandboxed <div dangerouslySetInnerHTML>.
  */
 
-import { QuestionRow } from '../core/rowTypes';
-import { McqQuestion, MsqQuestion, TextEntryQuestion, OrderQuestion } from '../core/questionTypes';
-import { ExportConfig } from '../core/exportTypes';
-import { renderRichContent } from '../builders/shared/richContentRenderer';
+import { QuestionRow } from "../core/rowTypes";
+import {
+  McqQuestion,
+  MsqQuestion,
+  TextEntryQuestion,
+  OrderQuestion,
+} from "../core/questionTypes";
+import { ExportConfig } from "../core/exportTypes";
+import { renderRichContent } from "../builders/shared/richContentRenderer";
+import { normalizePublicHttpUrl } from "../security/publicUrlPolicy";
+
+const PREVIEW_CSP =
+  "default-src 'none'; img-src https: http: data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net data:; connect-src 'none'; base-uri 'none'; form-action 'none'";
 
 const BASE_STYLES = `
   <style>
@@ -32,6 +41,8 @@ const BASE_STYLES = `
               border: 1.5px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: border-color .15s; }
     .option:hover { border-color: #818cf8; }
     .option-label { font-weight: 600; min-width: 20px; color: #6d28d9; }
+    .option-content { min-width: 0; flex: 1; }
+    .stem table, .option-content table { max-width: 100%; }
     .text-input { width: 100%; padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 8px;
                   font-size: 14px; outline: none; margin-top: 4px; }
     .text-input:focus { border-color: #818cf8; }
@@ -47,86 +58,177 @@ const BASE_STYLES = `
 `;
 
 function escHtml(s: string | undefined | null): string {
-  if (!s) return '';
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  if (!s) return "";
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function serializeForInlineScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 function typeLabel(t: string): string {
-  const map: Record<string, string> = { MCQ: 'Single Choice', MSQ: 'Multiple Select', TEXT_ENTRY: 'Text Entry', ORDER: 'Ordering' };
+  const map: Record<string, string> = {
+    MCQ: "Single Choice",
+    MSQ: "Multiple Select",
+    TEXT_ENTRY: "Text Entry",
+    ORDER: "Ordering",
+  };
   return map[t] ?? t;
 }
 
-export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig): string {
+export function renderStudentPreviewHtml(
+  row: QuestionRow,
+  config: ExportConfig,
+): string {
   const q = row.normalizedQuestion;
   const qid = row.metadata?.questionId || `row-${row.sourceRowNumber}`;
   const marks = row.scoringConfig?.marks ?? 1;
+  const authoringSections = row.manualFixSections || [];
+  const sectionContent = (type: string, fallback: string) => {
+    const content = authoringSections.find(
+      (section) => section.type === type,
+    )?.content;
+    return content?.trim()
+      ? renderRichContent(content, config.mathMode, true)
+      : fallback;
+  };
+  const correctFeedbackHtml = sectionContent(
+    "feedback_correct",
+    "<strong>Correct.</strong>",
+  );
+  const incorrectFeedbackHtml = sectionContent(
+    "feedback_incorrect",
+    "<strong>Incorrect.</strong>",
+  );
+  const conditionalFeedbackRules = (
+    authoringSections.find((section) => section.type === "conditional_feedback")
+      ?.conditionalFeedbackRules || []
+  )
+    .filter((rule) => rule.content.trim())
+    .sort((left, right) => left.priority - right.priority)
+    .map((rule) => ({
+      ...rule,
+      content: renderRichContent(rule.content, config.mathMode, true),
+    }));
 
-  let bodyHtml = '';
+  let bodyHtml = "";
   let correctPayload: any = null;
 
-  if (!q || q.type === 'UNKNOWN') {
+  if (!q || q.type === "UNKNOWN") {
     bodyHtml = `<p class="stem" style="color:#ef4444">⚠ This question could not be rendered (UNKNOWN type).</p>`;
-  } else if (q.type === 'MCQ') {
+  } else if (q.type === "MCQ") {
     const mcq = q as McqQuestion;
     correctPayload = mcq.correctAnswerId;
-    const optionsHtml = mcq.options.map(o =>
-      `<li class="option" data-id="${escHtml(o.id)}" onclick="selectOption('${escHtml(o.id)}', 'MCQ')">
+    const optionsHtml = mcq.options
+      .map(
+        (o) =>
+          `<li class="option" data-id="${escHtml(o.id)}" onclick="selectOption(this.dataset.id, 'MCQ')">
          <input type="radio" name="mcq" value="${escHtml(o.id)}" style="pointer-events: none; margin-top: 4px;" />
-         <span class="option-label">${escHtml(o.label)}.</span><span>${renderRichContent(o.text, config.mathMode, true)}</span>
-       </li>`
-    ).join('');
+         <span class="option-label">${escHtml(o.label)}.</span><div class="option-content">${renderRichContent(o.text, config.mathMode, true)}</div>
+       </li>`,
+      )
+      .join("");
     bodyHtml = `
-      <p class="stem">${renderRichContent(mcq.stem, config.mathMode, true)}</p>
+      <div class="stem">${renderRichContent(mcq.stem, config.mathMode, true)}</div>
       <ul class="options">${optionsHtml}</ul>`;
-  } else if (q.type === 'MSQ') {
+  } else if (q.type === "MSQ") {
     const msq = q as MsqQuestion;
     correctPayload = msq.correctAnswerIds;
-    const optionsHtml = msq.options.map(o =>
-      `<li class="option" data-id="${escHtml(o.id)}" onclick="selectOption('${escHtml(o.id)}', 'MSQ')">
+    const optionsHtml = msq.options
+      .map(
+        (o) =>
+          `<li class="option" data-id="${escHtml(o.id)}" onclick="selectOption(this.dataset.id, 'MSQ')">
          <input type="checkbox" name="msq" value="${escHtml(o.id)}" style="pointer-events: none; margin-top: 4px;" />
-         <span class="option-label">${escHtml(o.label)}.</span><span>${renderRichContent(o.text, config.mathMode, true)}</span>
-       </li>`
-    ).join('');
+         <span class="option-label">${escHtml(o.label)}.</span><div class="option-content">${renderRichContent(o.text, config.mathMode, true)}</div>
+       </li>`,
+      )
+      .join("");
     bodyHtml = `
-      <p class="stem">${renderRichContent(msq.stem, config.mathMode, true)}</p>
+      <div class="stem">${renderRichContent(msq.stem, config.mathMode, true)}</div>
       <ul class="options">${optionsHtml}</ul>`;
-  } else if (q.type === 'TEXT_ENTRY') {
+  } else if (q.type === "TEXT_ENTRY") {
     const te = q as TextEntryQuestion;
-    correctPayload = (te.acceptedAnswers || []).map(a => String(a).toLowerCase());
-    const hint = te.mode === 'numeric' ? `Numeric answer${te.units ? ' (' + escHtml(te.units) + ')' : ''}` : 'Type your answer';
+    correctPayload = (te.acceptedAnswers || []).map((a) =>
+      String(a).toLowerCase(),
+    );
+    const hint =
+      te.mode === "numeric"
+        ? `Numeric answer${te.units ? " (" + escHtml(te.units) + ")" : ""}`
+        : "Type your answer";
     bodyHtml = `
-      <p class="stem">${renderRichContent(te.stem, config.mathMode, true)}</p>
-      <input class="text-input" type="${te.mode === 'numeric' ? 'number' : 'text'}" placeholder="${escHtml(hint)}" onkeypress="handleEnter(event)" />
+      <div class="stem">${renderRichContent(te.stem, config.mathMode, true)}</div>
+      <input class="text-input" type="${te.mode === "numeric" ? "number" : "text"}" placeholder="${escHtml(hint)}" onkeypress="handleEnter(event)" />
       <p class="hint">${escHtml(hint)}</p>`;
-  } else if (q.type === 'ORDER') {
+  } else if (q.type === "ORDER") {
     const order = q as OrderQuestion;
     // Visually simulate an ordered list with draggable-looking handles
-    const optionsHtml = order.options.map((o, idx) =>
-      `<li class="option" style="cursor: grab;">
+    const optionsHtml = order.options
+      .map(
+        (o, idx) =>
+          `<li class="option" style="cursor: grab;">
          <span style="color: #94a3b8; margin-right: 8px;">≡</span>
          <span class="option-label">${idx + 1}.</span>
-         <span>${renderRichContent(o.text, config.mathMode, true)}</span>
-       </li>`
-    ).join('');
+         <div class="option-content">${renderRichContent(o.text, config.mathMode, true)}</div>
+       </li>`,
+      )
+      .join("");
     bodyHtml = `
-      <p class="stem">${renderRichContent(order.stem, config.mathMode, true)}</p>
+      <div class="stem">${renderRichContent(order.stem, config.mathMode, true)}</div>
       <p class="hint" style="margin-bottom: 8px;">Drag items to reorder them:</p>
       <ul class="options">${optionsHtml}</ul>`;
   }
-  
-  const cacheBustedUrl = row.metadata?.mediaUrl ? `${row.metadata.mediaUrl}${row.metadata.mediaUrl.includes('?') ? '&' : '?'}t=${Date.now()}` : '';
-  const mediaHtml = cacheBustedUrl ? `<div style="margin-bottom: 16px;"><img src="${escHtml(cacheBustedUrl)}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Question Media" /></div>` : '';
+
+  const normalizedMediaUrl = row.metadata?.mediaUrl
+    ? normalizePublicHttpUrl(row.metadata.mediaUrl)
+    : null;
+  const authoredContent = q
+    ? [
+        "stem" in q ? q.stem : "rawStem" in q ? q.rawStem : "",
+        "explanation" in q ? q.explanation || "" : "",
+        ...("options" in q ? q.options.map((option) => option.text) : []),
+        ...authoringSections.flatMap((section) => [
+          section.content || "",
+          ...(section.conditionalFeedbackRules || []).map(
+            (rule) => rule.content,
+          ),
+        ]),
+      ]
+    : [];
+  const mediaAlreadyAuthored =
+    normalizedMediaUrl !== null &&
+    authoredContent.some(
+      (content) =>
+        content.includes(normalizedMediaUrl) ||
+        content.includes(normalizedMediaUrl.replace(/&/g, "&amp;")),
+    );
+  const cacheBustedUrl = normalizedMediaUrl
+    ? `${normalizedMediaUrl}${normalizedMediaUrl.includes("?") ? "&" : "?"}t=${Date.now()}`
+    : "";
+  const mediaHtml = cacheBustedUrl && !mediaAlreadyAuthored
+    ? `<div style="margin-bottom: 16px;"><img src="${escHtml(cacheBustedUrl)}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Question Media" /></div>`
+    : "";
   bodyHtml = mediaHtml + bodyHtml;
 
-  if (q && q.type !== 'UNKNOWN') {
+  if (q && q.type !== "UNKNOWN") {
     bodyHtml += `
       <button class="submit-btn" onclick="submitAnswer()">Submit Answer</button>
       <div id="feedback-banner" class="feedback"></div>
     `;
   }
 
-  const mathScript = config.mathMode === 'mathjax' || config.mathMode === 'latex' ? `
+  const mathScript =
+    config.mathMode === "mathjax" || config.mathMode === "latex"
+      ? `
   <script>
     window.MathJax = {
       tex: {
@@ -138,30 +240,67 @@ export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig)
       }
     };
   </script>
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-  ` : '';
+  `
+      : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">
   <title>Preview</title>${BASE_STYLES}
   ${mathScript}
 </head>
 <body>
   <div class="question-card">
     <div class="question-meta">
-      <span class="badge badge-type">${escHtml(typeLabel(q?.type ?? 'UNKNOWN'))}</span>
-      <span class="badge badge-marks">${marks} mark${marks !== 1 ? 's' : ''}</span>
+      <span class="badge badge-type">${escHtml(typeLabel(q?.type ?? "UNKNOWN"))}</span>
+      <span class="badge badge-marks">${marks} mark${marks !== 1 ? "s" : ""}</span>
       <span class="badge badge-id">${escHtml(qid)}</span>
     </div>
     ${bodyHtml}
   </div>
   <script>
-    const correctPayload = ${JSON.stringify(correctPayload)};
-    const qType = "${q?.type ?? 'UNKNOWN'}";
+    const correctPayload = ${serializeForInlineScript(correctPayload)};
+    const qType = "${q?.type ?? "UNKNOWN"}";
+    const correctFeedbackHtml = ${serializeForInlineScript(correctFeedbackHtml)};
+    const incorrectFeedbackHtml = ${serializeForInlineScript(incorrectFeedbackHtml)};
+    const conditionalFeedbackRules = ${serializeForInlineScript(conditionalFeedbackRules)};
     let selected = new Set();
+
+    function normalizedFeedbackText(value, caseSensitive) {
+      const text = String(value ?? '').trim();
+      return caseSensitive ? text : text.toLocaleLowerCase();
+    }
+
+    function matchesFeedbackRule(rule, response) {
+      const condition = rule.condition || {};
+      if (condition.operator === 'choice_selected') {
+        const selectedValues = Array.isArray(response) ? response : [response];
+        return Boolean(condition.optionId && selectedValues.some(value => String(value) === condition.optionId));
+      }
+      const rawResponse = Array.isArray(response) ? response.join(', ') : response;
+      if (condition.operator === 'equals') {
+        return normalizedFeedbackText(rawResponse, condition.caseSensitive) === normalizedFeedbackText(condition.value, condition.caseSensitive);
+      }
+      if (condition.operator === 'contains') {
+        const expected = normalizedFeedbackText(condition.value, condition.caseSensitive);
+        return expected.length > 0 && normalizedFeedbackText(rawResponse, condition.caseSensitive).includes(expected);
+      }
+      const numericResponse = Number(String(rawResponse).trim());
+      if (!Number.isFinite(numericResponse)) return false;
+      if (condition.operator === 'numeric_range') {
+        const hasMin = Number.isFinite(condition.min);
+        const hasMax = Number.isFinite(condition.max);
+        return (hasMin || hasMax) && (!hasMin || numericResponse >= condition.min) && (!hasMax || numericResponse <= condition.max);
+      }
+      const comparisonValue = Number(condition.value);
+      if (!Number.isFinite(comparisonValue)) return false;
+      return condition.operator === 'greater_than'
+        ? numericResponse > comparisonValue
+        : numericResponse < comparisonValue;
+    }
 
     function selectOption(id, type) {
       if (type === 'MCQ') {
@@ -196,6 +335,7 @@ export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig)
 
     function submitAnswer() {
       let isCorrect = false;
+      let learnerResponse = Array.from(selected);
       if (qType === 'MCQ') {
         isCorrect = selected.has(correctPayload);
       } else if (qType === 'MSQ') {
@@ -205,8 +345,9 @@ export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig)
           isCorrect = correctPayload.every(id => selected.has(id));
         }
       } else if (qType === 'TEXT_ENTRY') {
-        const val = document.querySelector('.text-input').value.trim().toLowerCase();
-        isCorrect = correctPayload && correctPayload.includes(val);
+        const rawValue = document.querySelector('.text-input').value.trim();
+        learnerResponse = rawValue;
+        isCorrect = correctPayload && correctPayload.includes(rawValue.toLowerCase());
       } else if (qType === 'ORDER') {
         alert("Ordering preview validation is not currently supported in the browser.");
         return;
@@ -214,8 +355,13 @@ export function renderStudentPreviewHtml(row: QuestionRow, config: ExportConfig)
 
       const banner = document.getElementById('feedback-banner');
       if (banner) {
+        const conditionalMatch = isCorrect
+          ? undefined
+          : conditionalFeedbackRules.find(rule => matchesFeedbackRule(rule, learnerResponse));
         banner.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
-        banner.innerHTML = isCorrect ? '✅ Correct!' : '❌ Incorrect.';
+        banner.innerHTML = isCorrect
+          ? correctFeedbackHtml
+          : (conditionalMatch ? conditionalMatch.content : incorrectFeedbackHtml);
       }
     }
   </script>

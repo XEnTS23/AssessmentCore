@@ -1,11 +1,11 @@
-import ExcelJS from 'exceljs';
-import Papa from 'papaparse';
+import ExcelJS from "exceljs";
+import Papa from "papaparse";
 
 export interface ParsedFileData {
   columns: string[];
   rows: Record<string, any>[];
   fileName: string;
-  fileType: 'xlsx' | 'csv';
+  fileType: "xlsx" | "csv";
 }
 
 export interface RawQuestion {
@@ -21,8 +21,8 @@ export interface RawQuestion {
  * should never legitimately start with these characters.
  */
 function sanitizeCellValue(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
-  return value.replace(/^[=+\-@]+/, '');
+  if (typeof value !== "string") return value;
+  return value.replace(/^[=+\-@]+/, "");
 }
 
 function sanitizeRow(row: Record<string, any>): Record<string, any> {
@@ -38,9 +38,10 @@ function sanitizeRow(row: Record<string, any>): Record<string, any> {
  */
 export async function parseFile(file: File): Promise<ParsedFileData> {
   const fileName = file.name;
-  const fileType = fileName.endsWith('.xlsx') || fileName.endsWith('.xls') ? 'xlsx' : 'csv';
+  const fileType =
+    fileName.endsWith(".xlsx") || fileName.endsWith(".xls") ? "xlsx" : "csv";
 
-  if (fileType === 'xlsx') {
+  if (fileType === "xlsx") {
     return parseXlsx(file, fileName);
   } else {
     return parseCsv(file, fileName);
@@ -56,25 +57,28 @@ function normalizeCellValue(cell: ExcelJS.Cell): unknown {
   if (val == null) return undefined;
 
   // Rich text → concatenate all text runs
-  if (typeof val === 'object' && 'richText' in val) {
+  if (typeof val === "object" && "richText" in val) {
     return (val as ExcelJS.CellRichTextValue).richText
       .map((r) => r.text)
-      .join('');
+      .join("");
   }
 
   // Hyperlink → return the display text or the hyperlink itself
-  if (typeof val === 'object' && 'hyperlink' in val) {
-    return (val as ExcelJS.CellHyperlinkValue).text || (val as ExcelJS.CellHyperlinkValue).hyperlink;
+  if (typeof val === "object" && "hyperlink" in val) {
+    return (
+      (val as ExcelJS.CellHyperlinkValue).text ||
+      (val as ExcelJS.CellHyperlinkValue).hyperlink
+    );
   }
 
   // Formula → return the computed result
-  if (typeof val === 'object' && 'formula' in val) {
-    return (val as ExcelJS.CellFormulaValue).result ?? '';
+  if (typeof val === "object" && "formula" in val) {
+    return (val as ExcelJS.CellFormulaValue).result ?? "";
   }
 
   // Error → return empty string
-  if (typeof val === 'object' && 'error' in val) {
-    return '';
+  if (typeof val === "object" && "error" in val) {
+    return "";
   }
 
   // Date → ISO string
@@ -88,7 +92,10 @@ function normalizeCellValue(cell: ExcelJS.Cell): unknown {
 /**
  * Parse XLSX file using ExcelJS
  */
-async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> {
+async function parseXlsx(
+  file: File,
+  fileName: string,
+): Promise<ParsedFileData> {
   const arrayBuffer = await file.arrayBuffer();
 
   const workbook = new ExcelJS.Workbook();
@@ -96,7 +103,7 @@ async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> 
 
   // Try each sheet in order; use the first one that has at least 1 data row.
   let jsonData: Record<string, any>[] = [];
-  let usedSheet = '';
+  let usedSheet = "";
 
   for (const worksheet of workbook.worksheets) {
     if (!worksheet || worksheet.rowCount < 2) continue; // need header + at least 1 data row
@@ -104,7 +111,9 @@ async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> 
     const headers: string[] = [];
     const headerRow = worksheet.getRow(1);
     headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-      headers[colNumber] = String(normalizeCellValue(cell) ?? `Column${colNumber}`).trim();
+      headers[colNumber] = String(
+        normalizeCellValue(cell) ?? `Column${colNumber}`,
+      ).trim();
     });
 
     if (headers.filter(Boolean).length === 0) continue;
@@ -120,7 +129,7 @@ async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> 
         const header = headers[colNumber];
         if (!header) return;
         const val = normalizeCellValue(cell);
-        if (val !== undefined && val !== '') {
+        if (val !== undefined && val !== "") {
           rowObj[header] = val;
           hasValue = true;
         }
@@ -137,12 +146,17 @@ async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> 
   }
 
   if (jsonData.length === 0) {
-    const tried = workbook.worksheets.map((ws) => ws.name).join(', ') || '(none)';
-    throw new Error(`No data found in the sheet. Tried: ${tried}. Make sure the file has at least one row of data below the header.`);
+    const tried =
+      workbook.worksheets.map((ws) => ws.name).join(", ") || "(none)";
+    throw new Error(
+      `No data found in the sheet. Tried: ${tried}. Make sure the file has at least one row of data below the header.`,
+    );
   }
 
   if (import.meta.env.DEV) {
-    console.log(`[fileParser] Using sheet "${usedSheet}" (${jsonData.length} rows)`);
+    console.log(
+      `[fileParser] Using sheet "${usedSheet}" (${jsonData.length} rows)`,
+    );
   }
 
   // Extract columns from first row
@@ -151,16 +165,17 @@ async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> 
   // Add compatibility id fallback, but preserve whether source id was explicitly missing.
   const rows = jsonData.map((rawRow, index) => {
     const row = sanitizeRow(rawRow);
-    const idKey = Object.keys(row).find((key) => key.toLowerCase() === 'id');
+    const idKey = Object.keys(row).find((key) => key.toLowerCase() === "id");
     const sourceIdRaw = idKey ? row[idKey] : undefined;
-    const sourceIdNormalized = sourceIdRaw == null ? '' : String(sourceIdRaw).trim();
+    const sourceIdNormalized =
+      sourceIdRaw == null ? "" : String(sourceIdRaw).trim();
     const explicitIdMissing = sourceIdNormalized.length === 0;
 
     return {
       ...row,
       id: explicitIdMissing ? `row_${index}` : sourceIdRaw,
       __sourceRowNumber: index + 1,
-      __sourceIdRaw: sourceIdRaw ?? '',
+      __sourceIdRaw: sourceIdRaw ?? "",
       __explicitIdMissing: explicitIdMissing,
     };
   });
@@ -169,7 +184,7 @@ async function parseXlsx(file: File, fileName: string): Promise<ParsedFileData> 
     columns,
     rows,
     fileName,
-    fileType: 'xlsx',
+    fileType: "xlsx",
   };
 }
 
@@ -185,7 +200,7 @@ function parseCsv(file: File, fileName: string): Promise<ParsedFileData> {
         const rows = results.data as Record<string, any>[];
 
         if (rows.length === 0) {
-          reject(new Error('No data found in the CSV file'));
+          reject(new Error("No data found in the CSV file"));
           return;
         }
 
@@ -194,16 +209,19 @@ function parseCsv(file: File, fileName: string): Promise<ParsedFileData> {
         // Add compatibility id fallback, but preserve whether source id was explicitly missing.
         const rowsWithId = rows.map((rawRow, index) => {
           const row = sanitizeRow(rawRow);
-          const idKey = Object.keys(row).find((key) => key.toLowerCase() === 'id');
+          const idKey = Object.keys(row).find(
+            (key) => key.toLowerCase() === "id",
+          );
           const sourceIdRaw = idKey ? row[idKey] : undefined;
-          const sourceIdNormalized = sourceIdRaw == null ? '' : String(sourceIdRaw).trim();
+          const sourceIdNormalized =
+            sourceIdRaw == null ? "" : String(sourceIdRaw).trim();
           const explicitIdMissing = sourceIdNormalized.length === 0;
 
           return {
             ...row,
             id: explicitIdMissing ? `row_${index}` : sourceIdRaw,
             __sourceRowNumber: index + 1,
-            __sourceIdRaw: sourceIdRaw ?? '',
+            __sourceIdRaw: sourceIdRaw ?? "",
             __explicitIdMissing: explicitIdMissing,
           };
         });
@@ -212,7 +230,7 @@ function parseCsv(file: File, fileName: string): Promise<ParsedFileData> {
           columns,
           rows: rowsWithId,
           fileName,
-          fileType: 'csv',
+          fileType: "csv",
         });
       },
       error: (error: any) => {
@@ -247,7 +265,7 @@ export function detectQuestionColumns(columns: string[]): {
   languageCol?: string;
   examCol?: string;
 } {
-  const lowerColumns = columns.map(c => c.toLowerCase());
+  const lowerColumns = columns.map((c) => c.toLowerCase());
 
   const result: {
     questionCol?: string;
@@ -262,43 +280,75 @@ export function detectQuestionColumns(columns: string[]): {
   } = {};
 
   // Detect title column
-  const titlePatterns = ['title', 'item_title', 'question_title', 'label', 'name'];
-  result.titleCol = columns[lowerColumns.findIndex(c => titlePatterns.some(p => c.includes(p)))];
+  const titlePatterns = [
+    "title",
+    "item_title",
+    "question_title",
+    "label",
+    "name",
+  ];
+  result.titleCol =
+    columns[
+      lowerColumns.findIndex((c) => titlePatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect question column
   // When both "Question Text" and "Question Type" exist, prefer "Question Text"
-  const questionPatterns = ['question', 'query', 'problem', 'stem', 'text'];
-  let foundIndex = lowerColumns.findIndex(c => questionPatterns.some(p => c.includes(p)));
-  
+  const questionPatterns = ["question", "query", "problem", "stem", "text"];
+  let foundIndex = lowerColumns.findIndex((c) =>
+    questionPatterns.some((p) => c.includes(p)),
+  );
+
   // If found "question" but it's "question type", check if "question text" also exists
-  if (foundIndex >= 0 && lowerColumns[foundIndex].includes('question') && lowerColumns[foundIndex].includes('type')) {
+  if (
+    foundIndex >= 0 &&
+    lowerColumns[foundIndex].includes("question") &&
+    lowerColumns[foundIndex].includes("type")
+  ) {
     // Look for "question text" specifically
-    const textVariant = lowerColumns.findIndex((c, idx) => idx !== foundIndex && (c.includes('question') && c.includes('text')));
+    const textVariant = lowerColumns.findIndex(
+      (c, idx) =>
+        idx !== foundIndex && c.includes("question") && c.includes("text"),
+    );
     if (textVariant >= 0) {
       foundIndex = textVariant;
     }
   }
-  
+
   result.questionCol = foundIndex >= 0 ? columns[foundIndex] : undefined;
 
   // Detect answer/correct answer column
   // Prefer explicit exact matches or obvious correct answer fields
-  const preferredAnswerPatterns = ['correct_answer', 'correct answer', 'answer_key', 'answer key', 'correct option'];
-  let ansIdx = lowerColumns.findIndex(c => preferredAnswerPatterns.some(p => c === p || c.includes(p)));
+  const preferredAnswerPatterns = [
+    "correct_answer",
+    "correct answer",
+    "answer_key",
+    "answer key",
+    "correct option",
+  ];
+  let ansIdx = lowerColumns.findIndex((c) =>
+    preferredAnswerPatterns.some((p) => c === p || c.includes(p)),
+  );
 
   if (ansIdx < 0) {
     // Fallback: match 'answer' or 'correct', but exclude 'answer type', 'is_correct', etc.
-    const answerPatterns = ['answer', 'correct'];
-    ansIdx = lowerColumns.findIndex(c => {
-      if (c.includes('type') || c.includes('is_correct') || c.includes('incorrect') || c.includes('format')) return false;
-      return answerPatterns.some(p => c.includes(p));
+    const answerPatterns = ["answer", "correct"];
+    ansIdx = lowerColumns.findIndex((c) => {
+      if (
+        c.includes("type") ||
+        c.includes("is_correct") ||
+        c.includes("incorrect") ||
+        c.includes("format")
+      )
+        return false;
+      return answerPatterns.some((p) => c.includes(p));
     });
   }
   result.answerCol = ansIdx >= 0 ? columns[ansIdx] : undefined;
 
   // Detect option columns (A-H or Option 1-8, etc.)
   const optionCols: string[] = [];
-  columns.forEach(col => {
+  columns.forEach((col) => {
     const trimmed = col.trim();
     if (
       /^option[\s_-]*[a-h]$/i.test(trimmed) ||
@@ -316,53 +366,86 @@ export function detectQuestionColumns(columns: string[]): {
   result.optionCols = optionCols.length > 0 ? optionCols : undefined;
 
   // Detect question type column
-  const typePatterns = ['type', 'qtype', 'questiontype'];
-  result.typeCol = columns[lowerColumns.findIndex(c => typePatterns.some(p => c.includes(p)))];
+  const typePatterns = ["type", "qtype", "questiontype"];
+  result.typeCol =
+    columns[
+      lowerColumns.findIndex((c) => typePatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect difficulty column
-  const diffPatterns = ['difficulty', 'level', 'difficulty_level'];
-  result.difficultyCol = columns[lowerColumns.findIndex(c => diffPatterns.some(p => c.includes(p)))];
+  const diffPatterns = ["difficulty", "level", "difficulty_level"];
+  result.difficultyCol =
+    columns[
+      lowerColumns.findIndex((c) => diffPatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect solution column
-  const solutionPatterns = ['solution', 'explanation', 'remark'];
-  result.solutionCol = columns[lowerColumns.findIndex(c => solutionPatterns.some(p => c.includes(p)))];
+  const solutionPatterns = ["solution", "explanation", "remark"];
+  result.solutionCol =
+    columns[
+      lowerColumns.findIndex((c) => solutionPatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect points column - includes 'grade' now
-  const pointsPatterns = ['points', 'marks', 'score', 'weight', 'grade'];
-  result.pointsCol = columns[lowerColumns.findIndex(c => pointsPatterns.some(p => c.includes(p)))];
+  const pointsPatterns = ["points", "marks", "score", "weight", "grade"];
+  result.pointsCol =
+    columns[
+      lowerColumns.findIndex((c) => pointsPatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect subject column
-  const subjectPatterns = ['subject', 'category', 'domain'];
-  result.subjectCol = columns[lowerColumns.findIndex(c => subjectPatterns.some(p => c.includes(p)))];
+  const subjectPatterns = ["subject", "category", "domain"];
+  result.subjectCol =
+    columns[
+      lowerColumns.findIndex((c) => subjectPatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect topic column (exclude subtopic — detected separately)
-  const topicPatterns = ['topic', 'unit', 'chapter'];
-  result.topicCol = columns[lowerColumns.findIndex(c => {
-    if (c.includes('subtopic') || c.includes('sub_topic') || c.includes('sub topic')) return false;
-    return topicPatterns.some(p => c.includes(p));
-  })];
+  const topicPatterns = ["topic", "unit", "chapter"];
+  result.topicCol =
+    columns[
+      lowerColumns.findIndex((c) => {
+        if (
+          c.includes("subtopic") ||
+          c.includes("sub_topic") ||
+          c.includes("sub topic")
+        )
+          return false;
+        return topicPatterns.some((p) => c.includes(p));
+      })
+    ];
 
   // Detect subtopic column
-  const subtopicPatterns = ['subtopic', 'sub_topic', 'sub topic'];
-  result.subtopicCol = columns[lowerColumns.findIndex(c => subtopicPatterns.some(p => c.includes(p)))];
+  const subtopicPatterns = ["subtopic", "sub_topic", "sub topic"];
+  result.subtopicCol =
+    columns[
+      lowerColumns.findIndex((c) => subtopicPatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect tolerance column (for numeric questions)
-  const tolerancePatterns = ['tolerance', 'margin', 'tolerance_value'];
-  result.toleranceCol = columns[lowerColumns.findIndex(c => tolerancePatterns.some(p => c.includes(p)))];
+  const tolerancePatterns = ["tolerance", "margin", "tolerance_value"];
+  result.toleranceCol =
+    columns[
+      lowerColumns.findIndex((c) =>
+        tolerancePatterns.some((p) => c.includes(p)),
+      )
+    ];
 
   // Detect order column (for ordering interaction)
   // Prefer explicit order-item columns over generic order metadata fields.
   const preferredOrderPatterns = [
-    'order_items',
-    'order items',
-    'ordering_items',
-    'ordering items',
-    'sequence_items',
-    'sequence items',
-    'arrange_items',
-    'arrange items',
+    "order_items",
+    "order items",
+    "ordering_items",
+    "ordering items",
+    "sequence_items",
+    "sequence items",
+    "arrange_items",
+    "arrange items",
   ];
-  const preferredOrderIndex = lowerColumns.findIndex((c) => preferredOrderPatterns.some((p) => c === p || c.includes(p)));
+  const preferredOrderIndex = lowerColumns.findIndex((c) =>
+    preferredOrderPatterns.some((p) => c === p || c.includes(p)),
+  );
 
   if (preferredOrderIndex >= 0) {
     result.orderCol = columns[preferredOrderIndex];
@@ -370,44 +453,120 @@ export function detectQuestionColumns(columns: string[]): {
     // Fallback: match generic order/sequence/arrange patterns, but exclude columns
     // that are clearly sequence *metadata* (e.g. Question_Sequence_ID, sequence_number)
     // rather than ordering-item data.
-    const orderPatterns = ['order', 'sequence', 'arrange'];
-    const metadataSuffixes = ['_id', ' id', '_no', ' no', '_number', ' number', '_num', ' num', '_seq', 'sequenceid', 'sequenceno'];
-    result.orderCol = columns[lowerColumns.findIndex((c) => {
-      if (metadataSuffixes.some((s) => c.includes(s))) return false;
-      return orderPatterns.some((p) => c.includes(p));
-    })];
+    const orderPatterns = ["order", "sequence", "arrange"];
+    const metadataSuffixes = [
+      "_id",
+      " id",
+      "_no",
+      " no",
+      "_number",
+      " number",
+      "_num",
+      " num",
+      "_seq",
+      "sequenceid",
+      "sequenceno",
+    ];
+    result.orderCol =
+      columns[
+        lowerColumns.findIndex((c) => {
+          if (metadataSuffixes.some((s) => c.includes(s))) return false;
+          return orderPatterns.some((p) => c.includes(p));
+        })
+      ];
   }
 
   // Detect image/diagram column (for media support)
-  const imagePatterns = ['image', 'img', 'picture', 'media', 'figure', 'graphic', 'diagram', 'illustration'];
-  result.imageCol = columns[lowerColumns.findIndex(c => imagePatterns.some(p => c.includes(p)))];
+  const imagePatterns = [
+    "image",
+    "img",
+    "picture",
+    "media",
+    "figure",
+    "graphic",
+    "diagram",
+    "illustration",
+  ];
+  result.imageCol =
+    columns[
+      lowerColumns.findIndex((c) => imagePatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect Bloom's taxonomy column
-  const bloomPatterns = ['bloom', 'taxonomy', 'cognitive', 'cognitive_level', 'thinking_skill'];
-  result.bloomCol = columns[lowerColumns.findIndex(c => bloomPatterns.some(p => c.includes(p)))];
+  const bloomPatterns = [
+    "bloom",
+    "taxonomy",
+    "cognitive",
+    "cognitive_level",
+    "thinking_skill",
+  ];
+  result.bloomCol =
+    columns[
+      lowerColumns.findIndex((c) => bloomPatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect negative marks column (exclude plain 'marks' — already caught by points)
-  const negativeMarksPatterns = ['negative_mark', 'negative mark', 'negmark', 'neg_mark', 'penalty', 'negative_score', 'negative score'];
-  result.negativeMarksCol = columns[lowerColumns.findIndex(c => negativeMarksPatterns.some(p => c.includes(p)))];
+  const negativeMarksPatterns = [
+    "negative_mark",
+    "negative mark",
+    "negmark",
+    "neg_mark",
+    "penalty",
+    "negative_score",
+    "negative score",
+  ];
+  result.negativeMarksCol =
+    columns[
+      lowerColumns.findIndex((c) =>
+        negativeMarksPatterns.some((p) => c.includes(p)),
+      )
+    ];
 
   // Detect tags/keywords column
-  const tagsPatterns = ['tags', 'keywords', 'keyword', 'label'];
-  result.tagsCol = columns[lowerColumns.findIndex(c => {
-    if (c.includes('option') || c.includes('choice')) return false;
-    return tagsPatterns.some(p => c.includes(p));
-  })];
+  const tagsPatterns = ["tags", "keywords", "keyword", "label"];
+  result.tagsCol =
+    columns[
+      lowerColumns.findIndex((c) => {
+        if (c.includes("option") || c.includes("choice")) return false;
+        return tagsPatterns.some((p) => c.includes(p));
+      })
+    ];
 
   // Detect grade/class level column (exclude 'grade' if already matched by points)
-  const gradePatterns = ['class', 'grade_level', 'grade level', 'standard', 'year_group'];
-  result.gradeCol = columns[lowerColumns.findIndex(c => gradePatterns.some(p => c.includes(p)))];
+  const gradePatterns = [
+    "class",
+    "grade_level",
+    "grade level",
+    "standard",
+    "year_group",
+  ];
+  result.gradeCol =
+    columns[
+      lowerColumns.findIndex((c) => gradePatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect language column
-  const languagePatterns = ['language', 'lang', 'medium'];
-  result.languageCol = columns[lowerColumns.findIndex(c => languagePatterns.some(p => c.includes(p)))];
+  const languagePatterns = ["language", "lang", "medium"];
+  result.languageCol =
+    columns[
+      lowerColumns.findIndex((c) => languagePatterns.some((p) => c.includes(p)))
+    ];
 
   // Detect exam/source column
-  const examPatterns = ['exam', 'source', 'paper', 'exam_name', 'exam name', 'test_name', 'pyq', 'previous_year'];
-  result.examCol = columns[lowerColumns.findIndex(c => examPatterns.some(p => c.includes(p)))];
+  const examPatterns = [
+    "exam",
+    "source",
+    "paper",
+    "exam_name",
+    "exam name",
+    "test_name",
+    "pyq",
+    "previous_year",
+  ];
+  result.examCol =
+    columns[
+      lowerColumns.findIndex((c) => examPatterns.some((p) => c.includes(p)))
+    ];
 
   return result;
 }

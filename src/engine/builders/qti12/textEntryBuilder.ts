@@ -3,10 +3,13 @@
  * Generates compliant QTI 1.2 XML for Text Entry Questions (Short Answer)
  */
 
-import { Question, QuestionBuilder, GenerationError } from '../../types';
-import { escapeXml } from '../../xmlUtils';
-import { validateXml } from '../../xmlValidator';
-import { convertTextWithMath, stripMath } from '../../../app/utils/mathmlConverter';
+import { Question, QuestionBuilder, GenerationError } from "../../types";
+import { escapeXml } from "../../xmlUtils";
+import { validateXml } from "../../xmlValidator";
+import {
+  convertTextWithMath,
+  stripMath,
+} from "../../../app/utils/mathmlConverter";
 
 class TextEntryBuilder12 implements QuestionBuilder {
   /**
@@ -24,16 +27,16 @@ class TextEntryBuilder12 implements QuestionBuilder {
    * Validate question has all required fields
    */
   private validateQuestion(question: Question): void {
-    if (!question.identifier || question.identifier.trim() === '') {
-      throw new Error('Question identifier is required');
+    if (!question.identifier || question.identifier.trim() === "") {
+      throw new Error("Question identifier is required");
     }
 
-    if (!question.stem || question.stem.trim() === '') {
-      throw new Error('Question stem is required');
+    if (!question.stem || question.stem.trim() === "") {
+      throw new Error("Question stem is required");
     }
 
-    if (!question.correct_answer || question.correct_answer.trim() === '') {
-      throw new Error('Correct answer is required');
+    if (!question.correct_answer || question.correct_answer.trim() === "") {
+      throw new Error("Correct answer is required");
     }
   }
 
@@ -131,7 +134,9 @@ export function createTextEntryBuilder12(): QuestionBuilder {
  * Generate QTI 1.2 XML for a single text entry question
  * Throws error if generation fails
  */
-export async function generateTextEntryXml12(question: Question): Promise<string> {
+export async function generateTextEntryXml12(
+  question: Question,
+): Promise<string> {
   const builder = createTextEntryBuilder12();
   return builder.generate(question);
 }
@@ -141,7 +146,7 @@ export async function generateTextEntryXml12(question: Question): Promise<string
  * Returns error if validation fails
  */
 export async function generateAndValidateTextEntry12(
-  question: Question
+  question: Question,
 ): Promise<{ xml: string } | { error: GenerationError }> {
   try {
     const xml = await generateTextEntryXml12(question);
@@ -150,8 +155,8 @@ export async function generateAndValidateTextEntry12(
     if (!builder.validate(xml)) {
       return {
         error: {
-          code: 'XML_VALIDATION_FAILED',
-          message: 'Generated XML failed validation',
+          code: "XML_VALIDATION_FAILED",
+          message: "Generated XML failed validation",
         },
       };
     }
@@ -160,7 +165,7 @@ export async function generateAndValidateTextEntry12(
   } catch (error) {
     return {
       error: {
-        code: 'TEXT_ENTRY_GENERATION_ERROR',
+        code: "TEXT_ENTRY_GENERATION_ERROR",
         message: error instanceof Error ? error.message : String(error),
         details: error,
       },

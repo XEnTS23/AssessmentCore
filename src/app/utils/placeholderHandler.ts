@@ -8,34 +8,38 @@ export type PlaceholderInfo = {
   name: string; // e.g., "concept"
   fieldId: string; // unique field ID for mapping
   displayName: string; // e.g., "Concept Placeholder"
-  parent: 'incorrect' | 'correct' | null; // reserved for legacy behavior
+  parent: "incorrect" | "correct" | null; // reserved for legacy behavior
 };
 
 /**
  * Normalize placeholder tokens to lowercase snake_case
  */
 function normalizePlaceholderToken(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '') || 'placeholder';
+  return (
+    raw
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "placeholder"
+  );
 }
 
 function parseCommentPlaceholder(text: string): string | null {
   const match = text.match(/^\s*AC:([a-zA-Z0-9_\- ]+)\s*$/);
   if (!match) return null;
-  return normalizePlaceholderToken(match[1] || '');
+  return normalizePlaceholderToken(match[1] || "");
 }
 
 /**
  * Extract all placeholders from XML comments in template XML.
  * Returns array of placeholder info objects.
  */
-export function extractPlaceholdersFromComments(templateXml: string): PlaceholderInfo[] {
+export function extractPlaceholdersFromComments(
+  templateXml: string,
+): PlaceholderInfo[] {
   try {
-    const doc = new DOMParser().parseFromString(templateXml, 'application/xml');
-    if (doc.querySelector('parsererror')) {
+    const doc = new DOMParser().parseFromString(templateXml, "application/xml");
+    if (doc.querySelector("parsererror")) {
       return [];
     }
 
@@ -43,11 +47,11 @@ export function extractPlaceholdersFromComments(templateXml: string): Placeholde
     const walker = doc.createTreeWalker(doc, NodeFilter.SHOW_COMMENT);
     let current = walker.nextNode();
     while (current) {
-      const token = parseCommentPlaceholder(current.nodeValue || '');
+      const token = parseCommentPlaceholder(current.nodeValue || "");
       if (token) {
         const fieldId = `placeholder_${token}`;
         if (!placeholders.has(fieldId)) {
-          const displayName = `Placeholder: ${token.replace(/_/g, ' ')}`;
+          const displayName = `Placeholder: ${token.replace(/_/g, " ")}`;
           placeholders.set(fieldId, {
             placeholder: `<!-- AC:${token} -->`,
             name: token,
@@ -62,7 +66,7 @@ export function extractPlaceholdersFromComments(templateXml: string): Placeholde
 
     return Array.from(placeholders.values());
   } catch (error) {
-    console.error('Error extracting placeholders:', error);
+    console.error("Error extracting placeholders:", error);
     return [];
   }
 }
@@ -71,7 +75,6 @@ export function extractPlaceholdersFromComments(templateXml: string): Placeholde
  * Legacy export name kept for compatibility.
  */
 export const extractPlaceholdersFromFeedback = extractPlaceholdersFromComments;
-
 
 /**
  * Replace a single placeholder comment with new content
@@ -90,12 +93,12 @@ export function replacePlaceholder(
   }
 
   // Process LaTeX to MathML if needed
-  let processedContent = newContent || '';
-  if (newContent && containsMath === 'yes' && mathFormat === 'mathml') {
+  let processedContent = newContent || "";
+  if (newContent && containsMath === "yes" && mathFormat === "mathml") {
     try {
       processedContent = processXmlMath(newContent);
     } catch (error) {
-      console.error('Error processing math in placeholder:', error);
+      console.error("Error processing math in placeholder:", error);
       processedContent = newContent;
     }
   }
@@ -103,7 +106,7 @@ export function replacePlaceholder(
   const normalizedPlaceholder = normalizePlaceholderToken(placeholderName);
 
   // Handle empty content - remove wrapper element containing the comment placeholder
-  if (!processedContent || processedContent.trim() === '') {
+  if (!processedContent || processedContent.trim() === "") {
     removePlaceholderSection(rootNode, normalizedPlaceholder);
     return;
   }
@@ -114,7 +117,7 @@ export function replacePlaceholder(
   const walker = ownerDoc.createTreeWalker(rootNode, NodeFilter.SHOW_COMMENT);
   let current = walker.nextNode();
   while (current) {
-    const token = parseCommentPlaceholder(current.nodeValue || '');
+    const token = parseCommentPlaceholder(current.nodeValue || "");
     if (token && token === normalizedPlaceholder) {
       commentNodes.push(current as Comment);
     }
@@ -131,8 +134,11 @@ export function replacePlaceholder(
     let fragmentDoc: Document | null = null;
     try {
       const fragmentWrapper = `<root>${processedContent}</root>`;
-      fragmentDoc = new DOMParser().parseFromString(fragmentWrapper, 'application/xml');
-      if (fragmentDoc.querySelector('parsererror')) {
+      fragmentDoc = new DOMParser().parseFromString(
+        fragmentWrapper,
+        "application/xml",
+      );
+      if (fragmentDoc.querySelector("parsererror")) {
         fragmentDoc = null;
       }
     } catch {
@@ -159,10 +165,13 @@ export function replacePlaceholder(
  */
 export function hasFeedbackPlaceholders(feedbackNode: Element): boolean {
   const ownerDoc = feedbackNode.ownerDocument || document;
-  const walker = ownerDoc.createTreeWalker(feedbackNode, NodeFilter.SHOW_COMMENT);
+  const walker = ownerDoc.createTreeWalker(
+    feedbackNode,
+    NodeFilter.SHOW_COMMENT,
+  );
   let current = walker.nextNode();
   while (current) {
-    if (parseCommentPlaceholder(current.nodeValue || '')) {
+    if (parseCommentPlaceholder(current.nodeValue || "")) {
       return true;
     }
     current = walker.nextNode();
@@ -179,7 +188,7 @@ export function listPlaceholdersInNode(node: Element): string[] {
   const walker = ownerDoc.createTreeWalker(node, NodeFilter.SHOW_COMMENT);
   let current = walker.nextNode();
   while (current) {
-    const token = parseCommentPlaceholder(current.nodeValue || '');
+    const token = parseCommentPlaceholder(current.nodeValue || "");
     if (token) {
       found.add(token);
     }
@@ -192,7 +201,10 @@ export function listPlaceholdersInNode(node: Element): string[] {
  * Remove the whole subsection wrapper that contains a placeholder token.
  * Assumes each subsection is wrapped in its own element inside rootNode.
  */
-export function removePlaceholderSection(rootNode: Element, placeholderName: string): void {
+export function removePlaceholderSection(
+  rootNode: Element,
+  placeholderName: string,
+): void {
   const normalizedPlaceholder = normalizePlaceholderToken(placeholderName);
   const removals: Element[] = [];
 
@@ -200,7 +212,7 @@ export function removePlaceholderSection(rootNode: Element, placeholderName: str
   const walker = ownerDoc.createTreeWalker(rootNode, NodeFilter.SHOW_COMMENT);
   let current = walker.nextNode();
   while (current) {
-    const token = parseCommentPlaceholder(current.nodeValue || '');
+    const token = parseCommentPlaceholder(current.nodeValue || "");
     if (token && token === normalizedPlaceholder) {
       const target = (current as Comment).parentElement;
       if (target && target !== rootNode) {
@@ -220,4 +232,3 @@ export function removePlaceholderSection(rootNode: Element, placeholderName: str
     }
   });
 }
-

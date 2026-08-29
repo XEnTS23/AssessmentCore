@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Upload, Trash2, ImagePlus, Loader2, X, Eye } from 'lucide-react';
+import React, { useState, useRef, useCallback } from "react";
+import { Upload, Trash2, ImagePlus, Loader2, X, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,16 +7,17 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from './ui/dialog';
-import { Button } from './ui/button';
-import { supabase } from '../../services/supabaseClient';
-import { toast } from 'sonner';
-import { useAuth } from '../../contexts/AuthContext';
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { supabase } from "../../services/supabaseClient";
+import { toast } from "sonner";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ── Constants ───────────────────────────────────────────────────────────────────
 
-const OCR_DIAGRAM_BUCKET = import.meta.env.VITE_SUPABASE_OCR_DIAGRAM_BUCKET || 'ocr-diagrams';
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const OCR_DIAGRAM_BUCKET =
+  import.meta.env.VITE_SUPABASE_OCR_DIAGRAM_BUCKET || "ocr-diagrams";
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // ── Props ───────────────────────────────────────────────────────────────────────
@@ -54,17 +55,17 @@ export function MediaOverrideModal({
   const handleUpload = useCallback(
     async (file: File) => {
       if (!user?.id) {
-        toast.error('You must be signed in to upload media.');
+        toast.error("You must be signed in to upload media.");
         return;
       }
 
       if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        toast.error('Unsupported file type. Use JPEG, PNG, or WebP.');
+        toast.error("Unsupported file type. Use JPEG, PNG, or WebP.");
         return;
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        toast.error('File exceeds 10 MB limit.');
+        toast.error("File exceeds 10 MB limit.");
         return;
       }
 
@@ -73,8 +74,8 @@ export function MediaOverrideModal({
       try {
         const timestamp = Date.now();
         const sanitized = file.name
-          .replace(/\s+/g, '_')
-          .replace(/[^a-zA-Z0-9._-]/g, '_');
+          .replace(/\s+/g, "_")
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
         const storagePath = `${user.id}/overrides/${timestamp}_${sanitized}`;
 
         const { error: uploadError } = await supabase.storage
@@ -94,10 +95,10 @@ export function MediaOverrideModal({
 
         const publicUrl = publicData.publicUrl;
         onMediaUpdate(rowId, publicUrl);
-        toast.success('Image uploaded and mapped.');
+        toast.success("Image uploaded and mapped.");
       } catch (err) {
-        console.error('Media upload error:', err);
-        toast.error(err instanceof Error ? err.message : 'Upload failed.');
+        console.error("Media upload error:", err);
+        toast.error(err instanceof Error ? err.message : "Upload failed.");
       } finally {
         setIsUploading(false);
       }
@@ -109,7 +110,7 @@ export function MediaOverrideModal({
 
   const handleDelete = useCallback(() => {
     onMediaUpdate(rowId, null);
-    toast.success('Media asset removed from this row.');
+    toast.success("Media asset removed from this row.");
   }, [rowId, onMediaUpdate]);
 
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
@@ -143,7 +144,7 @@ export function MediaOverrideModal({
       const file = e.target.files?.[0];
       if (file) handleUpload(file);
       // Reset so the same file can be re-selected.
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     },
     [handleUpload],
   );
@@ -156,7 +157,7 @@ export function MediaOverrideModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <ImagePlus className="h-4.5 w-4.5 text-muted-foreground" />
-            Media Asset {rowLabel ? `— ${rowLabel}` : ''}
+            Media Asset {rowLabel ? `— ${rowLabel}` : ""}
           </DialogTitle>
           <DialogDescription>
             Preview, replace, or remove the image mapped to this question row.
@@ -167,9 +168,9 @@ export function MediaOverrideModal({
         <div className="mt-1">
           {mediaUrl ? (
             <div className="relative group overflow-hidden rounded-lg border border-border bg-muted/30">
-              <a 
-                href={mediaUrl} 
-                target="_blank" 
+              <a
+                href={mediaUrl}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="block cursor-zoom-in"
                 title="Click to view full size"
@@ -181,7 +182,7 @@ export function MediaOverrideModal({
                   loading="lazy"
                 />
               </a>
-              
+
               {/* Overlay Actions */}
               <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <a
@@ -219,9 +220,9 @@ export function MediaOverrideModal({
         <div
           className={`mt-3 flex min-h-[100px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
             isDragOver
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary/40 hover:bg-muted/30'
-          } ${isUploading ? 'pointer-events-none opacity-60' : ''}`}
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary/40 hover:bg-muted/30"
+          } ${isUploading ? "pointer-events-none opacity-60" : ""}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -243,7 +244,7 @@ export function MediaOverrideModal({
             <>
               <Upload className="h-5 w-5 text-muted-foreground/60" />
               <p className="mt-1.5 text-xs font-medium text-muted-foreground">
-                {mediaUrl ? 'Drop a replacement image' : 'Drop an image here'}
+                {mediaUrl ? "Drop a replacement image" : "Drop an image here"}
               </p>
               <p className="mt-0.5 text-[11px] text-muted-foreground/60">
                 JPEG, PNG, WebP · Max 10 MB

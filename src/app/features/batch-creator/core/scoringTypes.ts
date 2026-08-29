@@ -1,5 +1,9 @@
-export type ScoringMode = 'basic' | 'advanced';
-export type PartialMarkingStrategy = 'none' | 'proportional' | 'right_minus_wrong' | 'custom';
+export type ScoringMode = "basic" | "advanced";
+export type PartialMarkingStrategy =
+  | "none"
+  | "proportional"
+  | "right_minus_wrong"
+  | "custom";
 
 export interface ExportScoringConfig {
   mode: ScoringMode;
@@ -9,7 +13,7 @@ export interface ExportScoringConfig {
   };
   negativeMarking: {
     enabled: boolean;
-    valueSource: 'metadata' | 'global';
+    valueSource: "metadata" | "global";
     globalValue?: number;
   };
   scoreFloor?: number;

@@ -81,10 +81,12 @@ export function ResourcesPage() {
             Technical Library
           </div>
           <h1 className="max-w-4xl text-5xl font-semibold tracking-tight leading-[1.1]">
-            Master the <span className="text-primary">computational pipeline.</span>
+            Master the{" "}
+            <span className="text-primary">computational pipeline.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Everything you need to know about our deterministic architecture, validation logic, and LMS-specific XML formatting adapters.
+            Everything you need to know about our deterministic architecture,
+            validation logic, and LMS-specific XML formatting adapters.
           </p>
           <div className="mt-8 flex justify-center">
             <Link
@@ -111,7 +113,9 @@ export function ResourcesPage() {
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                   {category.icon}
                 </div>
-                <h3 className="mb-2 text-lg font-semibold tracking-tight text-foreground">{category.title}</h3>
+                <h3 className="mb-2 text-lg font-semibold tracking-tight text-foreground">
+                  {category.title}
+                </h3>
                 <p className="mb-6 flex-1 text-sm leading-relaxed text-muted-foreground">
                   {category.description}
                 </p>
@@ -129,12 +133,16 @@ export function ResourcesPage() {
       <section className="mx-auto w-full max-w-6xl px-6 py-24">
         <div className="flex flex-col items-center justify-between gap-8 rounded-2xl border border-border bg-card p-10 shadow-lg md:flex-row md:p-12">
           <div className="max-w-xl">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Quick Start</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Quick Start
+            </div>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
               Download a Proof-of-Concept Package
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-              Don't just take our word for it. Download a messy, multi-column Physics PDF alongside the flawless, LMS-ready QTI 3.0 package our deterministic engine generated from it.
+              Don't just take our word for it. Download a messy, multi-column
+              Physics PDF alongside the flawless, LMS-ready QTI 3.0 package our
+              deterministic engine generated from it.
             </p>
           </div>
           <div className="flex shrink-0 gap-3">
@@ -161,22 +169,37 @@ export function ResourcesPage() {
           <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
             <div>
               <div className="flex items-center gap-2">
-                <img src={isDark ? '/logo-dark-1.png' : '/AC_logo.png'} alt="AssessmentCore logo" className="h-7 w-7 rounded-md object-contain" />
-                <span className="text-sm font-semibold text-foreground">AssessmentCore</span>
+                <img
+                  src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
+                  alt="AssessmentCore logo"
+                  className="h-7 w-7 rounded-md object-contain"
+                />
+                <span className="text-sm font-semibold text-foreground">
+                  AssessmentCore
+                </span>
               </div>
               <p className="mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
-                Build, validate, and export high-quality assessments with a deterministic workflow and LMS-ready outputs.
+                Build, validate, and export high-quality assessments with a
+                deterministic workflow and LMS-ready outputs.
               </p>
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contact</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Contact
+              </h4>
               <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-                <a href="mailto:hello@assessmentcore.in" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                <a
+                  href="mailto:hello@assessmentcore.in"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors"
+                >
                   <Mail className="h-3.5 w-3.5" />
                   hello@assessmentcore.in
                 </a>
-                <a href="tel:+919382565942" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                <a
+                  href="tel:+919382565942"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors"
+                >
                   <Phone className="h-3.5 w-3.5" />
                   +91 9382565942
                 </a>
@@ -188,28 +211,75 @@ export function ResourcesPage() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Connect</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Connect
+              </h4>
               <div className="mt-3 flex items-center gap-2">
-                <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://www.linkedin.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="LinkedIn"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Linkedin className="h-4 w-4" />
                 </a>
-                <a href="https://github.com" target="_blank" rel="noreferrer" aria-label="GitHub" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://github.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="GitHub"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Github className="h-4 w-4" />
                 </a>
-                <a href="https://www.facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://www.facebook.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Facebook className="h-4 w-4" />
                 </a>
-                <a href="https://wa.me/919382565942" target="_blank" rel="noreferrer" aria-label="WhatsApp" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://wa.me/919382565942"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <MessageCircle className="h-4 w-4" />
                 </a>
-                <a href="https://www.youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube" className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <a
+                  href="https://www.youtube.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="YouTube"
+                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
                   <Youtube className="h-4 w-4" />
                 </a>
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <Link to="/documentation" className="hover:text-foreground transition-colors">Documentation</Link>
-                <Link to="/changelog" className="hover:text-foreground transition-colors">Changelog</Link>
-                <Link to="/status" className="hover:text-foreground transition-colors">Status</Link>
+                <Link
+                  to="/documentation"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Documentation
+                </Link>
+                <Link
+                  to="/changelog"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Changelog
+                </Link>
+                <Link
+                  to="/status"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Status
+                </Link>
               </div>
             </div>
           </div>

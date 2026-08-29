@@ -1,7 +1,11 @@
-import { QuestionRow } from '../core/rowTypes';
-import { CleaningResult, CleaningLog, CleaningMetrics } from '../core/cleaningTypes';
-import { pass1CharacterCleaning, Pass1Options } from './pass1CharacterCleaning';
-import { pass2StructuralCleaning } from './pass2StructuralCleaning';
+import { QuestionRow } from "../core/rowTypes";
+import {
+  CleaningResult,
+  CleaningLog,
+  CleaningMetrics,
+} from "../core/cleaningTypes";
+import { pass1CharacterCleaning, Pass1Options } from "./pass1CharacterCleaning";
+import { pass2StructuralCleaning } from "./pass2StructuralCleaning";
 
 // ─── Cleaning Engine ─────────────────────────────────────────────────
 
@@ -29,7 +33,7 @@ export function runCleaningPipeline(
   let pass2Changes = 0;
   const actionBreakdown: Record<string, number> = {};
 
-  const cleanedRows = rows.map(row => {
+  const cleanedRows = rows.map((row) => {
     // ── Pass 1: Character cleaning ─────────────────────────────────
     const p1 = pass1CharacterCleaning(row, options.pass1);
     pass1Changes += p1.logs.length;
@@ -51,7 +55,7 @@ export function runCleaningPipeline(
   });
 
   // Compute distinct fields cleaned
-  const fieldSet = new Set(allLogs.map(l => `${l.rowId}::${l.field}`));
+  const fieldSet = new Set(allLogs.map((l) => `${l.rowId}::${l.field}`));
 
   const metrics: CleaningMetrics = {
     totalRowsProcessed: rows.length,

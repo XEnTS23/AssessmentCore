@@ -6,24 +6,24 @@
 /**
  * Resource Types in IMS QTI
  */
-export type ResourceType = 
-  | 'imsqti_test_xmlv3p0'           // Assessment Test
-  | 'imsqti_item_xmlv3p0'           // Assessment Item
-  | 'imsqti_stimulus_xmlv3p0'       // Assessment Stimulus
-  | 'associatedcontent/learning-application-resource'  // Images, media, etc.
-  | 'webcontent';                    // Generic web content
+export type ResourceType =
+  | "imsqti_test_xmlv3p0" // Assessment Test
+  | "imsqti_item_xmlv3p0" // Assessment Item
+  | "imsqti_stimulus_xmlv3p0" // Assessment Stimulus
+  | "associatedcontent/learning-application-resource" // Images, media, etc.
+  | "webcontent"; // Generic web content
 
 /**
  * Resource Entry
  * Represents a single resource in the manifest
  */
 export interface ResourceEntry {
-  identifier: string;                // Unique resource ID
-  type: ResourceType;                // Resource type
-  href: string;                       // Main file path
-  metadata?: ResourceMetadata;        // Optional metadata
-  files: FileEntry[];                 // All files in this resource
-  dependencies?: string[];            // IDs of dependent resources
+  identifier: string; // Unique resource ID
+  type: ResourceType; // Resource type
+  href: string; // Main file path
+  metadata?: ResourceMetadata; // Optional metadata
+  files: FileEntry[]; // All files in this resource
+  dependencies?: string[]; // IDs of dependent resources
 }
 
 /**
@@ -31,7 +31,7 @@ export interface ResourceEntry {
  * Represents a file within a resource
  */
 export interface FileEntry {
-  href: string;                       // Relative path in package
+  href: string; // Relative path in package
 }
 
 /**
@@ -65,7 +65,7 @@ export class ResourceRegistry {
   }): void {
     const resource: ResourceEntry = {
       identifier: config.identifier,
-      type: 'imsqti_test_xmlv3p0',
+      type: "imsqti_test_xmlv3p0",
       href: config.href,
       metadata: config.title ? { title: config.title } : undefined,
       files: [{ href: config.href }],
@@ -91,10 +91,10 @@ export class ResourceRegistry {
 
     // Add image files as dependencies
     if (config.imageFiles && config.imageFiles.length > 0) {
-      config.imageFiles.forEach(imageFile => {
+      config.imageFiles.forEach((imageFile) => {
         // Check if image resource already exists
         let imageResourceId = this.fileToResource.get(imageFile);
-        
+
         if (!imageResourceId) {
           // Create new image resource
           imageResourceId = this.generateImageResourceId(imageFile);
@@ -110,7 +110,7 @@ export class ResourceRegistry {
 
     // Add stimulus dependencies
     if (config.stimulusIdentifiers && config.stimulusIdentifiers.length > 0) {
-      config.stimulusIdentifiers.forEach(stimulusId => {
+      config.stimulusIdentifiers.forEach((stimulusId) => {
         if (this.resources.has(stimulusId)) {
           dependencies.push(stimulusId);
         }
@@ -119,7 +119,7 @@ export class ResourceRegistry {
 
     const resource: ResourceEntry = {
       identifier: config.identifier,
-      type: 'imsqti_item_xmlv3p0',
+      type: "imsqti_item_xmlv3p0",
       href: config.href,
       metadata: config.title ? { title: config.title } : undefined,
       files,
@@ -142,7 +142,7 @@ export class ResourceRegistry {
     const dependencies: string[] = [];
 
     if (config.imageFiles && config.imageFiles.length > 0) {
-      config.imageFiles.forEach(imageFile => {
+      config.imageFiles.forEach((imageFile) => {
         let imageResourceId = this.fileToResource.get(imageFile);
         if (!imageResourceId) {
           imageResourceId = this.generateImageResourceId(imageFile);
@@ -157,7 +157,7 @@ export class ResourceRegistry {
 
     const resource: ResourceEntry = {
       identifier: config.identifier,
-      type: 'imsqti_stimulus_xmlv3p0',
+      type: "imsqti_stimulus_xmlv3p0",
       href: config.href,
       metadata: config.title ? { title: config.title } : undefined,
       files: [{ href: config.href }],
@@ -171,10 +171,7 @@ export class ResourceRegistry {
   /**
    * Register an image or media file
    */
-  registerImage(config: {
-    identifier: string;
-    href: string;
-  }): void {
+  registerImage(config: { identifier: string; href: string }): void {
     // Check if already registered
     if (this.resources.has(config.identifier)) {
       return;
@@ -182,7 +179,7 @@ export class ResourceRegistry {
 
     const resource: ResourceEntry = {
       identifier: config.identifier,
-      type: 'associatedcontent/learning-application-resource',
+      type: "associatedcontent/learning-application-resource",
       href: config.href,
       files: [{ href: config.href }],
     };
@@ -195,7 +192,7 @@ export class ResourceRegistry {
    * Register multiple images
    */
   registerImages(imageFiles: string[]): void {
-    imageFiles.forEach(imageFile => {
+    imageFiles.forEach((imageFile) => {
       const identifier = this.generateImageResourceId(imageFile);
       this.registerImage({ identifier, href: imageFile });
     });
@@ -235,8 +232,8 @@ export class ResourceRegistry {
    */
   getAllFiles(): string[] {
     const files = new Set<string>();
-    this.resources.forEach(resource => {
-      resource.files.forEach(file => files.add(file.href));
+    this.resources.forEach((resource) => {
+      resource.files.forEach((file) => files.add(file.href));
     });
     return Array.from(files);
   }
@@ -261,18 +258,18 @@ export class ResourceRegistry {
       totalFiles: this.getAllFiles().length,
     };
 
-    this.resources.forEach(resource => {
+    this.resources.forEach((resource) => {
       switch (resource.type) {
-        case 'imsqti_test_xmlv3p0':
+        case "imsqti_test_xmlv3p0":
           stats.tests++;
           break;
-        case 'imsqti_item_xmlv3p0':
+        case "imsqti_item_xmlv3p0":
           stats.items++;
           break;
-        case 'imsqti_stimulus_xmlv3p0':
+        case "imsqti_stimulus_xmlv3p0":
           stats.stimuli++;
           break;
-        case 'associatedcontent/learning-application-resource':
+        case "associatedcontent/learning-application-resource":
           stats.images++;
           break;
       }
@@ -286,13 +283,13 @@ export class ResourceRegistry {
    */
   private generateImageResourceId(imageFile: string): string {
     // Extract filename without extension
-    const parts = imageFile.split('/');
+    const parts = imageFile.split("/");
     const filename = parts[parts.length - 1];
-    const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
-    
+    const nameWithoutExt = filename.replace(/\.[^.]+$/, "");
+
     // Create identifier
-    const baseId = `IMG_${nameWithoutExt.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`;
-    
+    const baseId = `IMG_${nameWithoutExt.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}`;
+
     // Ensure uniqueness
     let identifier = baseId;
     let counter = 1;
@@ -300,7 +297,7 @@ export class ResourceRegistry {
       identifier = `${baseId}_${counter}`;
       counter++;
     }
-    
+
     return identifier;
   }
 
@@ -313,7 +310,7 @@ export class ResourceRegistry {
     // Check for missing dependencies
     this.resources.forEach((resource, id) => {
       if (resource.dependencies) {
-        resource.dependencies.forEach(depId => {
+        resource.dependencies.forEach((depId) => {
           if (!this.resources.has(depId)) {
             errors.push(`Resource "${id}" has missing dependency: "${depId}"`);
           }
@@ -378,11 +375,11 @@ export function createResourceRegistry(config: {
     identifier: config.testIdentifier,
     href: config.testHref,
     title: config.testTitle,
-    itemIdentifiers: config.items.map(item => item.identifier),
+    itemIdentifiers: config.items.map((item) => item.identifier),
   });
 
   // Register items
-  config.items.forEach(item => {
+  config.items.forEach((item) => {
     registry.registerItem(item);
   });
 

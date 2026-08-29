@@ -12,8 +12,8 @@
  *    LaTeX so the visual order in the compiled PDF matches the page layout.
  */
 
-import type { OCRResult, OCRQuestion } from '../../services/ocrService';
-import { sortByReadingOrder } from './spatialMediaMapper';
+import type { OCRResult, OCRQuestion } from "../../services/ocrService";
+import { sortByReadingOrder } from "./spatialMediaMapper";
 
 // ── Public API ──────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,9 @@ export function generateLatexDocument(
   results: Array<{ filename: string; data: OCRResult }>,
 ): string {
   const preamble = buildPreamble();
-  const body = results.map((res) => buildPageSection(res.filename, res.data)).join('\n\n');
+  const body = results
+    .map((res) => buildPageSection(res.filename, res.data))
+    .join("\n\n");
 
   return `${preamble}
 
@@ -95,7 +97,7 @@ function buildPageSection(filename: string, data: OCRResult): string {
 
   return `\\section*{${escapeLatex(filename)}}
 
-${questionBlocks.join('\n\n\\bigskip\n\\hrule\n\\bigskip\n\n')}`;
+${questionBlocks.join("\n\n\\bigskip\n\\hrule\n\\bigskip\n\n")}`;
 }
 
 /**
@@ -105,29 +107,31 @@ function buildQuestionBlock(q: OCRQuestion, displayNumber: number): string {
   const parts: string[] = [];
 
   // ── Stem ────────────────────────────────────────────────────────────────────
-  const cleanStem = stripMediaTag(q.stem || '');
-  parts.push(`\\noindent\\textbf{Q${displayNumber}.} ${convertStemToLatex(cleanStem)}`);
+  const cleanStem = stripMediaTag(q.stem || "");
+  parts.push(
+    `\\noindent\\textbf{Q${displayNumber}.} ${convertStemToLatex(cleanStem)}`,
+  );
 
   // ── Diagrams (strict inline placement with [H]) ─────────────────────────────
   const diagrams = q.diagrams ?? [];
   for (const diagram of diagrams) {
-    const imageUrl = diagram.url || '';
+    const imageUrl = diagram.url || "";
     if (!imageUrl) continue;
 
-    const caption = escapeLatex(diagram.description || 'Diagram');
+    const caption = escapeLatex(diagram.description || "Diagram");
     parts.push(buildFigureH(imageUrl, caption));
   }
 
   // Also handle media_url if present and not already covered by diagrams
   if (q.media_url && !diagrams.some((d) => d.url === q.media_url)) {
-    parts.push(buildFigureH(q.media_url, 'Diagram'));
+    parts.push(buildFigureH(q.media_url, "Diagram"));
   }
 
   // Handle media URLs from the media_urls array
   if (q.media_urls) {
     for (const url of q.media_urls) {
       if (url && !diagrams.some((d) => d.url === url) && url !== q.media_url) {
-        parts.push(buildFigureH(url, 'Diagram'));
+        parts.push(buildFigureH(url, "Diagram"));
       }
     }
   }
@@ -136,16 +140,16 @@ function buildQuestionBlock(q: OCRQuestion, displayNumber: number): string {
   if (q.options && q.options.length > 0) {
     const optionItems = q.options.map((opt, idx) => {
       const label = String.fromCharCode(65 + idx); // A, B, C, D...
-      const cleanOpt = stripMediaTag(opt || '');
+      const cleanOpt = stripMediaTag(opt || "");
       return `  \\item[${label}.] ${convertStemToLatex(cleanOpt)}`;
     });
 
     parts.push(`\\begin{enumerate}[label=\\Alph*., leftmargin=2em]
-${optionItems.join('\n')}
+${optionItems.join("\n")}
 \\end{enumerate}`);
   }
 
-  return parts.join('\n\n');
+  return parts.join("\n\n");
 }
 
 /**
@@ -172,7 +176,7 @@ function buildFigureH(imageSource: string, caption: string): string {
  * Strip `[MEDIA:url]` tags that the Edge Function injects into stems/options.
  */
 function stripMediaTag(text: string): string {
-  return text.replace(/\s*\[MEDIA:[^\]]*\]/g, '').trim();
+  return text.replace(/\s*\[MEDIA:[^\]]*\]/g, "").trim();
 }
 
 /**
@@ -183,7 +187,7 @@ function stripMediaTag(text: string): string {
  * escape special characters in the non-math portions.
  */
 function convertStemToLatex(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
 
   // Split into math and non-math segments.
   // This regex matches $$ ... $$ (display math) and $ ... $ (inline math).
@@ -196,7 +200,8 @@ function convertStemToLatex(text: string): string {
   let match: RegExpExecArray | null;
 
   // Collect all math segments with their positions
-  const mathSegments: Array<{ start: number; end: number; content: string }> = [];
+  const mathSegments: Array<{ start: number; end: number; content: string }> =
+    [];
 
   while ((match = displayMathRegex.exec(text)) !== null) {
     mathSegments.push({
@@ -237,7 +242,7 @@ function convertStemToLatex(text: string): string {
     segments.push(escapeLatex(text.slice(lastIndex)));
   }
 
-  return segments.join('');
+  return segments.join("");
 }
 
 /**
@@ -245,10 +250,10 @@ function convertStemToLatex(text: string): string {
  * Does NOT escape `$` since we handle math delimiters separately.
  */
 function escapeLatex(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
   return text
-    .replace(/\\/g, '\\textbackslash{}')
+    .replace(/\\/g, "\\textbackslash{}")
     .replace(/[&%#_{}]/g, (ch) => `\\${ch}`)
-    .replace(/~/g, '\\textasciitilde{}')
-    .replace(/\^/g, '\\textasciicircum{}');
+    .replace(/~/g, "\\textasciitilde{}")
+    .replace(/\^/g, "\\textasciicircum{}");
 }

@@ -7,7 +7,11 @@
     "build": "vite build",
     "dev": "vite",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "fixture:generate:validator": "vite-node scripts/generate-validator-regression-fixture.ts",
+    "test:validator:regression": "npm run fixture:generate:validator && vitest run src/app/features/batch-creator/validation/batchIssueSeparation.test.ts src/app/features/batch-creator/validation/validatorRegressionFixture.test.ts src/app/features/batch-creator/validation/test1Fixture.test.ts",
+    "report:validator:test1": "vitest run src/app/features/batch-creator/validation/test1DiagnosticRunner3.test.ts",
+    "report:validator:regression": "npm run fixture:generate:validator && vite-node scripts/report-validator-regression.ts"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -56,6 +60,7 @@
     "katex": "^0.16.45",
     "lucide-react": "0.487.0",
     "mathjax": "^4.1.1",
+    "mathlive": "^0.110.0",
     "motion": "12.23.24",
     "next-themes": "0.4.6",
     "papaparse": "^5.4.1",
@@ -86,7 +91,9 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "4.7.0",
+    "prettier": "^3.4.2",
     "tailwindcss": "4.1.12",
+    "typescript": "^5.7.2",
     "vite": "6.3.5",
     "vitest": "^2.1.9"
   },

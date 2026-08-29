@@ -3,18 +3,18 @@
  * Generates imsmanifest.xml for QTI 3.0 Content Packages
  */
 
-import { ResourceRegistry, ResourceEntry } from './resourceRegistry';
+import { ResourceRegistry, ResourceEntry } from "./resourceRegistry";
 
 /**
  * Manifest Configuration
  */
 export interface ManifestConfig {
-  identifier: string;                 // Unique package identifier
-  title?: string;                     // Package title
-  description?: string;               // Package description
-  version?: string;                   // Package version
-  schema?: string;                    // Metadata schema
-  schemaVersion?: string;             // Schema version
+  identifier: string; // Unique package identifier
+  title?: string; // Package title
+  description?: string; // Package description
+  version?: string; // Package version
+  schema?: string; // Metadata schema
+  schemaVersion?: string; // Schema version
   organizations?: OrganizationConfig; // Optional organizations
 }
 
@@ -22,7 +22,7 @@ export interface ManifestConfig {
  * Organization Configuration
  */
 export interface OrganizationConfig {
-  default?: string;                   // Default organization ID
+  default?: string; // Default organization ID
   organizations: Organization[];
 }
 
@@ -42,8 +42,8 @@ export interface Organization {
 export interface OrganizationItem {
   identifier: string;
   title?: string;
-  identifierref?: string;             // Reference to resource
-  items?: OrganizationItem[];         // Nested items
+  identifierref?: string; // Reference to resource
+  items?: OrganizationItem[]; // Nested items
 }
 
 /**
@@ -63,20 +63,22 @@ export class ManifestBuilder {
    */
   build(): string {
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<manifest\n';
+    xml += "<manifest\n";
     xml += '  xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"\n';
     xml += '  xmlns:imsmd="http://www.imsglobal.org/xsd/imsmd_v1p2"\n';
     xml += '  xmlns:imsqti="http://www.imsglobal.org/xsd/imsqti_v3p0"\n';
     xml += '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n';
-    xml += '  xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p2.xsd\n';
-    xml += '    http://www.imsglobal.org/xsd/imsqti_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_v3p0.xsd"\n';
+    xml +=
+      '  xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p2.xsd\n';
+    xml +=
+      '    http://www.imsglobal.org/xsd/imsqti_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_v3p0.xsd"\n';
     xml += `  identifier="${this.escapeXml(this.config.identifier)}"\n`;
-    
+
     if (this.config.version) {
       xml += `  version="${this.escapeXml(this.config.version)}"\n`;
     }
-    
-    xml += '>\n';
+
+    xml += ">\n";
 
     // Metadata
     if (this.config.title || this.config.description) {
@@ -87,13 +89,13 @@ export class ManifestBuilder {
     if (this.config.organizations) {
       xml += this.buildOrganizations();
     } else {
-      xml += '  <organizations />\n';
+      xml += "  <organizations />\n";
     }
 
     // Resources
     xml += this.buildResources();
 
-    xml += '</manifest>\n';
+    xml += "</manifest>\n";
     return xml;
   }
 
@@ -101,31 +103,31 @@ export class ManifestBuilder {
    * Build metadata section
    */
   private buildMetadata(): string {
-    let xml = '  <metadata>\n';
-    xml += '    <schema>IMS Content</schema>\n';
-    xml += '    <schemaversion>1.2</schemaversion>\n';
+    let xml = "  <metadata>\n";
+    xml += "    <schema>IMS Content</schema>\n";
+    xml += "    <schemaversion>1.2</schemaversion>\n";
 
     if (this.config.title || this.config.description) {
-      xml += '    <imsmd:lom>\n';
-      xml += '      <imsmd:general>\n';
+      xml += "    <imsmd:lom>\n";
+      xml += "      <imsmd:general>\n";
 
       if (this.config.title) {
-        xml += '        <imsmd:title>\n';
+        xml += "        <imsmd:title>\n";
         xml += `          <imsmd:string language="en">${this.escapeXml(this.config.title)}</imsmd:string>\n`;
-        xml += '        </imsmd:title>\n';
+        xml += "        </imsmd:title>\n";
       }
 
       if (this.config.description) {
-        xml += '        <imsmd:description>\n';
+        xml += "        <imsmd:description>\n";
         xml += `          <imsmd:string language="en">${this.escapeXml(this.config.description)}</imsmd:string>\n`;
-        xml += '        </imsmd:description>\n';
+        xml += "        </imsmd:description>\n";
       }
 
-      xml += '      </imsmd:general>\n';
-      xml += '    </imsmd:lom>\n';
+      xml += "      </imsmd:general>\n";
+      xml += "    </imsmd:lom>\n";
     }
 
-    xml += '  </metadata>\n';
+    xml += "  </metadata>\n";
     return xml;
   }
 
@@ -134,20 +136,20 @@ export class ManifestBuilder {
    */
   private buildOrganizations(): string {
     if (!this.config.organizations) {
-      return '  <organizations />\n';
+      return "  <organizations />\n";
     }
 
-    let xml = '  <organizations';
+    let xml = "  <organizations";
     if (this.config.organizations.default) {
       xml += ` default="${this.escapeXml(this.config.organizations.default)}"`;
     }
-    xml += '>\n';
+    xml += ">\n";
 
-    this.config.organizations.organizations.forEach(org => {
+    this.config.organizations.organizations.forEach((org) => {
       xml += this.buildOrganization(org);
     });
 
-    xml += '  </organizations>\n';
+    xml += "  </organizations>\n";
     return xml;
   }
 
@@ -159,43 +161,46 @@ export class ManifestBuilder {
     if (org.title) {
       xml += ` title="${this.escapeXml(org.title)}"`;
     }
-    xml += '>\n';
+    xml += ">\n";
 
-    org.items.forEach(item => {
-      xml += this.buildOrganizationItem(item, '      ');
+    org.items.forEach((item) => {
+      xml += this.buildOrganizationItem(item, "      ");
     });
 
-    xml += '    </organization>\n';
+    xml += "    </organization>\n";
     return xml;
   }
 
   /**
    * Build organization item (recursive)
    */
-  private buildOrganizationItem(item: OrganizationItem, indent: string): string {
+  private buildOrganizationItem(
+    item: OrganizationItem,
+    indent: string,
+  ): string {
     let xml = `${indent}<item identifier="${this.escapeXml(item.identifier)}"`;
-    
+
     if (item.identifierref) {
       xml += ` identifierref="${this.escapeXml(item.identifierref)}"`;
     }
 
     if (!item.items || item.items.length === 0) {
       if (item.title) {
-        xml += '>\n';
+        xml += ">\n";
         xml += `${indent}  <title>${this.escapeXml(item.title)}</title>\n`;
         xml += `${indent}</item>\n`;
       } else {
-        xml += ' />\n';
+        xml += " />\n";
       }
     } else {
-      xml += '>\n';
-      
+      xml += ">\n";
+
       if (item.title) {
         xml += `${indent}  <title>${this.escapeXml(item.title)}</title>\n`;
       }
 
-      item.items.forEach(childItem => {
-        xml += this.buildOrganizationItem(childItem, indent + '  ');
+      item.items.forEach((childItem) => {
+        xml += this.buildOrganizationItem(childItem, indent + "  ");
       });
 
       xml += `${indent}</item>\n`;
@@ -208,14 +213,14 @@ export class ManifestBuilder {
    * Build resources section
    */
   private buildResources(): string {
-    let xml = '  <resources>\n';
+    let xml = "  <resources>\n";
 
     const resources = this.registry.getAllResources();
-    resources.forEach(resource => {
+    resources.forEach((resource) => {
       xml += this.buildResource(resource);
     });
 
-    xml += '  </resources>\n';
+    xml += "  </resources>\n";
     return xml;
   }
 
@@ -223,23 +228,23 @@ export class ManifestBuilder {
    * Build single resource
    */
   private buildResource(resource: ResourceEntry): string {
-    let xml = '    <resource';
+    let xml = "    <resource";
     xml += ` identifier="${this.escapeXml(resource.identifier)}"`;
     xml += ` type="${this.escapeXml(resource.type)}"`;
     xml += ` href="${this.escapeXml(resource.href)}"`;
 
     // Check if resource has children (metadata, files, dependencies)
-    const hasChildren = 
-      (resource.metadata !== undefined) ||
-      (resource.files.length > 1) || // More than just the main file
+    const hasChildren =
+      resource.metadata !== undefined ||
+      resource.files.length > 1 || // More than just the main file
       (resource.dependencies && resource.dependencies.length > 0);
 
     if (!hasChildren) {
-      xml += ' />\n';
+      xml += " />\n";
       return xml;
     }
 
-    xml += '>\n';
+    xml += ">\n";
 
     // Metadata
     if (resource.metadata) {
@@ -247,67 +252,67 @@ export class ManifestBuilder {
     }
 
     // Files (including the main file if not already listed)
-    resource.files.forEach(file => {
+    resource.files.forEach((file) => {
       xml += `      <file href="${this.escapeXml(file.href)}" />\n`;
     });
 
     // Dependencies
     if (resource.dependencies && resource.dependencies.length > 0) {
-      resource.dependencies.forEach(depId => {
+      resource.dependencies.forEach((depId) => {
         xml += `      <dependency identifierref="${this.escapeXml(depId)}" />\n`;
       });
     }
 
-    xml += '    </resource>\n';
+    xml += "    </resource>\n";
     return xml;
   }
 
   /**
    * Build resource metadata
    */
-  private buildResourceMetadata(metadata: ResourceEntry['metadata']): string {
-    if (!metadata) return '';
+  private buildResourceMetadata(metadata: ResourceEntry["metadata"]): string {
+    if (!metadata) return "";
 
-    let xml = '      <metadata>\n';
-    
+    let xml = "      <metadata>\n";
+
     if (metadata.schema) {
       xml += `        <schema>${this.escapeXml(metadata.schema)}</schema>\n`;
     }
-    
+
     if (metadata.schemaVersion) {
       xml += `        <schemaversion>${this.escapeXml(metadata.schemaVersion)}</schemaversion>\n`;
     }
 
     // LOM metadata
     if (metadata.title || metadata.description || metadata.keywords) {
-      xml += '        <imsmd:lom>\n';
-      xml += '          <imsmd:general>\n';
+      xml += "        <imsmd:lom>\n";
+      xml += "          <imsmd:general>\n";
 
       if (metadata.title) {
-        xml += '            <imsmd:title>\n';
-        xml += `              <imsmd:string language="${metadata.language || 'en'}">${this.escapeXml(metadata.title)}</imsmd:string>\n`;
-        xml += '            </imsmd:title>\n';
+        xml += "            <imsmd:title>\n";
+        xml += `              <imsmd:string language="${metadata.language || "en"}">${this.escapeXml(metadata.title)}</imsmd:string>\n`;
+        xml += "            </imsmd:title>\n";
       }
 
       if (metadata.description) {
-        xml += '            <imsmd:description>\n';
-        xml += `              <imsmd:string language="${metadata.language || 'en'}">${this.escapeXml(metadata.description)}</imsmd:string>\n`;
-        xml += '            </imsmd:description>\n';
+        xml += "            <imsmd:description>\n";
+        xml += `              <imsmd:string language="${metadata.language || "en"}">${this.escapeXml(metadata.description)}</imsmd:string>\n`;
+        xml += "            </imsmd:description>\n";
       }
 
       if (metadata.keywords && metadata.keywords.length > 0) {
-        metadata.keywords.forEach(keyword => {
-          xml += '            <imsmd:keyword>\n';
-          xml += `              <imsmd:string language="${metadata.language || 'en'}">${this.escapeXml(keyword)}</imsmd:string>\n`;
-          xml += '            </imsmd:keyword>\n';
+        metadata.keywords.forEach((keyword) => {
+          xml += "            <imsmd:keyword>\n";
+          xml += `              <imsmd:string language="${metadata.language || "en"}">${this.escapeXml(keyword)}</imsmd:string>\n`;
+          xml += "            </imsmd:keyword>\n";
         });
       }
 
-      xml += '          </imsmd:general>\n';
-      xml += '        </imsmd:lom>\n';
+      xml += "          </imsmd:general>\n";
+      xml += "        </imsmd:lom>\n";
     }
 
-    xml += '      </metadata>\n';
+    xml += "      </metadata>\n";
     return xml;
   }
 
@@ -316,11 +321,11 @@ export class ManifestBuilder {
    */
   private escapeXml(text: string): string {
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 
   /**
@@ -337,12 +342,12 @@ export class ManifestBuilder {
 
     // Check for required fields
     if (!this.config.identifier) {
-      errors.push('Manifest identifier is required');
+      errors.push("Manifest identifier is required");
     }
 
     // Check organizations references
     if (this.config.organizations) {
-      this.config.organizations.organizations.forEach(org => {
+      this.config.organizations.organizations.forEach((org) => {
         this.validateOrganizationItems(org.items, errors);
       });
     }
@@ -356,10 +361,18 @@ export class ManifestBuilder {
   /**
    * Validate organization items recursively
    */
-  private validateOrganizationItems(items: OrganizationItem[], errors: string[]): void {
-    items.forEach(item => {
-      if (item.identifierref && !this.registry.hasResource(item.identifierref)) {
-        errors.push(`Organization item "${item.identifier}" references non-existent resource: "${item.identifierref}"`);
+  private validateOrganizationItems(
+    items: OrganizationItem[],
+    errors: string[],
+  ): void {
+    items.forEach((item) => {
+      if (
+        item.identifierref &&
+        !this.registry.hasResource(item.identifierref)
+      ) {
+        errors.push(
+          `Organization item "${item.identifier}" references non-existent resource: "${item.identifierref}"`,
+        );
       }
 
       if (item.items) {
@@ -374,7 +387,7 @@ export class ManifestBuilder {
  */
 export function createManifest(
   config: ManifestConfig,
-  registry: ResourceRegistry
+  registry: ResourceRegistry,
 ): string {
   const builder = new ManifestBuilder(config, registry);
   return builder.build();
@@ -385,13 +398,13 @@ export function createManifest(
  */
 export function buildManifestWithValidation(
   config: ManifestConfig,
-  registry: ResourceRegistry
+  registry: ResourceRegistry,
 ): { xml: string; valid: boolean; errors: string[] } {
   const builder = new ManifestBuilder(config, registry);
   const validation = builder.validate();
 
   return {
-    xml: validation.valid ? builder.build() : '',
+    xml: validation.valid ? builder.build() : "",
     valid: validation.valid,
     errors: validation.errors,
   };

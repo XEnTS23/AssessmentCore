@@ -3,7 +3,11 @@ import { useNavigate } from "react-router";
 import { AlertCircle, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { AuthScaffold } from "./AuthScaffold";
-import { validatePasswordStrength, getStrengthColor, getStrengthWidth } from "../../utils/passwordValidator";
+import {
+  validatePasswordStrength,
+  getStrengthColor,
+  getStrengthWidth,
+} from "../../utils/passwordValidator";
 
 export function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -14,7 +18,10 @@ export function ResetPasswordPage() {
   const navigate = useNavigate();
   const { updatePassword } = useAuth();
 
-  const passwordCheck = useMemo(() => validatePasswordStrength(password), [password]);
+  const passwordCheck = useMemo(
+    () => validatePasswordStrength(password),
+    [password],
+  );
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,13 +41,18 @@ export function ResetPasswordPage() {
       setSuccess(true);
       setTimeout(() => navigate("/auth/login", { replace: true }), 1500);
     } else {
-      setError(response.error || "Failed to update password. Please try again.");
+      setError(
+        response.error || "Failed to update password. Please try again.",
+      );
     }
     setLoading(false);
   };
 
   return (
-    <AuthScaffold title="Set new password" subtitle="Choose a strong password to secure your account.">
+    <AuthScaffold
+      title="Set new password"
+      subtitle="Choose a strong password to secure your account."
+    >
       {success ? (
         <div className="flex items-center gap-2 rounded-md border border-success/20 bg-success-light px-3 py-2 text-xs text-success">
           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -72,10 +84,14 @@ export function ResetPasswordPage() {
             {password.length > 0 && (
               <div className="mt-1.5 space-y-1">
                 <div className="h-1 w-full rounded-full bg-muted">
-                  <div className={`h-full rounded-full transition-all duration-300 ${getStrengthColor(passwordCheck.strength)} ${getStrengthWidth(passwordCheck.strength)}`} />
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${getStrengthColor(passwordCheck.strength)} ${getStrengthWidth(passwordCheck.strength)}`}
+                  />
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  {passwordCheck.valid ? `Strength: ${passwordCheck.strength}` : passwordCheck.error}
+                  {passwordCheck.valid
+                    ? `Strength: ${passwordCheck.strength}`
+                    : passwordCheck.error}
                 </p>
               </div>
             )}

@@ -6,16 +6,19 @@
  * API keys live in Supabase secrets — never exposed to the browser.
  */
 
-import { supabase } from './supabaseClient';
-import type { CanonicalItem, ValidationResult } from '../app/utils/questionValidator';
+import { supabase } from "./supabaseClient";
+import type {
+  CanonicalItem,
+  ValidationResult,
+} from "../app/utils/questionValidator";
 
 const CHUNK_SIZE = 50;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AuditStatus = 'ai_certified' | 'ai_rejected';
+export type AuditStatus = "ai_certified" | "ai_rejected";
 
-export type AuditIssueType = 'grammar' | 'logic' | 'clarity' | 'factual';
+export type AuditIssueType = "grammar" | "logic" | "clarity" | "factual";
 
 export interface AuditIssue {
   issue_type: AuditIssueType;
@@ -50,8 +53,8 @@ export async function auditRow(
   const resolvedStem =
     overrideStem?.trim() ||
     canonicalItem.stem?.trim() ||
-    String(canonicalItem.rawStem ?? '').trim() ||
-    '(no stem text)';
+    String(canonicalItem.rawStem ?? "").trim() ||
+    "(no stem text)";
 
   const resolvedRowKey =
     rowKey?.trim() ||
@@ -60,20 +63,25 @@ export async function auditRow(
 
   const payload = {
     rowKey: resolvedRowKey,
-    questionType: canonicalItem.canonicalType ?? 'unknown',
+    questionType: canonicalItem.canonicalType ?? "unknown",
     stem: resolvedStem,
     choices: canonicalItem.choices.map((c) => ({
       identifier: c.identifier,
       text: (c as any).text ?? c.identifier,
     })),
     correctResponseIdentifiers: canonicalItem.correctResponseIdentifiers ?? [],
-    orderItems: canonicalItem.orderItems.length > 0 ? canonicalItem.orderItems : undefined,
+    orderItems:
+      canonicalItem.orderItems.length > 0
+        ? canonicalItem.orderItems
+        : undefined,
     numericAnswer: canonicalItem.numericAnswer,
   };
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const { data, error } = await supabase.functions.invoke('audit-row', {
+  const { data, error } = await supabase.functions.invoke("audit-row", {
     body: payload,
     headers: session?.access_token
       ? { Authorization: `Bearer ${session.access_token}` }
@@ -82,25 +90,29 @@ export async function auditRow(
 
   if (error || !data) {
     // Extract the actual response body from the edge function error for diagnostics
-    let detail = error?.message ?? 'Unknown error';
+    let detail = error?.message ?? "Unknown error";
     try {
       const ctx = (error as any)?.context;
       if (ctx) {
-        const body = typeof ctx.json === 'function' ? await ctx.json() : await ctx.text();
-        detail = typeof body === 'string' ? body : JSON.stringify(body);
+        const body =
+          typeof ctx.json === "function" ? await ctx.json() : await ctx.text();
+        detail = typeof body === "string" ? body : JSON.stringify(body);
       }
-    } catch { /* ignore extraction failure */ }
+    } catch {
+      /* ignore extraction failure */
+    }
 
-    console.error('[audit-row] Edge Function error:', detail);
+    console.error("[audit-row] Edge Function error:", detail);
 
     return {
       rowKey,
-      status: 'ai_rejected',
+      status: "ai_rejected",
       issues: [
         {
-          issue_type: 'clarity',
+          issue_type: "clarity",
           description: `Edge Function error: ${detail}`,
-          suggestion: 'Check Supabase Dashboard → Edge Functions → audit-row → Logs for details.',
+          suggestion:
+            "Check Supabase Dashboard → Edge Functions → audit-row → Logs for details.",
         },
       ],
       error: detail,
@@ -117,9 +129,12 @@ function buildBatchRow(result: ValidationResult): BatchAuditRow | null {
   const c = result.canonicalItem;
   if (!c) return null;
   return {
-    rowKey: result.rowKey?.trim() || c.rowKey?.trim() || `row_${c.sourceRowIndex + 1}`,
-    questionType: c.canonicalType ?? 'unknown',
-    stem: c.stem?.trim() || String(c.rawStem ?? '').trim() || '(no stem text)',
+    rowKey:
+      result.rowKey?.trim() ||
+      c.rowKey?.trim() ||
+      `row_${c.sourceRowIndex + 1}`,
+    questionType: c.canonicalType ?? "unknown",
+    stem: c.stem?.trim() || String(c.rawStem ?? "").trim() || "(no stem text)",
     choices: c.choices.map((ch) => ({
       identifier: ch.identifier,
       text: (ch as any).text ?? ch.identifier,
@@ -136,9 +151,15 @@ function buildBatchRow(result: ValidationResult): BatchAuditRow | null {
  */
 export async function auditBatch(
   validationResults: ValidationResult[],
-  onProgress: (done: number, total: number, partialResults: Map<string, RowAuditResult>) => void,
+  onProgress: (
+    done: number,
+    total: number,
+    partialResults: Map<string, RowAuditResult>,
+  ) => void,
 ): Promise<Map<string, RowAuditResult>> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const headers = session?.access_token
     ? { Authorization: `Bearer ${session.access_token}` }
     : undefined;
@@ -159,38 +180,61 @@ export async function auditBatch(
     const chunk = batchRows.slice(i, i + CHUNK_SIZE);
 
     try {
-      const { data, error } = await supabase.functions.invoke('audit-batch', {
+      const { data, error } = await supabase.functions.invoke("audit-batch", {
         body: { rows: chunk },
         headers,
       });
 
       if (error || !data?.results) {
         // Fill chunk rows with error result — don't abort the whole batch
-        let detail = error?.message ?? 'Unknown error';
+        let detail = error?.message ?? "Unknown error";
         try {
           const ctx = (error as any)?.context;
           if (ctx) {
-            const body = typeof ctx.json === 'function' ? await ctx.json() : await ctx.text();
-            detail = typeof body === 'string' ? body : JSON.stringify(body);
+            const body =
+              typeof ctx.json === "function"
+                ? await ctx.json()
+                : await ctx.text();
+            detail = typeof body === "string" ? body : JSON.stringify(body);
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
 
-        chunk.forEach(row => accumulated.set(row.rowKey, {
-          rowKey: row.rowKey,
-          status: 'ai_rejected',
-          issues: [{ issue_type: 'clarity', description: `Batch error: ${detail}`, suggestion: 'Retry with the per-row Audit button.' }],
-          error: detail,
-        }));
+        chunk.forEach((row) =>
+          accumulated.set(row.rowKey, {
+            rowKey: row.rowKey,
+            status: "ai_rejected",
+            issues: [
+              {
+                issue_type: "clarity",
+                description: `Batch error: ${detail}`,
+                suggestion: "Retry with the per-row Audit button.",
+              },
+            ],
+            error: detail,
+          }),
+        );
       } else {
-        (data.results as RowAuditResult[]).forEach(r => accumulated.set(r.rowKey, r));
+        (data.results as RowAuditResult[]).forEach((r) =>
+          accumulated.set(r.rowKey, r),
+        );
       }
     } catch (err: any) {
-      chunk.forEach(row => accumulated.set(row.rowKey, {
-        rowKey: row.rowKey,
-        status: 'ai_rejected',
-        issues: [{ issue_type: 'clarity', description: `Batch failed: ${err?.message ?? String(err)}`, suggestion: 'Retry with the per-row Audit button.' }],
-        error: err?.message,
-      }));
+      chunk.forEach((row) =>
+        accumulated.set(row.rowKey, {
+          rowKey: row.rowKey,
+          status: "ai_rejected",
+          issues: [
+            {
+              issue_type: "clarity",
+              description: `Batch failed: ${err?.message ?? String(err)}`,
+              suggestion: "Retry with the per-row Audit button.",
+            },
+          ],
+          error: err?.message,
+        }),
+      );
     }
 
     done = Math.min(i + CHUNK_SIZE, total);
@@ -211,9 +255,11 @@ export async function autoFixStem(
   issues: AuditIssue[],
   currentStem: string,
 ): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const { data, error } = await supabase.functions.invoke('auto-fix-stem', {
+  const { data, error } = await supabase.functions.invoke("auto-fix-stem", {
     body: {
       stem: currentStem.trim() || canonicalItem.stem,
       questionType: canonicalItem.canonicalType,
@@ -234,7 +280,7 @@ export async function autoFixStem(
   });
 
   if (error || !data?.fixedStem) {
-    throw new Error(error?.message ?? 'Auto-fix did not return a result');
+    throw new Error(error?.message ?? "Auto-fix did not return a result");
   }
 
   return data.fixedStem as string;

@@ -24,17 +24,18 @@ export interface StimulusReference {
 }
 
 export class StimulusBuilder {
-  private readonly NAMESPACE = 'http://www.imsglobal.org/xsd/imsqti_v3p0';
-  private readonly XSI_NAMESPACE = 'http://www.w3.org/2001/XMLSchema-instance';
-  private readonly SCHEMA_LOCATION = 'http://www.imsglobal.org/xsd/qti/qtiv3p0/imsqti_v3p0.xsd';
+  private readonly NAMESPACE = "http://www.imsglobal.org/xsd/imsqti_v3p0";
+  private readonly XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance";
+  private readonly SCHEMA_LOCATION =
+    "http://www.imsglobal.org/xsd/qti/qtiv3p0/imsqti_v3p0.xsd";
 
   build(input: StimulusBuildInput): StimulusBuildOutput {
     if (!input.identifier || !input.identifier.trim()) {
-      throw new Error('Stimulus identifier is required');
+      throw new Error("Stimulus identifier is required");
     }
 
     if (!input.content || !input.content.trim()) {
-      throw new Error('Stimulus content is required');
+      throw new Error("Stimulus content is required");
     }
 
     const stimulusId = this.normalizeIdentifier(input.identifier);
@@ -43,7 +44,7 @@ export class StimulusBuilder {
       identifier: stimulusId,
       title: input.title || stimulusId,
       content: input.content,
-      language: input.language || 'en',
+      language: input.language || "en",
     });
 
     return {
@@ -59,19 +60,29 @@ export class StimulusBuilder {
   }
 
   static fromQuestion(question: any): StimulusReference | undefined {
-    const stimulusId = question?.stimulusId || question?.stimulusIdentifier || question?.sharedStimulusId;
+    const stimulusId =
+      question?.stimulusId ||
+      question?.stimulusIdentifier ||
+      question?.sharedStimulusId;
     if (!stimulusId || !String(stimulusId).trim()) {
       return undefined;
     }
 
-    const normalized = String(stimulusId).trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const normalized = String(stimulusId)
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "_");
     return {
       identifier: normalized,
       href: question?.stimulusHref || `stimuli/${normalized}.xml`,
     };
   }
 
-  private toXML(data: { identifier: string; title: string; content: string; language: string }): string {
+  private toXML(data: {
+    identifier: string;
+    title: string;
+    content: string;
+    language: string;
+  }): string {
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<assessmentStimulus\n`;
     xml += `  xmlns="${this.NAMESPACE}"\n`;
@@ -88,19 +99,23 @@ export class StimulusBuilder {
   }
 
   private normalizeIdentifier(identifier: string): string {
-    return String(identifier).trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    return String(identifier)
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "_");
   }
 
   private static escapeXml(text: string): string {
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 }
 
-export function buildAssessmentStimulus(input: StimulusBuildInput): StimulusBuildOutput {
+export function buildAssessmentStimulus(
+  input: StimulusBuildInput,
+): StimulusBuildOutput {
   return new StimulusBuilder().build(input);
 }

@@ -1,5 +1,8 @@
-import { QuestionRow } from '../core/rowTypes';
-import { ValidationEngine, ValidationContext } from '../validation/validationEngine';
+import { QuestionRow } from "../core/rowTypes";
+import {
+  ValidationEngine,
+  ValidationContext,
+} from "../validation/validationEngine";
 
 // ─── Rollback Engine ─────────────────────────────────────────────────
 
@@ -23,7 +26,7 @@ export function rollbackRow(
     ...restored.history,
     {
       timestamp: new Date().toISOString(),
-      action: 'Rollback: restored to previous snapshot',
+      action: "Rollback: restored to previous snapshot",
     },
   ];
 
@@ -43,7 +46,7 @@ export function rollbackBatch(
   engine: ValidationEngine,
   context: ValidationContext,
 ): QuestionRow[] {
-  return currentRows.map(row => {
+  return currentRows.map((row) => {
     const snapshot = snapshots.get(row.id);
     if (snapshot) {
       return rollbackRow(snapshot, engine, context);
@@ -57,7 +60,9 @@ export function rollbackBatch(
  * Create a snapshot map from a list of rows.
  * Call this BEFORE applying patches to save rollback points.
  */
-export function createSnapshotMap(rows: QuestionRow[]): Map<string, QuestionRow> {
+export function createSnapshotMap(
+  rows: QuestionRow[],
+): Map<string, QuestionRow> {
   const map = new Map<string, QuestionRow>();
   for (const row of rows) {
     map.set(row.id, structuredClone(row));

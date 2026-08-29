@@ -4,7 +4,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { SolutionsPage } from "./pages/SolutionsPage";
 import { ServicesPage } from "./pages/ServicesPage";
 import { ResourcesPage } from "./pages/ResourcesPage";
-import { PricingPage } from "./pages/PricingPage";
+
 import { CompanyPage } from "./pages/CompanyPage";
 import { ContactPage } from "./pages/ContactPage";
 import { ChangelogPage } from "./pages/ChangelogPage";
@@ -41,11 +41,7 @@ const BatchCreatorWizard = lazy(() =>
     (module) => ({ default: module.BatchCreatorWizard }),
   ),
 );
-const RegisterPage = lazy(() =>
-  import("./pages/auth/RegisterPage").then((module) => ({
-    default: module.RegisterPage,
-  })),
-);
+
 const LoginPage = lazy(() =>
   import("./pages/auth/LoginPage").then((module) => ({
     default: module.LoginPage,
@@ -109,7 +105,7 @@ const publicRoutes = [
       { path: "/solutions", Component: SolutionsPage },
       { path: "/services", Component: ServicesPage },
       { path: "/resources", Component: ResourcesPage },
-      { path: "/pricing", Component: PricingPage },
+
       { path: "/company", Component: CompanyPage },
       { path: "/contact", Component: ContactPage },
       { path: "/changelog", Component: ChangelogPage },
@@ -121,7 +117,6 @@ const publicRoutes = [
       { path: "/resources/sample-package", Component: SamplePackagePage },
       { path: "/resources/source-pdf", Component: SourcePdfPage },
       { path: "/auth/login", Component: LoginPage },
-      { path: "/auth/register", Component: RegisterPage },
       { path: "/auth/verify-email", Component: VerifyEmailPage },
       { path: "/auth/forgot-password", Component: ForgotPasswordPage },
       { path: "/auth/reset-password", Component: ResetPasswordPage },

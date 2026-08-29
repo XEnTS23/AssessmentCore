@@ -1,11 +1,11 @@
-import { QuestionRow } from '../core/rowTypes';
-import { CleaningLog } from '../core/cleaningTypes';
-import { Option } from '../core/questionTypes';
+import { QuestionRow } from "../core/rowTypes";
+import { CleaningLog } from "../core/cleaningTypes";
+import { Option } from "../core/questionTypes";
 
 // ─── Constants ───────────────────────────────────────────────────────
 
 /** Standard option label alphabet */
-const OPTION_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const OPTION_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /** Common answer identifier patterns (case-insensitive) */
 const IDENTIFIER_RE = /^[a-zA-Z]$/;
@@ -24,37 +24,38 @@ const PIPE_DELIMITED_RE = /^[^|]+(\|[^|]+)+$/;
  * Only performs changes that are **safe and deterministic** — no
  * guesswork or semantic interpretation.
  */
-export function pass2StructuralCleaning(
-  row: QuestionRow,
-): { row: QuestionRow; logs: CleaningLog[] } {
+export function pass2StructuralCleaning(row: QuestionRow): {
+  row: QuestionRow;
+  logs: CleaningLog[];
+} {
   const logs: CleaningLog[] = [];
 
   // Deep-clone so we never mutate the input
   const cleaned: QuestionRow = structuredClone(row);
   const q = cleaned.normalizedQuestion;
 
-  if (!q || q.type === 'UNKNOWN') {
+  if (!q || q.type === "UNKNOWN") {
     return { row: cleaned, logs };
   }
 
   // ── 1. Option identifier/label normalization (MCQ / MSQ) ──────────
-  if ('options' in q && Array.isArray(q.options)) {
+  if ("options" in q && Array.isArray(q.options)) {
     normalizeOptionLabels(q.options, row.id, logs);
     deduplicateOptionIdentifiers(q.options, row.id, logs);
     trimOptionText(q.options, row.id, logs);
   }
 
   // ── 2. Answer identifier normalization ─────────────────────────────
-  if (q.type === 'MCQ') {
+  if (q.type === "MCQ") {
     normalizeCorrectAnswerId(q, row.id, logs);
   }
 
-  if (q.type === 'MSQ') {
+  if (q.type === "MSQ") {
     normalizeCorrectAnswerIds(q, row.id, logs);
   }
 
   // ── 3. Delimiter normalization for MSQ ─────────────────────────────
-  if (q.type === 'MSQ') {
+  if (q.type === "MSQ") {
     normalizeDelimiterForMsq(q, row.id, logs);
   }
 
@@ -87,16 +88,34 @@ function normalizeOptionLabels(
     const expectedLabel = OPTION_LABELS[i] || String(i + 1);
     const currentLabel = options[i].label;
 
-    if (!currentLabel || currentLabel.trim() === '') {
+    if (!currentLabel || currentLabel.trim() === "") {
       const before = currentLabel;
       options[i].label = expectedLabel;
-      logs.push(makeLog(rowId, `options[${i}].label`, 'option_label_assigned', before, expectedLabel, 'high'));
+      logs.push(
+        makeLog(
+          rowId,
+          `options[${i}].label`,
+          "option_label_assigned",
+          before,
+          expectedLabel,
+          "high",
+        ),
+      );
     } else {
       // Normalize casing: 'a' → 'A'
       const normalized = currentLabel.trim().toUpperCase();
       if (normalized !== currentLabel) {
         options[i].label = normalized;
-        logs.push(makeLog(rowId, `options[${i}].label`, 'option_label_case_normalized', currentLabel, normalized, 'high'));
+        logs.push(
+          makeLog(
+            rowId,
+            `options[${i}].label`,
+            "option_label_case_normalized",
+            currentLabel,
+            normalized,
+            "high",
+          ),
+        );
       }
     }
   }
@@ -115,7 +134,16 @@ function deduplicateOptionIdentifiers(
     if (seenIds.has(options[i].id)) {
       const before = options[i].id;
       options[i].id = crypto.randomUUID();
-      logs.push(makeLog(rowId, `options[${i}].id`, 'option_id_deduplicated', before, options[i].id, 'high'));
+      logs.push(
+        makeLog(
+          rowId,
+          `options[${i}].id`,
+          "option_id_deduplicated",
+          before,
+          options[i].id,
+          "high",
+        ),
+      );
     }
     seenIds.add(options[i].id);
   }
@@ -134,7 +162,16 @@ function trimOptionText(
     const trimmed = text.trim();
     if (trimmed !== text) {
       options[i].text = trimmed;
-      logs.push(makeLog(rowId, `options[${i}].text`, 'option_text_trimmed', text, trimmed, 'high'));
+      logs.push(
+        makeLog(
+          rowId,
+          `options[${i}].text`,
+          "option_text_trimmed",
+          text,
+          trimmed,
+          "high",
+        ),
+      );
     }
   }
 }
@@ -153,25 +190,45 @@ function normalizeCorrectAnswerId(
   if (!raw) return;
 
   // Already a UUID — skip
-  if (raw.includes('-') && raw.length > 10) return;
+  if (raw.includes("-") && raw.length > 10) return;
 
   const upper = raw.trim().toUpperCase();
 
   // Try label match
-  const matchByLabel = q.options.find(o => o.label === upper);
+  const matchByLabel = q.options.find((o) => o.label === upper);
   if (matchByLabel) {
     const before = q.correctAnswerId;
     q.correctAnswerId = matchByLabel.id;
-    logs.push(makeLog(rowId, 'correctAnswerId', 'answer_id_resolved_by_label', before, matchByLabel.id, 'high'));
+    logs.push(
+      makeLog(
+        rowId,
+        "correctAnswerId",
+        "answer_id_resolved_by_label",
+        before,
+        matchByLabel.id,
+        "high",
+      ),
+    );
     return;
   }
 
   // Try exact text match (case-insensitive)
-  const matchesByText = q.options.filter(o => o.text.trim().toUpperCase() === upper);
+  const matchesByText = q.options.filter(
+    (o) => o.text.trim().toUpperCase() === upper,
+  );
   if (matchesByText.length === 1) {
     const before = q.correctAnswerId;
     q.correctAnswerId = matchesByText[0].id;
-    logs.push(makeLog(rowId, 'correctAnswerId', 'answer_id_resolved_by_text', before, matchesByText[0].id, 'medium'));
+    logs.push(
+      makeLog(
+        rowId,
+        "correctAnswerId",
+        "answer_id_resolved_by_text",
+        before,
+        matchesByText[0].id,
+        "medium",
+      ),
+    );
     return;
   }
 
@@ -192,23 +249,43 @@ function normalizeCorrectAnswerIds(
     if (!raw) continue;
 
     // Already a UUID — skip
-    if (raw.includes('-') && raw.length > 10) continue;
+    if (raw.includes("-") && raw.length > 10) continue;
 
     const upper = raw.trim().toUpperCase();
 
-    const matchByLabel = q.options.find(o => o.label === upper);
+    const matchByLabel = q.options.find((o) => o.label === upper);
     if (matchByLabel) {
       const before = q.correctAnswerIds[i];
       q.correctAnswerIds[i] = matchByLabel.id;
-      logs.push(makeLog(rowId, `correctAnswerIds[${i}]`, 'answer_id_resolved_by_label', before, matchByLabel.id, 'high'));
+      logs.push(
+        makeLog(
+          rowId,
+          `correctAnswerIds[${i}]`,
+          "answer_id_resolved_by_label",
+          before,
+          matchByLabel.id,
+          "high",
+        ),
+      );
       continue;
     }
 
-    const matchesByText = q.options.filter(o => o.text.trim().toUpperCase() === upper);
+    const matchesByText = q.options.filter(
+      (o) => o.text.trim().toUpperCase() === upper,
+    );
     if (matchesByText.length === 1) {
       const before = q.correctAnswerIds[i];
       q.correctAnswerIds[i] = matchesByText[0].id;
-      logs.push(makeLog(rowId, `correctAnswerIds[${i}]`, 'answer_id_resolved_by_text', before, matchesByText[0].id, 'medium'));
+      logs.push(
+        makeLog(
+          rowId,
+          `correctAnswerIds[${i}]`,
+          "answer_id_resolved_by_text",
+          before,
+          matchesByText[0].id,
+          "medium",
+        ),
+      );
     }
   }
 }
@@ -239,10 +316,19 @@ function normalizeDelimiterForMsq(
     }
   }
   if (deduped.length < q.correctAnswerIds.length) {
-    const before = q.correctAnswerIds.join('|');
+    const before = q.correctAnswerIds.join("|");
     q.correctAnswerIds = deduped;
-    const after = deduped.join('|');
-    logs.push(makeLog(rowId, 'correctAnswerIds', 'duplicate_answer_ids_removed', before, after, 'high'));
+    const after = deduped.join("|");
+    logs.push(
+      makeLog(
+        rowId,
+        "correctAnswerIds",
+        "duplicate_answer_ids_removed",
+        before,
+        after,
+        "high",
+      ),
+    );
   }
 }
 
@@ -254,7 +340,7 @@ function makeLog(
   action: string,
   before: string,
   after: string,
-  confidence: 'high' | 'medium' | 'low',
+  confidence: "high" | "medium" | "low",
 ): CleaningLog {
   return {
     rowId,

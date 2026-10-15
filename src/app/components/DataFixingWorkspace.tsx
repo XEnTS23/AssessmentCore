@@ -863,14 +863,14 @@ export function DataFixingWorkspace({
 
   if (pendingCount === 0 && !forceExpanded) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 h-full bg-[#f8fafc] rounded-lg border border-[#e2e8f0]">
+      <div className="flex flex-col items-center justify-center p-12 h-full bg-background rounded-lg border border-border">
         <div className="w-16 h-16 bg-[#eefaf2] rounded-full flex items-center justify-center mb-4">
           <CheckCircle2 className="w-8 h-8 text-[#059669]" />
         </div>
         <h3 className="text-lg font-bold text-[#0f172a] mb-1">
           All issues resolved!
         </h3>
-        <p className="text-sm text-[#475569]">
+        <p className="text-sm text-muted-foreground">
           You have successfully cleared {userFixedCount} manual fixes and{" "}
           {autoFixedCount} auto-fixes.
         </p>
@@ -885,9 +885,9 @@ export function DataFixingWorkspace({
       }`}
     >
       {/* Header */}
-      <header className="h-14 px-5 border-b border-[#e2e8f0] bg-card flex items-center justify-between shrink-0">
+      <header className="h-14 px-5 border-b border-border bg-card flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-md bg-[#f1f5f9] text-[#1f2937] border border-[#e2e8f0] flex items-center justify-center">
+          <div className="h-8 w-8 rounded-md bg-muted text-[#1f2937] border border-border flex items-center justify-center">
             <Wrench className="w-4 h-4" />
           </div>
           <h2 className="text-sm font-bold text-[#0f172a]">
@@ -895,7 +895,7 @@ export function DataFixingWorkspace({
           </h2>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-[#475569]">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="font-semibold text-[#1f2937]">
               {userFixedCount}
             </span>{" "}
@@ -910,7 +910,7 @@ export function DataFixingWorkspace({
             variant="ghost"
             size="sm"
             onClick={handleToggleWorkspaceView}
-            className="h-8 w-8 p-0 text-[#64748b]"
+            className="h-8 w-8 p-0 text-muted-foreground"
           >
             {isFullscreen ? (
               <Minimize2 className="w-4 h-4" />
@@ -923,9 +923,9 @@ export function DataFixingWorkspace({
 
       <div className="flex flex-1 min-h-0">
         {/* Left Sidebar */}
-        <aside className="w-[320px] flex flex-col border-r border-[#e2e8f0] bg-card min-h-0">
-          <div className="p-3 border-b border-[#e2e8f0] bg-[#f8fafc]">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748b] mb-2">
+        <aside className="w-[320px] flex flex-col border-r border-border bg-card min-h-0">
+          <div className="p-3 border-b border-border bg-background">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Rows to Review
             </p>
             <div className="w-full bg-[#e2e8f0] rounded-full h-1.5 mb-1 overflow-hidden">
@@ -951,15 +951,15 @@ export function DataFixingWorkspace({
                   className={`w-full text-left px-4 py-3 border-b border-[#f1f5f9] flex flex-col gap-1 transition-colors ${
                     isActive
                       ? "bg-[#eef2ff] border-l-2 border-l-[#4f46e5]"
-                      : "hover:bg-[#f8fafc] border-l-2 border-l-transparent"
+                      : "hover:bg-background border-l-2 border-l-transparent"
                   } ${isResolved ? "opacity-50" : "opacity-100"}`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                       Row {row.rowNumber}
                     </span>
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${row.tone}`}
+                      className={`px-1.5 py-0.5 rounded text-xs font-semibold border ${row.tone}`}
                     >
                       {row.label}
                     </span>
@@ -973,7 +973,7 @@ export function DataFixingWorkspace({
             {canLoadMoreFilteredRows && (
               <button
                 onClick={() => setLoadedFilterBatches((prev) => prev + 1)}
-                className="w-full p-3 text-xs text-[#4f46e5] font-semibold hover:bg-[#f8fafc]"
+                className="w-full p-3 text-xs text-[#4f46e5] font-semibold hover:bg-background"
               >
                 Load more...
               </button>
@@ -982,10 +982,10 @@ export function DataFixingWorkspace({
         </aside>
 
         {/* Right Content */}
-        <section className="flex-1 min-h-0 overflow-auto bg-[#f8fafc] p-6">
+        <section className="flex-1 min-h-0 overflow-auto bg-background p-6">
           <div className="max-w-4xl mx-auto space-y-6">
             {!selectedRowData ? (
-              <div className="h-full flex flex-col items-center justify-center text-[#64748b] py-20">
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-20">
                 <LayoutPanelLeft className="w-8 h-8 mb-3 opacity-50" />
                 <p className="text-sm font-medium">
                   Select a row from the sidebar to begin.
@@ -995,7 +995,7 @@ export function DataFixingWorkspace({
               <>
                 {/* Status Bar */}
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-sm text-[#475569]">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="font-bold text-[#0f172a]">
                       Row {selectedRowStatusEntry?.rowNumber || "Unknown"}
                     </span>
@@ -1022,7 +1022,7 @@ export function DataFixingWorkspace({
                           <h4 className="text-sm font-bold text-[#8f4600]">
                             Suggested Fix
                           </h4>
-                          <span className="text-[10px] font-bold bg-[#8f4600] text-white px-1.5 py-0.5 rounded tracking-wide uppercase">
+                          <span className="text-xs font-bold bg-[#8f4600] text-white px-1.5 py-0.5 rounded tracking-wide uppercase">
                             Medium Confidence
                           </span>
                         </div>
@@ -1080,8 +1080,8 @@ export function DataFixingWorkspace({
 
                 {/* Editing Grid */}
                 {canEditSelectedRow && (
-                  <div className="bg-card border border-[#e2e8f0] rounded-xl overflow-hidden shadow-sm flex flex-col">
-                    <div className="px-4 py-3 bg-[#f8fafc] border-b border-[#e2e8f0] flex items-center justify-between">
+                  <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm flex flex-col">
+                    <div className="px-4 py-3 bg-background border-b border-border flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <h4 className="text-xs font-bold text-[#334155] uppercase tracking-wider">
                           Manual Editor
@@ -1121,7 +1121,7 @@ export function DataFixingWorkspace({
                                       setIsAddingField(false);
                                     }
                                   }}
-                                  className="h-7 text-xs bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#0f172a]"
+                                  className="h-7 text-xs bg-muted hover:bg-[#e2e8f0] text-[#0f172a]"
                                 >
                                   Add
                                 </Button>
@@ -1132,7 +1132,7 @@ export function DataFixingWorkspace({
                                     setIsAddingField(false);
                                     setNewFieldName("");
                                   }}
-                                  className="h-7 w-7 p-0 text-[#64748b]"
+                                  className="h-7 w-7 p-0 text-muted-foreground"
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </Button>
@@ -1142,7 +1142,7 @@ export function DataFixingWorkspace({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setIsAddingField(true)}
-                                className="h-7 text-xs border-dashed border-[#cbd5e1] text-[#64748b] hover:text-[#0f172a]"
+                                className="h-7 text-xs border-dashed border-[#cbd5e1] text-muted-foreground hover:text-[#0f172a]"
                               >
                                 + Custom Field
                               </Button>
@@ -1172,7 +1172,7 @@ export function DataFixingWorkspace({
                         return (
                           <div key={col} className="space-y-1.5">
                             <label
-                              className={`text-[11px] font-bold uppercase tracking-wide ${hasError ? "text-[#ba1a1a]" : "text-[#64748b]"}`}
+                              className={`text-xs font-bold uppercase tracking-wide ${hasError ? "text-[#ba1a1a]" : "text-muted-foreground"}`}
                             >
                               {col}
                             </label>

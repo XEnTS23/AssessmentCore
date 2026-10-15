@@ -1,4 +1,4 @@
-# AssessmentCore robots.txt
+# Husimi robots.txt
 # Public marketing pages are crawlable. Authenticated and utility surfaces are not.
 
 User-agent: *
@@ -10,4 +10,4 @@ Disallow: /workspace
 Disallow: /ocr
 
 # Sitemaps
-Sitemap: https://assessmentcore.vercel.app/sitemap.xml
+Sitemap: https://husimisolutions.com/sitemap.xml

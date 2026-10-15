@@ -3,7 +3,7 @@ import { HelpCircle } from "lucide-react";
 
 export function EquationShortcutBar() {
   return (
-    <div className="flex items-center gap-6 px-6 py-2 border-t border-border bg-card text-[11px] text-muted-foreground">
+    <div className="flex items-center gap-6 px-6 py-2 border-t border-border bg-card text-xs text-muted-foreground">
       <div className="flex items-center gap-2">
         <span className="font-medium text-[var(--foreground)]">Shortcuts:</span>
         <kbd className="px-1.5 py-0.5 border border-border rounded bg-muted font-sans">Ctrl + Enter</kbd> Insert

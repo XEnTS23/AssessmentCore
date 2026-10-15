@@ -300,7 +300,7 @@ export function MatrixModal({ isOpen, onClose, onInsert, initialLatex }: MatrixM
                   }`}
                 >
                   <span className="text-xs font-medium">{p.label}</span>
-                  <span className="text-[10px] text-muted-foreground line-clamp-1">
+                  <span className="text-xs text-muted-foreground line-clamp-1">
                     {p.desc}
                   </span>
                 </button>
@@ -389,7 +389,7 @@ export function MatrixModal({ isOpen, onClose, onInsert, initialLatex }: MatrixM
                   }`}
                 >
                   <span className="text-xs font-mono">{opt.brackets}</span>
-                  <span className="text-[10px] mt-0.5">{opt.label}</span>
+                  <span className="text-xs mt-0.5">{opt.label}</span>
                 </button>
               ))}
             </div>
@@ -401,7 +401,7 @@ export function MatrixModal({ isOpen, onClose, onInsert, initialLatex }: MatrixM
               <label className="text-xs font-semibold text-foreground">
                 Cell Values ({rows} × {cols})
               </label>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Type numbers, variables (e.g. x, y), or fractions (\frac&#123;a&#125;&#123;b&#125;)
               </span>
             </div>

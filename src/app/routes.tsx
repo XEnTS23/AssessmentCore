@@ -83,10 +83,10 @@ function PublicNotFoundPage() {
       <div>
         <h1 className="text-3xl font-semibold">Page not found</h1>
         <p className="mt-3 text-muted-foreground">
-          The AssessmentCore page you requested does not exist.
+          The requested page does not exist.
         </p>
         <a className="mt-6 inline-block text-primary underline" href="/">
-          Return to AssessmentCore
+          Return to Husimi
         </a>
       </div>
     </main>

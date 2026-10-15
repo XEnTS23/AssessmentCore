@@ -556,7 +556,7 @@ export function RichToolbar({
                     placeholder: "text",
                   })
                 }
-                className="w-full text-left px-2 py-1.5 text-[11px] font-medium hover:bg-muted rounded-md transition-colors"
+                className="w-full text-left px-2 py-1.5 text-xs font-medium hover:bg-muted rounded-md transition-colors"
               >
                 {f.name}
               </button>
@@ -572,8 +572,8 @@ export function RichToolbar({
             title="Font Size"
             onMouseDown={(e) => e.preventDefault()}
           >
-            <span className="font-bold text-[10px] flex items-end gap-0.5 leading-none">
-              <span className="text-[8px]">A</span>A
+            <span className="font-bold text-xs flex items-end gap-0.5 leading-none">
+              <span className="text-xs">A</span>A
             </span>
           </button>
           <div className="absolute left-0 top-[24px] hidden group-hover:block z-50 bg-background border border-border rounded-lg shadow-xl min-w-[100px] p-1.5 animate-in fade-in duration-100">
@@ -589,7 +589,7 @@ export function RichToolbar({
                     placeholder: "text",
                   })
                 }
-                className="w-full text-left px-2 py-1.5 text-[11px] font-medium hover:bg-muted rounded-md transition-colors"
+                className="w-full text-left px-2 py-1.5 text-xs font-medium hover:bg-muted rounded-md transition-colors"
               >
                 {sz}
               </button>
@@ -627,7 +627,7 @@ export function RichToolbar({
                     placeholder: "text",
                   })
                 }
-                className="w-full text-left px-2 py-1.5 text-[11px] font-medium hover:bg-muted rounded-md transition-colors flex items-center gap-2"
+                className="w-full text-left px-2 py-1.5 text-xs font-medium hover:bg-muted rounded-md transition-colors flex items-center gap-2"
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full border border-border"
@@ -733,7 +733,7 @@ export function RichToolbar({
           onMouseDown={(e) => {
             // Do not prevent default for select, otherwise dropdown won't open
           }}
-          className="h-[25px] px-1 text-[10px] border border-border bg-background rounded outline-none font-medium cursor-pointer"
+          className="h-[25px] px-1 text-xs border border-border bg-background rounded outline-none font-medium cursor-pointer"
           aria-label="Line Height"
         >
           <option value="">Line Space</option>
@@ -758,7 +758,7 @@ export function RichToolbar({
             }
           }}
           onMouseDown={(e) => e.preventDefault()}
-          className={`h-[25px] px-2 text-[10px] border rounded flex items-center gap-1 font-medium transition-colors ${
+          className={`h-[25px] px-2 text-xs border rounded flex items-center gap-1 font-medium transition-colors ${
             showMathToolbar
               ? "bg-primary text-primary-foreground border-primary"
               : "border-border bg-background hover:bg-muted"
@@ -775,7 +775,7 @@ export function RichToolbar({
             setShowMathToolbar(false);
           }}
           onMouseDown={(e) => e.preventDefault()}
-          className={`h-[25px] px-2 text-[10px] border rounded flex items-center gap-1 font-medium transition-colors ${
+          className={`h-[25px] px-2 text-xs border rounded flex items-center gap-1 font-medium transition-colors ${
             showSymbolToolbar
               ? "bg-primary text-primary-foreground border-primary"
               : "border-border bg-background hover:bg-muted"
@@ -814,7 +814,7 @@ export function RichToolbar({
       {/* ── Collapsible Equations Sub‑Toolbar ───────────────────── */}
       {showMathToolbar && (
         <div className="min-h-[30px] border-t border-border flex items-center gap-1 px-3 py-1 bg-muted/10 flex-wrap animate-in slide-in-from-top-1 duration-150">
-          <span className="text-[9px] font-bold text-primary uppercase tracking-wider mr-2">
+          <span className="text-xs font-bold text-primary uppercase tracking-wider mr-2">
             Math:
           </span>
           <TBtn
@@ -970,7 +970,7 @@ export function RichToolbar({
       {/* ── Collapsible Symbols Sub‑Toolbar ─────────────────────── */}
       {showSymbolToolbar && (
         <div className="min-h-[30px] border-t border-border flex items-center gap-1 px-3 py-1 bg-muted/10 flex-wrap animate-in slide-in-from-top-1 duration-150">
-          <span className="text-[9px] font-bold text-primary uppercase tracking-wider mr-2">
+          <span className="text-xs font-bold text-primary uppercase tracking-wider mr-2">
             Symbols:
           </span>
           <TBtn
@@ -1109,7 +1109,7 @@ function TBtn({
       onMouseDown={(e) => e.preventDefault()}
       title={title}
       aria-label={title}
-      className="h-[25px] min-w-[25px] px-1.5 text-[11px] border-0 bg-transparent rounded hover:bg-background hover:shadow-[inset_0_0_0_1px_var(--border)] transition-colors"
+      className="h-[25px] min-w-[25px] px-1.5 text-xs border-0 bg-transparent rounded hover:bg-background hover:shadow-[inset_0_0_0_1px_var(--border)] transition-colors"
     >
       {children}
     </button>

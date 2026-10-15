@@ -13,7 +13,7 @@ export function EquationOptionsPanel() {
           <button
             key={tab}
             className={cn(
-              "pb-3 text-[13px] font-medium transition-colors border-b-2 relative top-px",
+              "pb-3 text-sm font-medium transition-colors border-b-2 relative top-px",
               i === 0
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-[var(--foreground)]"
@@ -24,7 +24,7 @@ export function EquationOptionsPanel() {
         ))}
       </div>
 
-      <div className="p-6 space-y-6 flex-1 text-[13px]">
+      <div className="p-6 space-y-6 flex-1 text-sm">
         {/* Equation Numbering */}
         <div className="flex items-center justify-between">
           <span className="font-medium text-[var(--foreground)]">Equation Numbering</span>

@@ -42,18 +42,18 @@ export function ConflictModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="border border-border rounded-md p-3">
-              <h5 className="text-[10px] font-bold uppercase text-muted-foreground mb-2">
+              <h5 className="text-xs font-bold uppercase text-muted-foreground mb-2">
                 Server Version
               </h5>
-              <pre className="text-[9px] font-mono max-h-[120px] overflow-auto text-foreground">
+              <pre className="text-xs font-mono max-h-[120px] overflow-auto text-foreground">
                 {JSON.stringify(serverVersion, null, 2)?.slice(0, 300)}
               </pre>
             </div>
             <div className="border border-primary/30 rounded-md p-3 bg-primary/5">
-              <h5 className="text-[10px] font-bold uppercase text-primary mb-2">
+              <h5 className="text-xs font-bold uppercase text-primary mb-2">
                 Your Draft
               </h5>
-              <pre className="text-[9px] font-mono max-h-[120px] overflow-auto text-foreground">
+              <pre className="text-xs font-mono max-h-[120px] overflow-auto text-foreground">
                 {JSON.stringify(localDraft, null, 2)?.slice(0, 300)}
               </pre>
             </div>

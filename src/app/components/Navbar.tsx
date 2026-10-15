@@ -1,62 +1,257 @@
-import { Link } from "react-router";
-import { ArrowRight } from "lucide-react";
-import { useLocation } from "react-router";
+import { useState } from "react";
+import { Link, useLocation } from "react-router";
+import {
+  BookOpen,
+  Briefcase,
+  ChevronDown,
+  Cpu,
+  Layers,
+  Menu,
+  Send,
+  Sparkles,
+  Users,
+  X,
+} from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { ProfileMenu } from "./ProfileMenu";
 
 export function Navbar() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [solutionsOpen, setSolutionsOpen] = useState(false);
 
   const navLinkClass = (path: string) => {
     const isActive =
-      location.pathname === path || location.pathname.startsWith(`${path}/`);
-    return `transition-colors focus:outline-none focus-visible:outline-none ${isActive ? "text-foreground border-b-2 border-foreground pb-0.5" : "text-muted-foreground hover:text-foreground"}`;
+      location.pathname === path || (path !== "/" && location.pathname.startsWith(`${path}/`));
+    return `text-sm font-medium transition-colors hover:text-foreground ${
+      isActive ? "text-foreground font-semibold" : "text-muted-foreground"
+    }`;
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur transition-colors duration-200">
-      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-6 pl-6 pr-2">
-        <div className="flex items-center gap-2">
-          <img
-            src={"/AC_logo.png"}
-            alt="AssessmentCore logo"
-            className="h-7 w-7 rounded-md object-contain"
-          />
-          <Link
-            to="/"
-            className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
-          >
-            AssessmentCore
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md transition-colors duration-200">
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-6">
+        {/* Brand Group */}
+        <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-2 group">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-xs tracking-tight shadow-xs">
+              H
+            </span>
+            <div className="flex flex-col leading-none">
+              <span className="text-sm font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">
+                Husimi
+              </span>
+              <span className="text-xs text-muted-foreground font-normal tracking-tight">
+                Solutions
+              </span>
+            </div>
           </Link>
-          <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground hidden sm:inline-block">
-            v1.0
-          </span>
         </div>
 
+        {/* Right Section: Navigation & Actions */}
         <div className="flex items-center gap-6">
-          <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-muted-foreground">
-            <Link to="/solutions" className={navLinkClass("/solutions")}>
-              Solutions
-            </Link>
-            <Link to="/services" className={navLinkClass("/services")}>
-              Services
-            </Link>
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-6 text-sm">
+            {/* Services Dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setServicesOpen(true)}
+              onMouseLeave={() => setServicesOpen(false)}
+            >
+              <Link
+                to="/services"
+                className={`flex items-center gap-1 py-2 ${navLinkClass("/services")}`}
+              >
+                Services
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Link>
+
+              {servicesOpen && (
+                <div className="absolute right-0 top-full w-64 rounded-lg border border-border bg-popover p-2 shadow-lg animate-in fade-in-50 zoom-in-95">
+                  <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Assessment Content Services
+                  </div>
+                  <Link
+                    to="/services#content-development"
+                    onClick={() => setServicesOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Content Development</div>
+                    <div className="text-xs text-muted-foreground">MCQs, STEM items, explanations</div>
+                  </Link>
+                  <Link
+                    to="/services#digitization"
+                    onClick={() => setServicesOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Content Digitization</div>
+                    <div className="text-xs text-muted-foreground">PDFs, Word, scans, handwriting</div>
+                  </Link>
+                  <Link
+                    to="/services#qa-remediation"
+                    onClick={() => setServicesOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Question Bank QA</div>
+                    <div className="text-xs text-muted-foreground">Answer key checks, exception review</div>
+                  </Link>
+                  <Link
+                    to="/services#lms-migration"
+                    onClick={() => setServicesOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">LMS &amp; Migration</div>
+                    <div className="text-xs text-muted-foreground">Canvas, Moodle, QTI, JSON</div>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Solutions Dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setSolutionsOpen(true)}
+              onMouseLeave={() => setSolutionsOpen(false)}
+            >
+              <Link
+                to="/solutions"
+                className={`flex items-center gap-1 py-2 ${navLinkClass("/solutions")}`}
+              >
+                Solutions
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Link>
+
+              {solutionsOpen && (
+                <div className="absolute right-0 top-full w-64 rounded-lg border border-border bg-popover p-2 shadow-lg animate-in fade-in-50 zoom-in-95">
+                  <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Who We Help
+                  </div>
+                  <Link
+                    to="/solutions#platforms"
+                    onClick={() => setSolutionsOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Assessment Platforms</div>
+                    <div className="text-xs text-muted-foreground">Item banks &amp; test delivery</div>
+                  </Link>
+                  <Link
+                    to="/solutions#edtech"
+                    onClick={() => setSolutionsOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">EdTech Companies</div>
+                    <div className="text-xs text-muted-foreground">Digital-learning content ops</div>
+                  </Link>
+                  <Link
+                    to="/solutions#test-prep"
+                    onClick={() => setSolutionsOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Test-Prep Companies</div>
+                    <div className="text-xs text-muted-foreground">High-volume question libraries</div>
+                  </Link>
+                  <Link
+                    to="/solutions#publishers"
+                    onClick={() => setSolutionsOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Publishers</div>
+                    <div className="text-xs text-muted-foreground">Legacy print &amp; digital banks</div>
+                  </Link>
+                  <Link
+                    to="/solutions#certification"
+                    onClick={() => setSolutionsOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Training &amp; Certification</div>
+                    <div className="text-xs text-muted-foreground">LMS &amp; certification systems</div>
+                  </Link>
+                  <Link
+                    to="/solutions#partners"
+                    onClick={() => setSolutionsOpen(false)}
+                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                  >
+                    <div className="font-medium text-foreground">Implementation Partners</div>
+                    <div className="text-xs text-muted-foreground">Reliable migration backend</div>
+                  </Link>
+                </div>
+              )}
+            </div>
+
             <Link to="/resources" className={navLinkClass("/resources")}>
               Resources
             </Link>
 
             <Link to="/company" className={navLinkClass("/company")}>
-              Company
+              About
             </Link>
+
             <Link to="/contact" className={navLinkClass("/contact")}>
               Contact
             </Link>
           </nav>
 
+          {/* Action Group */}
+          <div className="flex items-center gap-2.5">
+            {isAuthenticated && <ProfileMenu />}
 
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-muted transition-colors"
+              aria-label="Toggle navigation"
+            >
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-b border-border bg-background px-6 py-4 space-y-3">
+          <div className="space-y-1">
+            <Link
+              to="/services"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-md py-2 px-3 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              Services (Content, Digitization, QA, Migration)
+            </Link>
+            <Link
+              to="/solutions"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-md py-2 px-3 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              Solutions (EdTech, Platforms, Test-Prep, Publishers)
+            </Link>
+
+            <Link
+              to="/resources"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-md py-2 px-3 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              Resources &amp; Library
+            </Link>
+            <Link
+              to="/company"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-md py-2 px-3 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              About Husimi
+            </Link>
+            <Link
+              to="/contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-md py-2 px-3 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              Contact &amp; Project Scoping
+            </Link>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

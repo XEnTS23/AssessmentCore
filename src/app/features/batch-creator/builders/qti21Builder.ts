@@ -31,7 +31,7 @@ import type {
 } from "../core/questionTypes";
 import type { QuestionRow } from "../core/rowTypes";
 import {
-  buildAssessmentCoreManifestMetadata,
+  buildManifestMetadata,
   buildQtiAuthoringSupport,
   type QtiAuthoringSupport,
 } from "./shared/authoringSectionMapper";
@@ -665,7 +665,7 @@ function generateManifest(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns="${CP_NS}"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:ac="https://assessmentcore.app/ns/metadata/1.0"
+  xmlns:ac="https://husimisolutions.com/ns/metadata/1.0"
   xsi:schemaLocation="${CP_SCHEMA_LOCATION}"
   identifier="MANIFEST-01">
   <metadata>
@@ -765,7 +765,7 @@ export function buildQti21Export(
       });
       metadataByFileName.set(
         fileName,
-        buildAssessmentCoreManifestMetadata(row),
+        buildManifestMetadata(row),
       );
     } catch (error: any) {
       errors.push({

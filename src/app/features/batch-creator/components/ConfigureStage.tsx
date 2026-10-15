@@ -327,7 +327,7 @@ export function ConfigureStage({
                           <span className="min-w-0 pr-4">
                             <span className="flex flex-wrap items-center gap-2">
                               <span className="font-semibold">{title}</span>
-                              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                                 {detail}
                               </span>
                             </span>
@@ -894,7 +894,7 @@ export function ConfigureStage({
                       >
                         {value}
                       </p>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {label}
                       </p>
                     </div>

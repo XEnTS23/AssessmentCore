@@ -383,32 +383,7 @@ const localEvaluators: Record<string, LocalEvaluator> = {
       : triggered({ interactionType: question?.type || "configured" });
   },
 
-  EXPLICIT_REFERENCE_UNRESOLVED(row) {
-    const stem = asText((row.normalizedQuestion as any)?.stem);
-    const references = [
-      ...stem.matchAll(
-        /\b(figure|fig\.?|table|passage|attachment|equation)\s+([A-Za-z0-9.-]+)/gi,
-      ),
-    ];
-    if (references.length === 0) return notTriggered();
-    const resources = new Set(
-      row.mediaReferences.flatMap((asset: any) => [
-        asText(asset.id).toLowerCase(),
-        asText(asset.fileName).toLowerCase(),
-        asText(asset.publicUrlSource).toLowerCase(),
-      ]),
-    );
-    const missing = references.find((match) => {
-      const reference = asText(match[2]).toLowerCase();
-      return ![...resources].some((resource) => resource.includes(reference));
-    });
-    return missing
-      ? triggered(
-          { resourceType: missing[1], reference: missing[2] },
-          { matchedText: missing[0] },
-        )
-      : notTriggered();
-  },
+
 
   PASSAGE_EMPTY(row, context) {
     const passageId = asText(

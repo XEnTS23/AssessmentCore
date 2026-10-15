@@ -40,7 +40,7 @@ export function BuiltInEquationsDropdown({ isOpen, onClose, onInsertEquation }: 
 
       {Object.entries(grouped).map(([category, equations]) => (
         <div key={category} className="mb-3 last:mb-0">
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             {category}
           </span>
           <div className="grid grid-cols-2 gap-2 mt-1.5">
@@ -83,11 +83,11 @@ function BuiltInEquationCard({
       onClick={onClick}
       className="flex flex-col items-start p-2.5 border border-border rounded-lg bg-card hover:bg-muted hover:border-primary/30 transition-all text-left group"
     >
-      <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground mb-1.5 transition-colors">
+      <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground mb-1.5 transition-colors">
         {name}
       </span>
       <span
-        className="[&_.katex]:text-[11px] text-foreground overflow-hidden w-full"
+        className="[&_.katex]:text-xs text-foreground overflow-hidden w-full"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </button>

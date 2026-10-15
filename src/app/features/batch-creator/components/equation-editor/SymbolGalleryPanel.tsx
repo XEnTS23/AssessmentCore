@@ -116,7 +116,7 @@ export function SymbolGalleryPanel({ onInsertSymbol, activeCategory, onChangeCat
                 key={cat}
                 onClick={() => onChangeCategory(cat)}
                 className={cn(
-                  "px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-colors",
+                  "px-2 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors",
                   activeCategory === cat
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -142,7 +142,7 @@ export function SymbolGalleryPanel({ onInsertSymbol, activeCategory, onChangeCat
         <div className="px-3 pb-2 shrink-0">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Clock className="w-3 h-3 text-muted-foreground" />
-            <span className="text-[10px] font-medium text-muted-foreground">Recent</span>
+            <span className="text-xs font-medium text-muted-foreground">Recent</span>
           </div>
           <div className="flex flex-wrap gap-1">
             {recentEntries.map((symbol) => (
@@ -155,7 +155,7 @@ export function SymbolGalleryPanel({ onInsertSymbol, activeCategory, onChangeCat
       {/* Symbol grid */}
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {searchQuery && (
-          <div className="text-[10px] text-muted-foreground mb-2">
+          <div className="text-xs text-muted-foreground mb-2">
             {filteredSymbols.length} result{filteredSymbols.length !== 1 ? "s" : ""}
           </div>
         )}
@@ -189,7 +189,7 @@ function SymbolButton({ symbol, onClick }: { symbol: SymbolEntry; onClick: () =>
       className="w-[34px] h-[34px] flex items-center justify-center border border-border rounded bg-card hover:bg-muted hover:border-primary/30 transition-all text-foreground"
     >
       <span
-        className="text-sm [&_.katex]:text-[14px]"
+        className="text-sm [&_.katex]:text-sm"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </button>

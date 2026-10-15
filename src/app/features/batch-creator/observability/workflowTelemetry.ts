@@ -79,7 +79,7 @@ function publish(event: WorkflowEvent): void {
     typeof window.dispatchEvent === "function"
   ) {
     window.dispatchEvent(
-      new CustomEvent("assessmentcore:workflow", { detail: event }),
+      new CustomEvent("husimi:workflow", { detail: event }),
     );
   }
 }

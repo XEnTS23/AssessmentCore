@@ -29,7 +29,7 @@ export function EquationPreview({ latex, displayMode }: Props) {
           <MoveVertical className="w-4 h-4 text-muted-foreground/70" />
           Preview
         </h3>
-        <button className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-[var(--foreground)]">
+        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-[var(--foreground)]">
           <Maximize2 className="w-3 h-3" /> Full Screen
         </button>
       </div>
@@ -45,7 +45,7 @@ export function EquationPreview({ latex, displayMode }: Props) {
         )}
       </div>
 
-      <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted text-[11px]">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted text-xs">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Style:</span>

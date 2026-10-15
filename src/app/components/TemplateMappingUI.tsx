@@ -387,7 +387,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
     <div className="bg-card rounded-2xl border border-[#E2E8F0] shadow-xl p-6 max-h-screen overflow-y-auto">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#111827]">
+        <h2 className="text-xl font-semibold text-foreground">
           Map Template Fields to Sheet Columns
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
@@ -405,13 +405,13 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <p className="text-[#64748B]">Template</p>
-            <p className="font-semibold text-[#111827]">
+            <p className="font-semibold text-foreground">
               {extractedTemplate.title}
             </p>
           </div>
           <div>
             <p className="text-[#64748B]">QTI Version (Selected)</p>
-            <p className="font-semibold text-[#111827]">{qtiVersionDisplay}</p>
+            <p className="font-semibold text-foreground">{qtiVersionDisplay}</p>
             {showDetectedVersion && (
               <p className="text-xs text-[#94A3B8] mt-1">
                 Template detected: {detectedQtiVersion}
@@ -420,7 +420,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
           </div>
           <div>
             <p className="text-[#64748B]">Sheet Rows</p>
-            <p className="font-semibold text-[#111827]">{sheetRows.length}</p>
+            <p className="font-semibold text-foreground">{sheetRows.length}</p>
           </div>
         </div>
       </div>
@@ -466,7 +466,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
               >
                 <td className="px-4 py-3">
                   <div>
-                    <p className="text-sm font-medium text-[#111827]">
+                    <p className="text-sm font-medium text-foreground">
                       {field.name}
                     </p>
                     {field.description && (
@@ -532,7 +532,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                     getFieldMode(field) === "add-subsections" && (
                       <div className="mt-3 border border-[#E2E8F0] rounded-md p-3 bg-[#F9FAFB]">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-semibold text-[#111827]">
+                          <p className="text-xs font-semibold text-foreground">
                             Subsections
                           </p>
                           <button
@@ -544,7 +544,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                           </button>
                         </div>
 
-                        <p className="text-[11px] text-[#64748B] mb-2">
+                        <p className="text-xs text-[#64748B] mb-2">
                           Map each subsection to a column from your sheet.
                         </p>
 
@@ -556,7 +556,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                               onClick={() =>
                                 handleAddSubsection(field.id, preset)
                               }
-                              className="text-[11px] px-2 py-1 rounded bg-card border border-[#D1D5DB] text-[#334155] hover:bg-[#F1F5F9]"
+                              className="text-xs px-2 py-1 rounded bg-card border border-[#D1D5DB] text-[#334155] hover:bg-[#F1F5F9]"
                             >
                               + {preset}
                             </button>
@@ -624,7 +624,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
       {/* Preview Section */}
       {showPreview && preview.length > 0 && (
         <div className="mb-6 bg-[#F9FAFB] rounded-lg border border-[#E2E8F0] p-4">
-          <h3 className="text-sm font-semibold text-[#111827] mb-3">
+          <h3 className="text-sm font-semibold text-foreground mb-3">
             Preview (First 5 Rows)
           </h3>
           <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -633,7 +633,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                 key={row.rowIndex}
                 className="bg-card p-3 rounded border border-[#E2E8F0] text-xs"
               >
-                <p className="font-semibold text-[#111827] mb-2">
+                <p className="font-semibold text-foreground mb-2">
                   Row {row.rowIndex + 1}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -645,7 +645,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
                       return (
                         <div key={fieldId}>
                           <p className="text-[#64748B]">{field?.name}:</p>
-                          <p className="text-[#111827] truncate">
+                          <p className="text-foreground truncate">
                             {value || "(empty)"}
                           </p>
                         </div>
@@ -663,7 +663,7 @@ export const TemplateMappingUI: React.FC<TemplateMappingUIProps> = ({
       <div className="flex gap-3 justify-end">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-[#111827] border border-[#E2E8F0] rounded-lg hover:bg-[#F9FAFB] transition-colors"
+          className="px-4 py-2 text-sm font-medium text-foreground border border-[#E2E8F0] rounded-lg hover:bg-[#F9FAFB] transition-colors"
         >
           Cancel
         </button>

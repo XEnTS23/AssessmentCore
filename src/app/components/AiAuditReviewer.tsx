@@ -50,7 +50,7 @@ function AiStatusIcon({
   loading: boolean;
 }) {
   if (loading)
-    return <Loader2 className="w-4 h-4 animate-spin text-[#111827]" />;
+    return <Loader2 className="w-4 h-4 animate-spin text-foreground" />;
   if (!result) return <Clock className="w-4 h-4 text-muted-foreground/50" />;
   if (result.status === "ai_certified")
     return <CheckCircle2 className="w-4 h-4 text-success" />;
@@ -60,18 +60,18 @@ function AiStatusIcon({
 function Gate1Pill({ status }: { status: string }) {
   if (status === "valid")
     return (
-      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-success-light text-success font-archivo">
+      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-success-light text-success font-archivo">
         valid
       </span>
     );
   if (status === "caution")
     return (
-      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warning-light text-warning font-archivo">
+      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-warning-light text-warning font-archivo">
         caution
       </span>
     );
   return (
-    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-destructive-light text-destructive font-archivo">
+    <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-destructive-light text-destructive font-archivo">
       rejected
     </span>
   );
@@ -216,10 +216,10 @@ export function AiAuditReviewer({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-semibold text-[#0f172a] flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#111827]" />
+            <Sparkles className="w-5 h-5 text-foreground" />
             AI Semantic Audit
           </h2>
-          <p className="text-sm text-[#475569] mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Gate 2 — Groq reviews grammar, logic, clarity &amp; factual accuracy
           </p>
         </div>
@@ -244,19 +244,19 @@ export function AiAuditReviewer({
           <Button
             variant="outline"
             onClick={onSkip}
-            className="border-[#e2e8f0] text-[#475569] hover:bg-[#f8fafc] font-archivo text-sm"
+            className="border-border text-muted-foreground hover:bg-background font-archivo text-sm"
           >
             Skip
           </Button>
           {batchProgress ? (
             <div className="flex items-center gap-3 min-w-[220px]">
               <div className="flex-1">
-                <div className="flex justify-between text-xs text-[#475569] mb-1">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
                   <span className="flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Auditing via Gemini…
                   </span>
-                  <span className="font-semibold text-[#111827]">
+                  <span className="font-semibold text-foreground">
                     {batchProgress.done} / {batchProgress.total}
                   </span>
                 </div>
@@ -291,9 +291,9 @@ export function AiAuditReviewer({
         style={{ height: "calc(100vh - 280px)" }}
       >
         {/* Left: question list */}
-        <div className="w-80 flex-shrink-0 bg-card rounded-xl border border-[#e2e8f0] flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#e2e8f0] bg-[#f8fafc]">
-            <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider">
+        <div className="w-80 flex-shrink-0 bg-card rounded-xl border border-border flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-background">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {results.length} Questions
             </p>
           </div>
@@ -312,8 +312,8 @@ export function AiAuditReviewer({
                     onClick={() => setSelectedKey(rowKey)}
                     className={`w-full text-left px-4 py-3 transition-colors flex items-start gap-3 ${
                       isSelected
-                        ? "bg-[#f1f5f9] border-l-2 border-[#111827]"
-                        : "hover:bg-[#f8fafc] border-l-2 border-transparent"
+                        ? "bg-muted border-l-2 border-[#111827]"
+                        : "hover:bg-background border-l-2 border-transparent"
                     }`}
                   >
                     {/* Status icon */}
@@ -324,11 +324,11 @@ export function AiAuditReviewer({
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[11px] font-semibold text-[#64748b]">
+                        <span className="text-xs font-semibold text-muted-foreground">
                           #{rowNumber}
                         </span>
                         <Gate1Pill status={status} />
-                        <span className="text-[10px] text-[#64748b] capitalize">
+                        <span className="text-xs text-muted-foreground capitalize">
                           {canonicalItem.canonicalType.replace("_", " ")}
                         </span>
                       </div>
@@ -346,10 +346,10 @@ export function AiAuditReviewer({
                         runAudit(result);
                       }}
                       disabled={loading || isAuditingAll}
-                      className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded transition-colors ${
+                      className={`flex-shrink-0 text-xs font-semibold px-2 py-1 rounded transition-colors ${
                         loading || isAuditingAll
-                          ? "opacity-40 cursor-not-allowed bg-[#f0f3ff] text-[#64748b]"
-                          : "bg-[#f1f5f9] text-[#111827] hover:bg-[#e2e8f0]"
+                          ? "opacity-40 cursor-not-allowed bg-[#f0f3ff] text-muted-foreground"
+                          : "bg-muted text-foreground hover:bg-[#e2e8f0]"
                       }`}
                     >
                       {loading ? "…" : audit ? "Re-audit" : "Audit"}
@@ -362,23 +362,23 @@ export function AiAuditReviewer({
         </div>
 
         {/* Right: detail panel */}
-        <div className="flex-1 bg-card rounded-xl border border-[#e2e8f0] flex flex-col overflow-hidden">
+        <div className="flex-1 bg-card rounded-xl border border-border flex flex-col overflow-hidden">
           {!selectedResult || !selectedResult.canonicalItem ? (
-            <div className="flex-1 flex items-center justify-center text-[#64748b] text-sm">
+            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
               Select a question from the list
             </div>
           ) : (
             <>
               {/* Detail header */}
-              <div className="px-6 py-4 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border bg-background flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[#475569]">
+                  <span className="text-sm font-semibold text-muted-foreground">
                     Question #{selectedResult.rowNumber}
                   </span>
                   <Gate1Pill status={selectedResult.status} />
                   <Badge
                     variant="outline"
-                    className="text-[#475569] border-[#e2e8f0] text-xs font-archivo capitalize"
+                    className="text-muted-foreground border-border text-xs font-archivo capitalize"
                   >
                     {selectedResult.canonicalItem.canonicalType.replace(
                       "_",
@@ -423,7 +423,7 @@ export function AiAuditReviewer({
                 <div className="px-6 py-5 space-y-5">
                   {/* Stem */}
                   <div>
-                    <p className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider mb-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Question Stem
                     </p>
                     <p className="text-sm text-[#0f172a] leading-relaxed font-data">
@@ -432,7 +432,7 @@ export function AiAuditReviewer({
                         "(no stem)"}
                     </p>
                     {editedStems.has(selectedResult.rowKey) && (
-                      <span className="text-[10px] text-[#111827] mt-1 block">
+                      <span className="text-xs text-foreground mt-1 block">
                         edited
                       </span>
                     )}
@@ -441,7 +441,7 @@ export function AiAuditReviewer({
                   {/* Options */}
                   {selectedResult.canonicalItem.choices.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider mb-1.5">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                         Options
                       </p>
                       <div className="space-y-1.5">
@@ -457,7 +457,7 @@ export function AiAuditReviewer({
                               className={`flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm ${
                                 isCorrect
                                   ? "bg-success-light border border-success text-emerald-800"
-                                  : "bg-[#f8fafc] border border-[#e2e8f0] text-[#0f172a]"
+                                  : "bg-background border border-border text-[#0f172a]"
                               }`}
                             >
                               <span className="font-semibold flex-shrink-0">
@@ -479,7 +479,7 @@ export function AiAuditReviewer({
                   {/* Order items */}
                   {selectedResult.canonicalItem.orderItems.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider mb-1.5">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                         Order Items
                       </p>
                       <div className="space-y-1.5">
@@ -487,9 +487,9 @@ export function AiAuditReviewer({
                           (item, i) => (
                             <div
                               key={i}
-                              className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] text-sm text-[#0f172a]"
+                              className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-background border border-border text-sm text-[#0f172a]"
                             >
-                              <span className="font-semibold text-[#64748b]">
+                              <span className="font-semibold text-muted-foreground">
                                 {i + 1}.
                               </span>
                               <span>{item}</span>
@@ -537,8 +537,8 @@ export function AiAuditReviewer({
                   )}
 
                   {!selectedAudit && !selectedLoading && (
-                    <div className="rounded-lg border border-dashed border-[#e2e8f0] p-4 text-center">
-                      <p className="text-sm text-[#64748b]">
+                    <div className="rounded-lg border border-dashed border-border p-4 text-center">
+                      <p className="text-sm text-muted-foreground">
                         Click <strong>Audit</strong> to analyse this question
                       </p>
                     </div>
@@ -556,7 +556,7 @@ export function AiAuditReviewer({
         onOpenChange={(open) => !open && setModalKey(null)}
       >
         <DialogContent className="max-w-2xl font-archivo max-h-[90vh] flex flex-col gap-0 p-0">
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-[#e2e8f0]">
+          <DialogHeader className="px-6 pt-5 pb-4 border-b border-border">
             <DialogTitle className="flex items-center gap-2 text-[#0f172a]">
               <AlertTriangle className="w-5 h-5 text-destructive" />
               Issues &amp; Fix — Question #{modalResult?.rowNumber}
@@ -566,19 +566,19 @@ export function AiAuditReviewer({
           {modalResult?.canonicalItem && (
             <div className="flex-1 overflow-y-auto">
               {/* ── Question data (read-only) ── */}
-              <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#e2e8f0] space-y-3">
-                <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider">
+              <div className="px-6 py-4 bg-background border-b border-border space-y-3">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Question Data
                 </p>
 
                 {/* Original stem */}
                 <div>
-                  <p className="text-[10px] font-semibold text-[#475569] mb-1">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">
                     Original Stem
                   </p>
-                  <p className="text-sm text-[#0f172a] leading-relaxed bg-card rounded-lg border border-[#e2e8f0] px-3 py-2">
+                  <p className="text-sm text-[#0f172a] leading-relaxed bg-card rounded-lg border border-border px-3 py-2">
                     {modalResult.canonicalItem.stem || (
-                      <span className="text-[#64748b] italic">(no stem)</span>
+                      <span className="text-muted-foreground italic">(no stem)</span>
                     )}
                   </p>
                 </div>
@@ -586,7 +586,7 @@ export function AiAuditReviewer({
                 {/* Options */}
                 {modalResult.canonicalItem.choices.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold text-[#475569] mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">
                       Options
                     </p>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -602,7 +602,7 @@ export function AiAuditReviewer({
                             className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs ${
                               isCorrect
                                 ? "bg-success-light border border-success text-emerald-800 font-medium"
-                                : "bg-card border border-[#e2e8f0] text-[#0f172a]"
+                                : "bg-card border border-border text-[#0f172a]"
                             }`}
                           >
                             <span className="font-bold flex-shrink-0">
@@ -624,16 +624,16 @@ export function AiAuditReviewer({
                 {/* Order items */}
                 {modalResult.canonicalItem.orderItems.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold text-[#475569] mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">
                       Order Items
                     </p>
                     <div className="space-y-1">
                       {modalResult.canonicalItem.orderItems.map((item, i) => (
                         <div
                           key={i}
-                          className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs bg-card border border-[#e2e8f0] text-[#0f172a]"
+                          className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs bg-card border border-border text-[#0f172a]"
                         >
-                          <span className="font-bold text-[#64748b]">
+                          <span className="font-bold text-muted-foreground">
                             {i + 1}.
                           </span>
                           <span>{item}</span>
@@ -648,7 +648,7 @@ export function AiAuditReviewer({
                 {/* ── Issues ── */}
                 {modalAudit?.issues && modalAudit.issues.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider mb-2">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                       {modalAudit.issues.length} Issue
                       {modalAudit.issues.length !== 1 ? "s" : ""} Detected
                     </p>
@@ -666,7 +666,7 @@ export function AiAuditReviewer({
                               <div className="flex items-start gap-3">
                                 <div className="flex-1 min-w-0">
                                   <span
-                                    className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}
+                                    className={`text-xs font-bold uppercase tracking-wider ${colors.text}`}
                                   >
                                     {issue.issue_type}
                                   </span>
@@ -707,9 +707,9 @@ export function AiAuditReviewer({
                 {/* ── Editable stem ── */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                       Fixed Stem
-                      <span className="ml-2 text-[10px] font-normal normal-case text-[#475569]">
+                      <span className="ml-2 text-xs font-normal normal-case text-muted-foreground">
                         — edit manually or use AI Auto-Fix
                       </span>
                     </label>
@@ -764,7 +764,7 @@ export function AiAuditReviewer({
                       )
                     }
                     rows={3}
-                    className="text-sm text-[#0f172a] border-[#e2e8f0] focus:border-[#111827] resize-none font-archivo"
+                    className="text-sm text-[#0f172a] border-border focus:border-[#111827] resize-none font-archivo"
                     placeholder="Edit the stem here, or click AI Auto-Fix to let Groq rewrite it…"
                   />
                 </div>
@@ -773,11 +773,11 @@ export function AiAuditReviewer({
           )}
 
           {/* Modal footer */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-[#e2e8f0] bg-[#f8fafc]">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-background">
             <Button
               variant="outline"
               onClick={() => setModalKey(null)}
-              className="border-[#e2e8f0] text-[#475569] font-archivo text-sm"
+              className="border-border text-muted-foreground font-archivo text-sm"
             >
               Close
             </Button>

@@ -180,8 +180,8 @@ function FormattingTabContent({ onInsert, onExecuteCommand }: { onInsert?: (late
       </RibbonGroup>
       <RibbonSeparator />
       <RibbonGroup label="Size">
-        <RibbonButton label="Small" shortLabel="A" className="text-[10px]" onClick={() => onInsert?.("{\\small #?}")} />
-        <RibbonButton label="Large" shortLabel="A" className="text-[14px]" onClick={() => onInsert?.("{\\large #?}")} />
+        <RibbonButton label="Small" shortLabel="A" className="text-xs" onClick={() => onInsert?.("{\\small #?}")} />
+        <RibbonButton label="Large" shortLabel="A" className="text-sm" onClick={() => onInsert?.("{\\large #?}")} />
       </RibbonGroup>
       <RibbonSeparator />
       <RibbonGroup label="Color">
@@ -271,7 +271,7 @@ function RibbonGroup({ label, children }: { label: string; children: React.React
   return (
     <div className="flex flex-col items-start gap-1">
       <div className="flex items-center gap-1">{children}</div>
-      <span className="text-[10px] text-muted-foreground/70 leading-none">{label}</span>
+      <span className="text-xs text-muted-foreground/70 leading-none">{label}</span>
     </div>
   );
 }

@@ -1,44 +1,41 @@
 import { Link } from "react-router";
 import {
   ArrowRight,
+  BookOpen,
+  CheckCircle2,
   Code2,
+  Compass,
+  FileCheck2,
   Globe2,
-  Rocket,
-  Shield,
-  Target,
-  Facebook,
-  Github,
-  Linkedin,
-  Mail,
+  Layers,
   MapPin,
-  MessageCircle,
-  Phone,
-  Youtube,
+  Shield,
+  Sparkles,
+  Target,
+  UserCheck,
 } from "lucide-react";
-import { useTheme } from "../../contexts/ThemeContext";
 import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
 
 export function CompanyPage() {
-  const { isDark } = useTheme();
-
-  const values = [
+  const companyValues = [
     {
-      icon: <Target className="h-6 w-6" />,
-      title: "Deterministic Precision",
+      icon: <Target className="h-5 w-5 text-primary" />,
+      title: "Outcome Over Hype",
       description:
-        "We don't guess. Our pipelines are built on strict, rule-based validation. If a question package exports from our system, it is guaranteed to render correctly.",
+        "We don't sell AI magic or superficial OCR. Our deliverable is usable, validated assessment content that imports reliably into production LMS and authoring platforms.",
     },
     {
-      icon: <Code2 className="h-6 w-6" />,
-      title: "Standards Obsession",
+      icon: <Code2 className="h-5 w-5 text-primary" />,
+      title: "Standards & Interoperability",
       description:
-        "IMS Global standards and QTI 3.0 are our baselines. We engineer custom adapters to handle the undocumented realities of major LMS platforms.",
+        "We build around IMS Global QTI 2.1 / 3.0, clean LaTeX, and semantic MathML. We adapt to platform-specific quirks (such as Canvas or Moodle) with tested adapters.",
     },
     {
-      icon: <Shield className="h-6 w-6" />,
-      title: "Data Integrity",
+      icon: <Shield className="h-5 w-5 text-primary" />,
+      title: "Transparency in Quality",
       description:
-        "We treat your assessment data with absolute respect. Our 3-pass cleaning pipeline ensures zero data degradation during the transformation process.",
+        "The goal is not to hide uncertainty behind false claims of 100% precision. It is to identify anomalies and missing assets before content ever reaches learners.",
     },
   ];
 
@@ -48,267 +45,171 @@ export function CompanyPage() {
 
       {/* Hero Section */}
       <section className="mx-auto w-full max-w-6xl px-6 pb-16 pt-20">
-        <div className="flex flex-col items-center text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-            <Globe2 className="h-4 w-4" />
-            Our Mission
+        <div className="flex flex-col items-start max-w-3xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+            <Globe2 className="h-3.5 w-3.5" />
+            About Husimi
           </div>
-          <h1 className="max-w-4xl text-5xl font-semibold tracking-tight leading-[1.1]">
-            Engineering the infrastructure for{" "}
-            <span className="text-primary">digital assessments.</span>
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl leading-[1.1]">
+            Specialized assessment content services and technology.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            AssessmentCore was built to bridge the gap between raw data and
-            modern Learning Management Systems through uncompromising
-            computational logic.
+          <p className="mt-5 text-base sm:text-lg leading-relaxed text-muted-foreground">
+            Husimi helps education companies create, digitize, validate, and migrate assessment content. We build proprietary technology underneath our services to automate more of that work over time.
           </p>
-        </div>
-      </section>
 
-      {/* The Story Section */}
-      <section className="border-t border-border bg-muted/30 px-6 py-24 transition-colors duration-200">
-        <div className="mx-auto grid w-full max-w-6xl gap-16 lg:grid-cols-2 lg:items-center">
-          <div>
-            <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-              The problem with manual data entry.
-            </h2>
-            <div className="mt-6 space-y-6 text-base leading-relaxed text-muted-foreground">
-              <p>
-                For years, educators, publishers, and instructional designers
-                have been trapped in a cycle of manual copying and pasting.
-                Manually retyping complex physics diagrams, bilingual text, and
-                nested LaTeX equations from messy legacy PDFs into Canvas or
-                Moodle meant thousands of hours wasted fighting fragile XML
-                schemas and broken image links.
-              </p>
-              <p>
-                Founded in Tamluk, West Bengal, AssessmentCore was built by
-                developers who were tired of seeing institutions waste thousands
-                of hours on data wrangling instead of pedagogy.
-              </p>
-              <p>
-                We realized that assessment generation didn't need a new
-                authoring tool—it needed an industrial-grade transformation
-                pipeline. We built a system that relies on a deterministic
-                Identifier-First Strategy to validate, clean, and package bulk
-                data with mathematical certainty.
-              </p>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -inset-4 rounded-3xl bg-primary/5 blur-3xl" />
-            <div className="relative grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col justify-center rounded-[0.625rem] border border-border bg-card p-6 shadow-sm">
-                <div className="text-4xl font-bold tracking-tight text-foreground">
-                  10,000+
-                </div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  Questions digitized per batch
-                </div>
-              </div>
-              <div className="flex flex-col justify-center rounded-[0.625rem] border border-border bg-card p-6 shadow-sm">
-                <div className="text-4xl font-bold tracking-tight text-foreground">
-                  25+
-                </div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  Deterministic validation rules
-                </div>
-              </div>
-              <div className="flex flex-col justify-center rounded-[0.625rem] border border-border bg-card p-6 shadow-sm sm:col-span-2">
-                <div className="text-4xl font-bold tracking-tight text-foreground">
-                  100%
-                </div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  LMS formatting compliance
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Core Values */}
-      <section className="mx-auto w-full max-w-6xl px-6 py-24">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Our Core Principles
-          </h2>
-          <p className="mt-3 text-sm text-muted-foreground">
-            The engineering standards that dictate every line of our codebase.
-          </p>
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-3">
-          {values.map((value, idx) => (
-            <div
-              key={idx}
-              className="group rounded-[0.625rem] border border-border bg-card p-8 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
-            >
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                {value.icon}
-              </div>
-              <h3 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
-                {value.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {value.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Contact CTA */}
-      <section className="border-t border-border bg-workspace-bg px-6 py-24 transition-colors duration-200">
-        <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-          <Rocket className="mb-6 h-12 w-12 text-primary" />
-          <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-            Ready to upgrade your infrastructure?
-          </h2>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-            Whether you have a technical question about our XML adapters or need
-            to discuss an enterprise-scale migration, our engineering team is
-            ready to help.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               to="/contact"
-              className="inline-flex h-12 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-all"
+              className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-6 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Contact our team
-              <ArrowRight className="h-4 w-4" />
+              Discuss a Project
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              to="/services"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-card px-5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              Explore Services
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Standard Footer */}
-      <footer className="border-t border-border bg-muted/50 px-6 transition-colors duration-200">
-        <div className="mx-auto w-full max-w-7xl py-10">
-          <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
-            <div>
-              <div className="flex items-center gap-2">
-                <img
-                  src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
-                  alt="AssessmentCore logo"
-                  className="h-7 w-7 rounded-md object-contain"
-                />
-                <span className="text-sm font-semibold text-foreground">
-                  AssessmentCore
-                </span>
-              </div>
-              <p className="mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
-                Build, validate, and export high-quality assessments with a
-                deterministic workflow and LMS-ready outputs.
-              </p>
+      {/* The Story / Company Background */}
+      <section className="border-t border-border bg-muted/20 px-6 py-20 transition-colors">
+        <div className="mx-auto grid w-full max-w-6xl gap-12 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-7 space-y-5 text-sm leading-relaxed text-muted-foreground">
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+              <UserCheck className="h-4 w-4" />
+              Our Background
             </div>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              Built around real-world assessment authoring workflows
+            </h2>
+            <p>
+              Husimi was established out of direct, hands-on experience authoring and managing digital assessment content for STEM education, test-prep curricula, and institutional learning platforms.
+            </p>
+            <p>
+              Educators and content teams routinely struggle with the same frustrating bottleneck: decades of high-quality mock tests, practice problems, and question banks exist only in Word documents, multi-column print PDFs, or legacy spreadsheets. Moving them into modern systems like Canvas, Moodle, or custom testing platforms requires painful manual retyping, broken formulas, and detached diagrams.
+            </p>
+            <p>
+              We founded Husimi to solve this content problem directly. Customers work with Husimi today to take responsibility for real assessment backlogs, while our proprietary technology platform is being engineered to increasingly automate segmentation, LaTeX extraction, validation, and QTI packaging.
+            </p>
+            <p>
+              At Husimi, project clients work directly with the specialists who understand the assessment data structures, platform nuances, and parsing engine from the ground up.
+            </p>
+          </div>
 
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Contact
-              </h4>
-              <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-                <a
-                  href="mailto:hello@assessmentcore.in"
-                  className="flex items-center gap-2 hover:text-foreground transition-colors"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  hello@assessmentcore.in
-                </a>
-                <a
-                  href="tel:+919382565942"
-                  className="flex items-center gap-2 hover:text-foreground transition-colors"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  +91 9382565942
-                </a>
-                <div className="flex items-start gap-2">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5" />
-                  <span>Tamluk, India</span>
+          <div className="lg:col-span-5 rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-3">
+              Direct Practical Experience
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-foreground">Canvas Assessment Workflows: </span>
+                  Hands-on construction and troubleshooting of Classic and New Quizzes QTI packages.
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-foreground">Delta AT Authoring Workflows: </span>
+                  Experience with digital item authoring, question structures, and content schemas.
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-foreground">STEM &amp; Physics Content: </span>
+                  Specialized handling for circuit diagrams, chemical structures, and multi-step LaTeX formulas.
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-foreground">Structured Assessment Schemas: </span>
+                  IMS Global QTI 2.1 &amp; 3.0 specification mapping, identifier rules, and response declarations.
                 </div>
               </div>
             </div>
 
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Connect
-              </h4>
-              <div className="mt-3 flex items-center gap-2">
-                <a
-                  href="https://www.linkedin.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="LinkedIn"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Linkedin className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://github.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="GitHub"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Github className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://www.facebook.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Facebook"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Facebook className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://wa.me/919382565942"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="WhatsApp"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://www.youtube.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="YouTube"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Youtube className="h-4 w-4" />
-                </a>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <Link
-                  to="/documentation"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Documentation
-                </Link>
-                <Link
-                  to="/changelog"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Changelog
-                </Link>
-                <Link
-                  to="/status"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Status
-                </Link>
-              </div>
+            <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+              Based in Tamluk, West Bengal, India · Serving education companies and assessment platforms globally.
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground">
-            AssessmentCore · v1.0 · {new Date().getFullYear()}
+      {/* Values Section */}
+      <section className="px-6 py-20 transition-colors">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="max-w-2xl">
+            <div className="text-xs font-semibold uppercase tracking-wide text-primary">
+              Principles
+            </div>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+              What guides our work
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              We approach educational content with the engineering discipline and pedagogical care it deserves.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            {companyValues.map((val, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-border bg-card p-6 shadow-xs"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/40">
+                  {val.icon}
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-foreground">
+                  {val.title}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {val.description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* Brand Architecture Relationship */}
+      <section className="border-t border-border bg-muted/20 px-6 py-20 transition-colors">
+        <div className="mx-auto w-full max-w-4xl text-center">
+          <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+            Service &amp; Technology Platform
+          </span>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+            Our Approach &amp; Platform
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground max-w-2xl mx-auto">
+            <strong className="text-foreground">Husimi</strong> takes full responsibility for complex assessment content backlogs (<code className="text-xs bg-muted px-1.5 py-0.5 rounded">husimisolutions.com</code>), using our proprietary processing pipeline to automate question segmentation, LaTeX extraction, validation rules, and platform-ready QTI exports.
+          </p>
+
+          <div className="mt-8 flex justify-center gap-3">
+            <Link
+              to="/contact"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Discuss Your Project
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              to="/documentation"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              Read Documentation
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }

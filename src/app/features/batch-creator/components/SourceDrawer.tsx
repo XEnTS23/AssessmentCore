@@ -68,7 +68,7 @@ export function SourceDrawer({
         </div>
 
         <div className="flex-1 overflow-auto p-4">
-          <pre className="text-[10px] font-mono leading-relaxed text-foreground whitespace-pre-wrap bg-muted/30 rounded-md border p-4">
+          <pre className="text-xs font-mono leading-relaxed text-foreground whitespace-pre-wrap bg-muted/30 rounded-md border p-4">
             {tabs.find((t) => t.key === activeTab)?.data}
           </pre>
         </div>

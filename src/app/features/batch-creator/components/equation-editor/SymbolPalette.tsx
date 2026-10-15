@@ -68,7 +68,7 @@ export function SymbolPalette({ activeCategory, onInsertSymbol }: Props) {
                     className="text-base pointer-events-none"
                   />
                   {symbol.insertion.type === "template" && (
-                    <span className="text-[10px] text-muted-foreground mt-1 hidden">{symbol.label}</span>
+                    <span className="text-xs text-muted-foreground mt-1 hidden">{symbol.label}</span>
                   )}
                 </button>
               );

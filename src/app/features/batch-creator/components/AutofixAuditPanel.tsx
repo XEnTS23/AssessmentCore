@@ -82,7 +82,7 @@ export function AutofixAuditPanel({
               field-level evidence.
             </p>
           </div>
-          <div className="flex overflow-hidden rounded-md border bg-background text-[11px]">
+          <div className="flex overflow-hidden rounded-md border bg-background text-xs">
             {(
               [
                 ["all", `All ${entries.length}`],
@@ -138,15 +138,15 @@ export function AutofixAuditPanel({
                         )}
                         <span className="font-medium">{entry.label}</span>
                         <span
-                          className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${statusClasses(entry.status)}`}
+                          className={`rounded px-1.5 py-0.5 text-xs font-bold uppercase ${statusClasses(entry.status)}`}
                         >
                           {entry.status.replace("_", " ")}
                         </span>
-                        <span className="rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">
+                        <span className="rounded border px-1.5 py-0.5 text-xs font-bold uppercase text-muted-foreground">
                           {entry.confidence} confidence
                         </span>
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span>Row {entry.sourceRowNumber}</span>
                         <span>{entry.ruleId}</span>
                         <span>
@@ -204,7 +204,7 @@ export function AutofixAuditPanel({
                           >
                             {entry.beforeValidation.status.replace("_", " ")}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-xs text-muted-foreground">
                             {entry.beforeValidation.issueCount} issue
                             {entry.beforeValidation.issueCount === 1 ? "" : "s"}
                           </div>
@@ -216,7 +216,7 @@ export function AutofixAuditPanel({
                           >
                             {entry.afterValidation.status.replace("_", " ")}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-xs text-muted-foreground">
                             {entry.afterValidation.issueCount} issue
                             {entry.afterValidation.issueCount === 1 ? "" : "s"}
                           </div>
@@ -231,7 +231,7 @@ export function AutofixAuditPanel({
                         </div>
                       )}
                       {entry.status === "applied" && !rollbackSafe && (
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           Rollback is locked after a later content change to
                           prevent data loss.
                         </p>
@@ -248,7 +248,7 @@ export function AutofixAuditPanel({
                             key={`${entry.id}-${change.path}-${index}`}
                             className="grid gap-2 border-b p-2 text-xs last:border-b-0 md:grid-cols-[160px_minmax(0,1fr)_20px_minmax(0,1fr)]"
                           >
-                            <code className="break-all text-[10px] text-muted-foreground">
+                            <code className="break-all text-xs text-muted-foreground">
                               {change.path}
                             </code>
                             <div className="min-w-0 break-words rounded bg-destructive/5 px-2 py-1 text-destructive">

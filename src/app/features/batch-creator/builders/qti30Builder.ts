@@ -32,7 +32,7 @@ import { resolveItemId } from "./shared/identifierUtils";
 import { renderRichContent } from "./shared/richContentRenderer";
 import { mapScoring } from "./shared/scoringMapper";
 import {
-  buildAssessmentCoreManifestMetadata,
+  buildManifestMetadata,
   buildQtiAuthoringSupport,
 } from "./shared/authoringSectionMapper";
 
@@ -382,7 +382,7 @@ function buildManifest(
       const href = escapeXml(a.fileName);
       const interactionType =
         interactionTypeMap.get(a.fileName) || "choiceInteraction";
-      const assessmentCoreMetadata = metadataByFileName.get(a.fileName) || "";
+      const manifestMetadata = metadataByFileName.get(a.fileName) || "";
 
       return `
     <resource identifier="${resId}" type="imsqti_item_xmlv3p0" href="${href}">
@@ -392,7 +392,7 @@ function buildManifest(
             <qti-interaction-type>${interactionType}</qti-interaction-type>
           </qti-interaction-types>
         </qti-metadata>
-        ${assessmentCoreMetadata}
+        ${manifestMetadata}
       </metadata>
       <file href="${href}" />
     </resource>`;
@@ -400,7 +400,7 @@ function buildManifest(
     .join("");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:ac="https://assessmentcore.app/ns/metadata/1.0" identifier="MANIFEST-QTI30">
+<manifest xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:ac="https://husimisolutions.com/ns/metadata/1.0" identifier="MANIFEST-QTI30">
   <metadata>
     <schema>IMS Content</schema>
     <schemaversion>1.2</schemaversion>
@@ -508,7 +508,7 @@ export function buildQti30Export(
       interactionTypeMap.set(fileName, interactionType);
       metadataByFileName.set(
         fileName,
-        buildAssessmentCoreManifestMetadata(row),
+        buildManifestMetadata(row),
       );
     }
   }

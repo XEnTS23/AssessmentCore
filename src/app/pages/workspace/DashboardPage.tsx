@@ -25,7 +25,7 @@ function StatCard({
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4 transition-colors duration-200">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
@@ -130,7 +130,7 @@ export function DashboardPage() {
     <div className="min-h-full space-y-6 bg-workspace-bg p-6 sm:p-8 transition-colors duration-200">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">
+          <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
             <Sparkles className="h-3 w-3" />
             Workspace overview
           </div>
@@ -251,7 +251,7 @@ export function DashboardPage() {
             {/* Free Card */}
             <div className="relative flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-colors duration-200">
               <div className="mb-4">
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Current Plan
                 </span>
                 <h3 className="mt-2 text-xl font-bold text-foreground">
@@ -286,11 +286,11 @@ export function DashboardPage() {
 
             {/* Premium Card */}
             <div className="relative flex flex-col rounded-xl border-2 border-primary bg-card p-6 shadow-md ring-4 ring-primary/10 transition-colors duration-200">
-              <div className="absolute -top-3 right-6 rounded-full bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground uppercase tracking-wider">
+              <div className="absolute -top-3 right-6 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground uppercase tracking-wider">
                 Most Popular
               </div>
               <div className="mb-4">
-                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-primary">
                   Premium Tier
                 </span>
                 <h3 className="mt-2 text-xl font-bold text-foreground">
@@ -323,7 +323,7 @@ export function DashboardPage() {
                 </div>
               </div>
               <a
-                href="mailto:hello@assessmentcore.in?subject=Upgrade to Premium"
+                href="mailto:hello@husimisolutions.com?subject=Upgrade to Premium"
                 className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
               >
                 Upgrade to Premium

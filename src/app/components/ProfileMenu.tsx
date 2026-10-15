@@ -41,7 +41,7 @@ export function ProfileMenu({ variant = "workspace" }: ProfileMenuProps) {
         aria-expanded={isOpen}
       >
         <div
-          className={`flex items-center justify-center ${isPremium ? "rounded-sm bg-black text-white shadow-inner" : "rounded-md bg-primary text-primary-foreground"} text-[11px] font-semibold ${compact ? "h-7 w-7" : "h-6 w-6"}`}
+          className={`flex items-center justify-center ${isPremium ? "rounded-sm bg-black text-white shadow-inner" : "rounded-md bg-primary text-primary-foreground"} text-xs font-semibold ${compact ? "h-7 w-7" : "h-6 w-6"}`}
         >
           {initials}
         </div>

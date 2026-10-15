@@ -1,0 +1,10 @@
+Question ID,Question Type,Question,Option A,Option B,Correct Answer
+latex-valid-dollar,MCQ,"Find $\frac{1}{2} + \frac{1}{4}$.",3/4,1/2,A
+latex-valid-parentheses,MCQ,"Solve \(x + 1 = 2\).",1,2,A
+latex-missing,MCQ,"Find \frac{1}{2} + \frac{1}{4}.",3/4,1/2,A
+latex-unclosed,MCQ,"Solve \(x + 1 = 2.",1,2,A
+latex-mismatched,MCQ,"Solve \[x + 1\).",1,2,A
+latex-bare-power,MCQ,"Simplify x^2 + y_1.",Expression,Number,A
+latex-empty,MCQ,"Evaluate $ $ before answering.",Zero,One,A
+latex-currency,MCQ,"A book costs $100. Is the cost above $50?",Yes,No,A
+latex-escaped-dollar,MCQ,"The literal currency symbol is \$ in this sentence.",True,False,A

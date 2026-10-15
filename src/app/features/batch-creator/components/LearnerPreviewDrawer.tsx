@@ -85,7 +85,7 @@ export function LearnerPreviewDrawer({
             <Button
               variant={isViewingCode ? "secondary" : "outline"}
               size="sm"
-              className="h-7 text-[10px] px-2 gap-1"
+              className="h-7 text-xs px-2 gap-1"
               onClick={() => setIsViewingCode(!isViewingCode)}
               title="View/Edit Underlying HTML Code"
             >
@@ -96,7 +96,7 @@ export function LearnerPreviewDrawer({
                 <button
                   key={p}
                   onClick={() => setProfile(p)}
-                  className={`h-7 px-3 text-[10px] ${
+                  className={`h-7 px-3 text-xs ${
                     profile === p
                       ? "bg-primary text-primary-foreground font-semibold"
                       : "bg-background text-foreground"
@@ -142,7 +142,7 @@ export function LearnerPreviewDrawer({
 
         {/* Profile warning details */}
         {profile !== "GENERIC" && (
-          <div className="border-t border-border p-3 bg-amber-50 text-[10px] text-amber-700 font-medium shrink-0">
+          <div className="border-t border-border p-3 bg-amber-50 text-xs text-amber-700 font-medium shrink-0">
             ⚠ {profile} rendering simulation mode active. Equation delivery
             depends on target platform plugin support.
           </div>

@@ -246,7 +246,7 @@ export function MediaOverrideModal({
               <p className="mt-1.5 text-xs font-medium text-muted-foreground">
                 {mediaUrl ? "Drop a replacement image" : "Drop an image here"}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground/60">
+              <p className="mt-0.5 text-xs text-muted-foreground/60">
                 JPEG, PNG, WebP · Max 10 MB
               </p>
             </>

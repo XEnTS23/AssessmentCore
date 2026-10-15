@@ -102,19 +102,19 @@ export function AiAuditStage({ upload, wizard }: { upload: any; wizard: any }) {
                           {res.categories.map((cat) => (
                             <span
                               key={cat}
-                              className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-background/50 border text-muted-foreground"
+                              className="text-xs uppercase font-semibold px-1.5 py-0.5 rounded bg-background/50 border text-muted-foreground"
                             >
                               {cat}
                             </span>
                           ))}
                         </div>
                         {res.userAction === "accepted" && (
-                          <span className="text-[10px] uppercase font-bold text-success flex items-center gap-1 ml-2">
+                          <span className="text-xs uppercase font-bold text-success flex items-center gap-1 ml-2">
                             <Check className="h-3 w-3" /> Fix Applied
                           </span>
                         )}
                         {res.userAction === "ignored" && (
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground ml-2">
+                          <span className="text-xs uppercase font-bold text-muted-foreground ml-2">
                             Ignored
                           </span>
                         )}

@@ -146,7 +146,7 @@ export function LoginPage() {
             {!isWorkspaceSubdomain && (
               <Link
                 to="/auth/forgot-password"
-                className="text-[11px] font-normal text-muted-foreground hover:text-foreground"
+                className="text-xs font-normal text-muted-foreground hover:text-foreground"
               >
                 Forgot?
               </Link>

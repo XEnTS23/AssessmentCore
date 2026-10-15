@@ -135,26 +135,26 @@ export function WorkspaceLoginPage() {
       <section className="relative z-10 w-full max-w-[460px] mx-5 py-10 px-8 sm:py-11 sm:px-12 bg-white/96 backdrop-blur-md border border-slate-200/65 rounded-2xl shadow-[0_22px_55px_rgba(18,46,83,0.13),0_6px_18px_rgba(18,46,83,0.06)]">
         
         <div className="flex items-center justify-center gap-3 mb-5">
-          <img src="/AC_logo.png" alt="Logo" className="h-9 w-9" />
+          <img src="/logo-dark-1.png" alt="Logo" className="h-9 w-9" />
           <div className="text-xl font-extrabold tracking-tight text-slate-900">
-            AssessmentCore
+            Husimi
           </div>
         </div>
 
-        <p className="text-center text-sm sm:text-[15px] text-slate-500 mb-7">
+        <p className="text-center text-sm sm:text-sm text-slate-500 mb-7">
           Sign in to access your secure workspace
         </p>
 
         <form onSubmit={onSubmit}>
           {error && (
-            <div className="flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-[13px] text-red-600 mb-5">
+            <div className="flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600 mb-5">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <div className="mb-5">
-            <label htmlFor="employee" className="block text-[13px] font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="employee" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Employee ID or Email
             </label>
             <div className="relative">
@@ -175,7 +175,7 @@ export function WorkspaceLoginPage() {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="password" className="block text-[13px] font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Password
             </label>
             <div className="relative">
@@ -203,7 +203,7 @@ export function WorkspaceLoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center text-[13px] mb-6">
+          <div className="flex items-center text-sm mb-6">
             <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600">
               <input 
                 type="checkbox" 
@@ -231,7 +231,7 @@ export function WorkspaceLoginPage() {
 
         <div className="h-px bg-slate-100 w-full my-5"></div>
 
-        <div className="flex items-center justify-center gap-1.5 text-[13px] text-slate-500">
+        <div className="flex items-center justify-center gap-1.5 text-sm text-slate-500">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
             <path d="M4 14v-2a8 8 0 0 1 16 0v2"></path>
             <path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5Z"></path>

@@ -113,9 +113,9 @@ export const canonicalRuleCatalog: readonly CanonicalRuleSpec[] = Object.freeze(
     .map(parseCanonicalRule),
 );
 
-if (canonicalRuleCatalog.length !== 155) {
+if (canonicalRuleCatalog.length !== 154) {
   throw new Error(
-    `Canonical validation catalog must contain 155 rules; found ${canonicalRuleCatalog.length}.`,
+    `Canonical validation catalog must contain 154 rules; found ${canonicalRuleCatalog.length}.`,
   );
 }
 

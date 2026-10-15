@@ -35,8 +35,8 @@ export function EquationBottomCards() {
       {/* Templates */}
       <div className="flex-1">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-[13px] font-semibold text-[var(--foreground)]">Templates</h3>
-          <button className="text-[11px] font-medium text-primary hover:underline">View All</button>
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">Templates</h3>
+          <button className="text-xs font-medium text-primary hover:underline">View All</button>
         </div>
         <div className="space-y-3 text-xs">
           {templates.map((item, i) => (
@@ -51,8 +51,8 @@ export function EquationBottomCards() {
       {/* Snippets */}
       <div className="flex-1 px-6 border-l border-r border-border">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-[13px] font-semibold text-[var(--foreground)]">Snippets</h3>
-          <button className="text-[11px] font-medium text-primary hover:underline">View All</button>
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">Snippets</h3>
+          <button className="text-xs font-medium text-primary hover:underline">View All</button>
         </div>
         <div className="space-y-3 text-xs">
           {snippets.map((item, i) => (
@@ -67,7 +67,7 @@ export function EquationBottomCards() {
       {/* Recently Used */}
       <div className="flex-1">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-[13px] font-semibold text-[var(--foreground)]">Recently Used</h3>
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">Recently Used</h3>
         </div>
         <div className="space-y-3 text-xs">
           {recentlyUsed.map((latex, i) => (

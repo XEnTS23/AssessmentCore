@@ -66,7 +66,7 @@ function severityIcon(severity: AIValidationIssue["severity"]) {
         <AlertTriangle className="w-3.5 h-3.5 text-[#D97706] flex-shrink-0" />
       );
     case "info":
-      return <Info className="w-3.5 h-3.5 text-[#111827] flex-shrink-0" />;
+      return <Info className="w-3.5 h-3.5 text-foreground flex-shrink-0" />;
   }
 }
 
@@ -137,11 +137,11 @@ function ValidationRow({
         )}
       >
         {/* Item No. */}
-        <td className="px-4 py-3 text-sm font-medium text-[#111827] w-[100px]">
+        <td className="px-4 py-3 text-sm font-medium text-foreground w-[100px]">
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="inline-flex items-center gap-2 hover:text-[#111827]"
+            className="inline-flex items-center gap-2 hover:text-foreground"
           >
             {expanded ? (
               <ChevronDown className="w-4 h-4" />
@@ -207,13 +207,13 @@ function ValidationRow({
             <div className="space-y-4">
               {/* XML Content Section */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-[#475569] uppercase">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">
                   Raw XML
                 </p>
                 {!editing ? (
                   <div className="flex items-start gap-2 group">
                     <div className="flex-1 bg-card border border-[#E2E8F0] rounded p-3 overflow-x-auto">
-                      <code className="text-xs text-[#475569] font-mono whitespace-pre-wrap break-all">
+                      <code className="text-xs text-muted-foreground font-mono whitespace-pre-wrap break-all">
                         {item.xmlContent}
                       </code>
                     </div>
@@ -224,13 +224,13 @@ function ValidationRow({
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded hover:bg-card"
                         title="Edit XML"
                       >
-                        <Pencil className="w-4 h-4 text-[#111827]" />
+                        <Pencil className="w-4 h-4 text-foreground" />
                       </button>
                       <button
                         type="button"
                         onClick={onAutoFix}
                         disabled={isFixing}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-[10px] font-medium disabled:opacity-70"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded bg-[#111827] hover:bg-[#1f2937] text-primary-foreground text-xs font-medium disabled:opacity-70"
                         title="Let AI fix XML and MathML issues"
                       >
                         {isFixing ? (
@@ -267,7 +267,7 @@ function ValidationRow({
                         size="sm"
                         variant="ghost"
                         onClick={cancelEdit}
-                        className="h-8 px-3 text-xs text-[#475569]"
+                        className="h-8 px-3 text-xs text-muted-foreground"
                       >
                         <X className="w-3 h-3 mr-1" />
                         Cancel
@@ -280,7 +280,7 @@ function ValidationRow({
               {/* Issues Section */}
               {issues.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[#475569] uppercase">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
                     Issues Found
                   </p>
                   <div className="space-y-2">
@@ -296,11 +296,11 @@ function ValidationRow({
                           >
                             {severityIcon(issue.severity)}
                             <div className="flex-1">
-                              <p className="text-[#111827] font-medium">
+                              <p className="text-foreground font-medium">
                                 {String(issue.message || "")}
                               </p>
                               {issue.element && (
-                                <code className="text-[10px] text-[#475569] font-mono mt-1 block">
+                                <code className="text-xs text-muted-foreground font-mono mt-1 block">
                                   {String(issue.element)}
                                 </code>
                               )}
@@ -314,7 +314,7 @@ function ValidationRow({
 
               {!hasErrors && !hasWarnings && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[#475569] uppercase">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
                     Validation Result
                   </p>
                   <div className="p-3 rounded bg-green-50 border border-green-200">
@@ -353,14 +353,14 @@ function ReadyCard({
     <Card className="border border-[#111827] bg-[#F0F9FF]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-[#111827]" />
+          <Shield className="w-5 h-5 text-foreground" />
           Ready to Validate
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="p-4 bg-card rounded-lg border border-[#E2E8F0]">
-          <p className="text-sm text-[#475569]">
-            <span className="font-semibold text-[#111827]">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">
               {totalItems} questions
             </span>{" "}
             will be validated using AI to check for XML schema compliance and
@@ -369,7 +369,7 @@ function ReadyCard({
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-[#475569]">
+          <label className="block text-sm font-medium text-muted-foreground">
             Select AI Provider
           </label>
           <Select
@@ -405,7 +405,7 @@ function ReadyCard({
           <Button
             onClick={onCancel}
             variant="ghost"
-            className="font-semibold px-5 text-[#475569] hover:bg-[#F1F5F9]"
+            className="font-semibold px-5 text-muted-foreground hover:bg-[#F1F5F9]"
           >
             Cancel
           </Button>
@@ -458,10 +458,10 @@ export function AIValidationReport({
     <Card className="border border-[#111827] bg-card">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Shield className="w-5 h-5 text-[#111827]" />
+          <Shield className="w-5 h-5 text-foreground" />
           AI Validation Report
         </CardTitle>
-        <p className="text-sm text-[#475569]">Powered by Gemini</p>
+        <p className="text-sm text-muted-foreground">Powered by Gemini</p>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -469,10 +469,10 @@ export function AIValidationReport({
         {(isRunning || isRevalidating) && progress && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-[#475569]">
+              <span className="text-muted-foreground">
                 {isRevalidating ? "Re-validating" : "Validating"} items...
               </span>
-              <span className="font-medium text-[#111827]">
+              <span className="font-medium text-foreground">
                 {progress.current} / {progress.total}
               </span>
             </div>
@@ -486,16 +486,16 @@ export function AIValidationReport({
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-            <p className="text-2xl font-bold text-[#111827]">{items.length}</p>
-            <p className="text-xs text-[#475569]">Total</p>
+            <p className="text-2xl font-bold text-foreground">{items.length}</p>
+            <p className="text-xs text-muted-foreground">Total</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
             <p className="text-2xl font-bold text-[#16A34A]">{validCount}</p>
-            <p className="text-xs text-[#475569]">Valid</p>
+            <p className="text-xs text-muted-foreground">Valid</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-destructive-light border border-destructive">
             <p className="text-2xl font-bold text-[#DC2626]">{invalidCount}</p>
-            <p className="text-xs text-[#475569]">Invalid</p>
+            <p className="text-xs text-muted-foreground">Invalid</p>
           </div>
         </div>
 
@@ -506,13 +506,13 @@ export function AIValidationReport({
               <table className="w-full text-sm">
                 <thead className="bg-[#F1F5F9] sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#475569] w-[100px]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground w-[100px]">
                       Item No.
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-[#475569] w-[120px]">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground w-[120px]">
                       Validated
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#475569]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                       Details
                     </th>
                   </tr>
@@ -578,7 +578,7 @@ export function AIValidationReport({
             onClick={onCancel}
             disabled={isRevalidating || isDownloading}
             variant="ghost"
-            className="font-semibold px-5 text-[#475569] hover:bg-[#F1F5F9] rounded-md"
+            className="font-semibold px-5 text-muted-foreground hover:bg-[#F1F5F9] rounded-md"
           >
             Cancel
           </Button>

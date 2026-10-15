@@ -211,7 +211,7 @@ export function ValidationStage({
               </div>
 
               {/* Status Toggle */}
-              <div className="flex rounded-md border overflow-hidden text-[9px] scale-90 origin-left">
+              <div className="flex rounded-md border overflow-hidden text-xs scale-90 origin-left">
                 {(
                   ["all", "valid", "caution", "rejected"] as FilterStatus[]
                 ).map((status) => (
@@ -367,7 +367,7 @@ export function ValidationStage({
                             />
                           ))}
                           {extraIssuesCount > 0 && (
-                            <span className="rounded border px-1.5 py-0.5 text-[10px] bg-background text-muted-foreground">
+                            <span className="rounded border px-1.5 py-0.5 text-xs bg-background text-muted-foreground">
                               +{extraIssuesCount}
                             </span>
                           )}
@@ -473,7 +473,7 @@ function IssueBadge({
 
   return (
     <span
-      className={`rounded border px-1.5 py-0.5 text-[10px] truncate max-w-[250px] inline-block align-bottom ${color}`}
+      className={`rounded border px-1.5 py-0.5 text-xs truncate max-w-[250px] inline-block align-bottom ${color}`}
       title={message}
     >
       {message}

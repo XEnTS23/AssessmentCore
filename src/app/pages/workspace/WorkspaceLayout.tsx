@@ -99,8 +99,8 @@ export function WorkspaceLayout() {
           className={`flex h-14 items-center border-b border-border transition-all ${isSidebarHovered ? "px-4 gap-2 justify-start" : "px-0 justify-center"}`}
         >
           <img
-            src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
-            alt="AssessmentCore logo"
+            src="/logo-dark-1.png"
+            alt="Husimi logo"
             className="h-6 w-6 shrink-0 rounded-md object-contain"
           />
           {isSidebarHovered && (
@@ -108,7 +108,7 @@ export function WorkspaceLayout() {
               to="/"
               className="text-sm font-semibold text-foreground hover:text-primary transition-colors whitespace-nowrap"
             >
-              AssessmentCore
+              Husimi
             </Link>
           )}
         </div>
@@ -116,13 +116,13 @@ export function WorkspaceLayout() {
         <div
           className={`border-b border-border px-4 py-3 flex flex-col justify-center transition-all ${isSidebarHovered ? "" : "items-center opacity-0 h-0 overflow-hidden py-0 border-b-0"}`}
         >
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
             Current plan
           </div>
           <p className="mt-1 text-xs text-foreground whitespace-nowrap">
             {userUsage?.is_premium ? "Premium" : "Free"} workspace
           </p>
-          <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+          <p className="text-xs text-muted-foreground whitespace-nowrap">
             {userUsage?.total_questions_converted || 0} questions converted
           </p>
         </div>
@@ -159,7 +159,7 @@ export function WorkspaceLayout() {
                         {item.label}
                       </span>
                       {isComingSoon ? (
-                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Soon
                         </span>
                       ) : (

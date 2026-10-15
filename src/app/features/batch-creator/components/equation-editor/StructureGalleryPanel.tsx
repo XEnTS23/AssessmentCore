@@ -40,7 +40,7 @@ export function StructureGalleryPanel({ onInsertStructure, activeCategory, onCha
       {/* Header */}
       <div className="px-3 pt-3 pb-2 shrink-0">
         <h3 className="text-xs font-semibold text-foreground">Structures</h3>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Click to insert a template</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Click to insert a template</p>
       </div>
 
       {/* Category tabs (scrollable) */}
@@ -50,7 +50,7 @@ export function StructureGalleryPanel({ onInsertStructure, activeCategory, onCha
             key={cat}
             onClick={() => onChangeCategory(cat)}
             className={cn(
-              "px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-colors",
+              "px-2 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors",
               activeCategory === cat
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -98,10 +98,10 @@ function StructureCard({ structure, onClick }: { structure: StructureTemplate; o
       className="flex flex-col items-center justify-center p-2 min-h-[56px] border border-border rounded-lg bg-card hover:bg-muted hover:border-primary/30 transition-all group"
     >
       <span
-        className="[&_.katex]:text-[13px] text-foreground"
+        className="[&_.katex]:text-sm text-foreground"
         dangerouslySetInnerHTML={{ __html: html }}
       />
-      <span className="text-[9px] text-muted-foreground mt-1 truncate w-full text-center group-hover:text-foreground transition-colors">
+      <span className="text-xs text-muted-foreground mt-1 truncate w-full text-center group-hover:text-foreground transition-colors">
         {structure.label}
       </span>
     </button>

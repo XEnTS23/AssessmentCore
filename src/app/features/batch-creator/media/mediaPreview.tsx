@@ -23,7 +23,7 @@ export function MediaPreview({ media, className = "" }: MediaPreviewProps) {
           Invalid Media URL
         </span>
         <span
-          className="text-[10px] text-center opacity-80 mt-1 line-clamp-2"
+          className="text-xs text-center opacity-80 mt-1 line-clamp-2"
           title={media.publicUrlSource}
         >
           {media.publicUrlSource}
@@ -42,7 +42,7 @@ export function MediaPreview({ media, className = "" }: MediaPreviewProps) {
           Failed to load image
         </span>
         <span
-          className="text-[10px] text-center opacity-80 mt-1 line-clamp-2"
+          className="text-xs text-center opacity-80 mt-1 line-clamp-2"
           title={media.publicUrlSource}
         >
           {media.publicUrlSource}

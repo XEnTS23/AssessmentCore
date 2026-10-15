@@ -64,17 +64,17 @@ export function HistoryDrawer({
                     <User className="h-3 w-3" /> {item.user}
                   </div>
                   {item.fieldPath && (
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       Field: <code className="bg-muted px-1 rounded">{item.fieldPath}</code>
                     </div>
                   )}
                   {item.before !== undefined && (
-                    <div className="text-[10px] mt-1 bg-destructive/5 border-l-2 border-destructive px-2 py-1 rounded-r">
+                    <div className="text-xs mt-1 bg-destructive/5 border-l-2 border-destructive px-2 py-1 rounded-r">
                       <span className="text-destructive font-mono">−</span> {item.before}
                     </div>
                   )}
                   {item.after !== undefined && (
-                    <div className="text-[10px] bg-success/5 border-l-2 border-success px-2 py-1 rounded-r">
+                    <div className="text-xs bg-success/5 border-l-2 border-success px-2 py-1 rounded-r">
                       <span className="text-success font-mono">+</span> {item.after}
                     </div>
                   )}

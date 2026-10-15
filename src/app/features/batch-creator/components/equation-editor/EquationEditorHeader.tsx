@@ -21,7 +21,7 @@ export function EquationEditorHeader({ onClose, onInsert, mode, isSaved = true, 
           <h1 className="text-sm font-semibold text-foreground m-0 leading-none">
             Equation Editor
           </h1>
-          <p className="text-[11px] text-muted-foreground m-0 mt-0.5">
+          <p className="text-xs text-muted-foreground m-0 mt-0.5">
             Create and insert mathematical expressions
           </p>
         </div>
@@ -29,7 +29,7 @@ export function EquationEditorHeader({ onClose, onInsert, mode, isSaved = true, 
 
       <div className="flex items-center gap-2">
         {isSaved && (
-          <div className="flex items-center gap-1 text-muted-foreground text-[11px] mr-1">
+          <div className="flex items-center gap-1 text-muted-foreground text-xs mr-1">
             <CheckCircle2 className="w-3 h-3 text-green-500" />
             Saved
           </div>

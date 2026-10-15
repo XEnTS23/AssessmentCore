@@ -336,7 +336,7 @@ export function TableModal({
             </div>
             <div>
               <h3 className="text-sm font-bold">Interactive Table Builder</h3>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Build styled XHTML tables visually with cell merge and borders
               </p>
             </div>
@@ -356,7 +356,7 @@ export function TableModal({
             <h4 className="text-sm font-semibold">Define Table Dimensions</h4>
             <div className="flex items-center gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                <label className="text-xs uppercase font-bold text-muted-foreground">
                   Rows
                 </label>
                 <input
@@ -370,7 +370,7 @@ export function TableModal({
               </div>
               <div className="text-muted-foreground font-bold">×</div>
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                <label className="text-xs uppercase font-bold text-muted-foreground">
                   Columns
                 </label>
                 <input
@@ -399,7 +399,7 @@ export function TableModal({
                   variant="outline"
                   size="sm"
                   onClick={addRow}
-                  className="h-8 gap-1 text-[10px]"
+                  className="h-8 gap-1 text-xs"
                 >
                   <Plus className="h-3 w-3" /> Row
                 </Button>
@@ -407,7 +407,7 @@ export function TableModal({
                   variant="outline"
                   size="sm"
                   onClick={deleteRow}
-                  className="h-8 gap-1 text-[10px] text-destructive hover:bg-destructive/5"
+                  className="h-8 gap-1 text-xs text-destructive hover:bg-destructive/5"
                 >
                   <Trash2 className="h-3 w-3" /> Row
                 </Button>
@@ -416,7 +416,7 @@ export function TableModal({
                   variant="outline"
                   size="sm"
                   onClick={addColumn}
-                  className="h-8 gap-1 text-[10px]"
+                  className="h-8 gap-1 text-xs"
                 >
                   <Plus className="h-3 w-3" /> Col
                 </Button>
@@ -424,7 +424,7 @@ export function TableModal({
                   variant="outline"
                   size="sm"
                   onClick={deleteColumn}
-                  className="h-8 gap-1 text-[10px] text-destructive hover:bg-destructive/5"
+                  className="h-8 gap-1 text-xs text-destructive hover:bg-destructive/5"
                 >
                   <Trash2 className="h-3 w-3" /> Col
                 </Button>
@@ -433,7 +433,7 @@ export function TableModal({
                   variant="outline"
                   size="sm"
                   onClick={mergeRight}
-                  className="h-8 gap-1 text-[10px]"
+                  className="h-8 gap-1 text-xs"
                 >
                   <Maximize2 className="h-3 w-3" /> Merge Right
                 </Button>
@@ -441,7 +441,7 @@ export function TableModal({
                   variant="outline"
                   size="sm"
                   onClick={mergeDown}
-                  className="h-8 gap-1 text-[10px]"
+                  className="h-8 gap-1 text-xs"
                 >
                   <Maximize2 className="h-3 w-3 rotate-90" /> Merge Down
                 </Button>
@@ -449,7 +449,7 @@ export function TableModal({
                   variant="outline"
                   size="sm"
                   onClick={splitCell}
-                  className="h-8 gap-1 text-[10px]"
+                  className="h-8 gap-1 text-xs"
                 >
                   <Minimize2 className="h-3 w-3" /> Split
                 </Button>
@@ -463,7 +463,7 @@ export function TableModal({
                     onChange={(e) =>
                       updateSelectedCellProperty("bgColor", e.target.value)
                     }
-                    className="h-8 text-[10px] border border-border bg-background rounded-lg outline-none font-medium px-2"
+                    className="h-8 text-xs border border-border bg-background rounded-lg outline-none font-medium px-2"
                   >
                     <option value="">No Fill</option>
                     <option value="#f3f4f6">Light Gray</option>
@@ -479,7 +479,7 @@ export function TableModal({
                     onChange={(e) =>
                       updateSelectedCellProperty("borderWidth", e.target.value)
                     }
-                    className="h-8 text-[10px] border border-border bg-background rounded-lg outline-none font-medium px-2"
+                    className="h-8 text-xs border border-border bg-background rounded-lg outline-none font-medium px-2"
                   >
                     <option value="1px">Thin Border (1px)</option>
                     <option value="2px">Medium (2px)</option>

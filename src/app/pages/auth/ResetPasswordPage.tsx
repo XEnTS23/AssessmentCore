@@ -88,7 +88,7 @@ export function ResetPasswordPage() {
                     className={`h-full rounded-full transition-all duration-300 ${getStrengthColor(passwordCheck.strength)} ${getStrengthWidth(passwordCheck.strength)}`}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {passwordCheck.valid
                     ? `Strength: ${passwordCheck.strength}`
                     : passwordCheck.error}

@@ -1,5 +1,23 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
+    {
+      "source": "/auth/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/workspace/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ocr",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!assets/|.*\\..*).*)/",
+      "destination": "/$1/index.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
@@ -34,6 +52,26 @@
       "source": "/ocr",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, follow" }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain" },
+        { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/xml" },
+        { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/assets/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     },
     {

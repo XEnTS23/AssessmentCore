@@ -1,0 +1,312 @@
+{
+  "fixtureVersion": "1.0.0",
+  "requiredHeaders": [
+    "Question_ID",
+    "Question_Type",
+    "Question_Stem",
+    "Option_A",
+    "Option_B",
+    "Option_C",
+    "Option_D",
+    "Correct_Answer",
+    "Numerical_Answer",
+    "Tolerance",
+    "Answer_Unit",
+    "Explanation",
+    "Subject",
+    "Chapter",
+    "Topic",
+    "Difficulty",
+    "Positive_Marks",
+    "Negative_Marks",
+    "Partial_Marking_Rule",
+    "Image_Required",
+    "Image_File_Name",
+    "Image_Source",
+    "Expected_Time_sec",
+    "Language",
+    "Copyright_Status",
+    "Source_Reference",
+    "Teacher_Version",
+    "Submitted_At",
+    "Last_Updated_At"
+  ],
+  "rows": {
+    "REG-BASE-001": {
+      "requiredCanonicalProblems": [],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {}
+    },
+    "REG-ENC-001": {
+      "requiredCanonicalProblems": [
+        "BROKEN_ENCODING"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "BROKEN_ENCODING": "BLOCK"
+      }
+    },
+    "REG-ENC-002": {
+      "requiredCanonicalProblems": [
+        "BROKEN_ENCODING"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "BROKEN_ENCODING": "BLOCK"
+      }
+    },
+    "REG-ENC-CONTROL": {
+      "requiredCanonicalProblems": [],
+      "forbiddenCanonicalProblems": [
+        "BROKEN_ENCODING"
+      ],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {}
+    },
+    "REG-COPY-001": {
+      "requiredCanonicalProblems": [
+        "COPYRIGHT_UNVERIFIED"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "COPYRIGHT_UNVERIFIED": "BLOCK"
+      }
+    },
+    "REG-COPY-002": {
+      "requiredCanonicalProblems": [
+        "COPYRIGHT_UNVERIFIED"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "COPYRIGHT_UNVERIFIED": "BLOCK"
+      }
+    },
+    "REG-COPY-003": {
+      "requiredCanonicalProblems": [
+        "COPYRIGHT_UNVERIFIED"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "COPYRIGHT_UNVERIFIED": "BLOCK"
+      }
+    },
+    "REG-COPY-004": {
+      "requiredCanonicalProblems": [
+        "COPYRIGHT_UNVERIFIED"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "COPYRIGHT_UNVERIFIED": "BLOCK"
+      }
+    },
+    "REG-COPY-005": {
+      "requiredCanonicalProblems": [
+        "COPYRIGHT_UNVERIFIED"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "COPYRIGHT_UNVERIFIED": "BLOCK"
+      }
+    },
+    "REG-COPY-CONTROL": {
+      "requiredCanonicalProblems": [],
+      "forbiddenCanonicalProblems": [
+        "COPYRIGHT_UNVERIFIED"
+      ],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {}
+    },
+    "REG-SUBJ-001": {
+      "requiredCanonicalProblems": [
+        "WRONG_SUBJECT_TAG"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "WRONG_SUBJECT_TAG": "REVIEW"
+      }
+    },
+    "REG-SUBJ-002": {
+      "requiredCanonicalProblems": [
+        "WRONG_SUBJECT_TAG"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "WRONG_SUBJECT_TAG": "REVIEW"
+      }
+    },
+    "REG-SUBJ-003": {
+      "requiredCanonicalProblems": [
+        "WRONG_SUBJECT_TAG"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "WRONG_SUBJECT_TAG": "REVIEW"
+      }
+    },
+    "REG-VERS-001": {
+      "requiredCanonicalProblems": [
+        "VERSION_TIMESTAMP_CONFLICT"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "VERSION_TIMESTAMP_CONFLICT": "REVIEW"
+      }
+    },
+    "REG-VERS-002": {
+      "requiredCanonicalProblems": [
+        "VERSION_TIMESTAMP_CONFLICT"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "VERSION_TIMESTAMP_CONFLICT": "REVIEW"
+      }
+    },
+    "REG-VERS-003": {
+      "requiredCanonicalProblems": [
+        "VERSION_TIMESTAMP_CONFLICT"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "VERSION_TIMESTAMP_CONFLICT": "REVIEW"
+      }
+    },
+    "REG-VERS-CONTROL": {
+      "requiredCanonicalProblems": [],
+      "forbiddenCanonicalProblems": [
+        "VERSION_TIMESTAMP_CONFLICT"
+      ],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {}
+    },
+    "REG-UNIT-001": {
+      "requiredCanonicalProblems": [
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [
+        "NUMERIC_ANSWER_NOT_NUMERIC"
+      ],
+      "expectedSeverityByProblem": {
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER": "BLOCK"
+      }
+    },
+    "REG-UNIT-002": {
+      "requiredCanonicalProblems": [
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [
+        "NUMERIC_ANSWER_NOT_NUMERIC"
+      ],
+      "expectedSeverityByProblem": {
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER": "BLOCK"
+      }
+    },
+    "REG-UNIT-003": {
+      "requiredCanonicalProblems": [
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [
+        "NUMERIC_ANSWER_NOT_NUMERIC"
+      ],
+      "expectedSeverityByProblem": {
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER": "BLOCK"
+      }
+    },
+    "REG-UNIT-CONTROL-001": {
+      "requiredCanonicalProblems": [],
+      "forbiddenCanonicalProblems": [
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER"
+      ],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {}
+    },
+    "REG-UNIT-CONTROL-002": {
+      "requiredCanonicalProblems": [],
+      "forbiddenCanonicalProblems": [
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER"
+      ],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {}
+    },
+    "REG-UNIT-CONTROL-003": {
+      "requiredCanonicalProblems": [],
+      "forbiddenCanonicalProblems": [
+        "UNIT_EMBEDDED_IN_NUMERIC_ANSWER"
+      ],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {}
+    },
+    "REG-INACTIVE-001": {
+      "requiredCanonicalProblems": [
+        "INACTIVE_FIELD_CONTAINS_DATA"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "INACTIVE_FIELD_CONTAINS_DATA": "REVIEW"
+      }
+    },
+    "REG-INACTIVE-002": {
+      "requiredCanonicalProblems": [
+        "INACTIVE_FIELD_CONTAINS_DATA"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "INACTIVE_FIELD_CONTAINS_DATA": "REVIEW"
+      }
+    },
+    "REG-INACTIVE-003": {
+      "requiredCanonicalProblems": [
+        "INACTIVE_FIELD_CONTAINS_DATA"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [],
+      "expectedSeverityByProblem": {
+        "INACTIVE_FIELD_CONTAINS_DATA": "REVIEW"
+      }
+    },
+    "REG-INACTIVE-004": {
+      "requiredCanonicalProblems": [
+        "INACTIVE_FIELD_CONTAINS_DATA"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [
+        "UNSUPPORTED_TYPE_FOR_TARGET_EXPORT",
+        "MATRIX_MATCH_INCOMPLETE"
+      ],
+      "expectedSeverityByProblem": {
+        "INACTIVE_FIELD_CONTAINS_DATA": "REVIEW"
+      }
+    },
+    "REG-INACTIVE-005": {
+      "requiredCanonicalProblems": [
+        "INACTIVE_FIELD_CONTAINS_DATA"
+      ],
+      "forbiddenCanonicalProblems": [],
+      "allowedAdditionalCanonicalProblems": [
+        "UNSUPPORTED_TYPE_FOR_TARGET_EXPORT",
+        "HOTSPOT_CONFIGURATION_INCOMPLETE"
+      ],
+      "expectedSeverityByProblem": {
+        "INACTIVE_FIELD_CONTAINS_DATA": "REVIEW"
+      }
+    }
+  }
+}

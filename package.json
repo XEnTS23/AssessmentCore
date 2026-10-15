@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && vite-node scripts/prerender.ts",
+    "seo:check": "vite-node scripts/seo-check.ts",
     "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest",

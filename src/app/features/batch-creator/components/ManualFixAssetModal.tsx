@@ -173,7 +173,7 @@ export function ManualFixAssetModal({ isOpen, onClose, onAddAsset, existingMedia
             <h3 id="manual-fix-asset-title" className="text-sm font-semibold">
               Insert asset
             </h3>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Media are supporting content. Response interactions are configured
               separately in the Response card.
             </p>
@@ -202,7 +202,7 @@ export function ManualFixAssetModal({ isOpen, onClose, onAddAsset, existingMedia
                     setFile(null);
                     setError("");
                   }}
-                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border p-2 text-[10px] font-medium ${
+                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border p-2 text-xs font-medium ${
                     contentType === assetType.type
                       ? "border-primary bg-primary/5 text-primary"
                       : "border-border hover:bg-muted"
@@ -260,7 +260,7 @@ export function ManualFixAssetModal({ isOpen, onClose, onAddAsset, existingMedia
                       ? file.name
                       : `Choose ${selectedType.label.toLowerCase()}`}
                   </span>
-                  <span className="mt-1 text-[10px] text-muted-foreground">
+                  <span className="mt-1 text-xs text-muted-foreground">
                     Uploaded securely to your question-media folder
                   </span>
                   <input
@@ -316,7 +316,7 @@ export function ManualFixAssetModal({ isOpen, onClose, onAddAsset, existingMedia
                               <FileText className="h-6 w-6 text-muted-foreground" />
                             </div>
                           )}
-                          <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-[9px] text-white opacity-0 group-hover:opacity-100 transition-opacity truncate">
+                          <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity truncate">
                             {m.url.split('/').pop()}
                           </div>
                         </button>

@@ -729,7 +729,7 @@ export function ManualFixStage({
                   <h1 className="text-lg font-bold text-foreground">
                     Manual Fix
                   </h1>
-                  <span className="bg-muted rounded-full px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                  <span className="bg-muted rounded-full px-2.5 py-1 text-xs font-semibold text-muted-foreground">
                     {rows.length} Total Rows
                   </span>
                 </div>
@@ -748,7 +748,7 @@ export function ManualFixStage({
                   <strong className="text-sm font-bold text-foreground">
                     {reviewedCount}
                   </strong>
-                  <span className="text-[9px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     Reviewed
                   </span>
                 </div>
@@ -756,7 +756,7 @@ export function ManualFixStage({
                   <strong className="text-sm font-bold text-muted-foreground">
                     {remainingCount}
                   </strong>
-                  <span className="text-[9px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     Remaining
                   </span>
                 </div>
@@ -779,7 +779,7 @@ export function ManualFixStage({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 bg-transparent border-0 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                 />
-                <kbd className="border border-border rounded px-1.5 py-0.5 text-[9px] text-muted-foreground bg-muted">
+                <kbd className="border border-border rounded px-1.5 py-0.5 text-xs text-muted-foreground bg-muted">
                   /
                 </kbd>
               </div>
@@ -810,14 +810,14 @@ export function ManualFixStage({
                   <button
                     key={tab.key}
                     onClick={() => setFilterStatus(tab.key as FixFilterStatus)}
-                    className={`py-2 px-1 border rounded-md text-center text-[10px] font-medium transition-all ${
+                    className={`py-2 px-1 border rounded-md text-center text-xs font-medium transition-all ${
                       filterStatus === tab.key
                         ? "border-primary shadow-[inset_0_0_0_1px_var(--primary)] font-bold text-foreground"
                         : "border-border bg-background text-muted-foreground hover:bg-muted/30"
                     }`}
                   >
                     {tab.label}{" "}
-                    <b className="text-[9px] bg-muted rounded-full px-1.5 py-0.5 ml-0.5">
+                    <b className="text-xs bg-muted rounded-full px-1.5 py-0.5 ml-0.5">
                       {tab.count}
                     </b>
                   </button>
@@ -829,7 +829,7 @@ export function ManualFixStage({
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="h-[30px] border border-border rounded-md bg-background px-2.5 text-[10px] text-foreground"
+                  className="h-[30px] border border-border rounded-md bg-background px-2.5 text-xs text-foreground"
                 >
                   <option value="ROW_ASC">Sort: Row ID (Asc)</option>
                   <option value="STATUS">Sort: Status</option>
@@ -837,7 +837,7 @@ export function ManualFixStage({
                 </select>
                 <button
                   onClick={() => setIsFilterPopoverOpen(!isFilterPopoverOpen)}
-                  className="h-[30px] min-w-[88px] border border-border rounded-md bg-background px-2.5 text-[10px] flex items-center gap-1.5"
+                  className="h-[30px] min-w-[88px] border border-border rounded-md bg-background px-2.5 text-xs flex items-center gap-1.5"
                 >
                   <Filter className="h-3 w-3" /> Filters ⌄
                 </button>
@@ -847,13 +847,13 @@ export function ManualFixStage({
               {isFilterPopoverOpen && (
                 <div className="absolute right-4 top-[230px] w-[260px] bg-background border border-border rounded-lg shadow-xl z-30 p-3 space-y-2.5">
                   <label className="block space-y-1">
-                    <span className="text-[10px] font-bold text-foreground">
+                    <span className="text-xs font-bold text-foreground">
                       Question type
                     </span>
                     <select
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value)}
-                      className="w-full h-[30px] border border-border rounded-md px-2 text-[10px]"
+                      className="w-full h-[30px] border border-border rounded-md px-2 text-xs"
                     >
                       <option value="ALL">All types</option>
                       <option value="MCQ">MCQ</option>
@@ -864,13 +864,13 @@ export function ManualFixStage({
                     </select>
                   </label>
                   <label className="block space-y-1">
-                    <span className="text-[10px] font-bold text-foreground">
+                    <span className="text-xs font-bold text-foreground">
                       Severity
                     </span>
                     <select
                       value={severityFilter}
                       onChange={(e) => setSeverityFilter(e.target.value)}
-                      className="w-full h-[30px] border border-border rounded-md px-2 text-[10px]"
+                      className="w-full h-[30px] border border-border rounded-md px-2 text-xs"
                     >
                       <option value="ALL">All severities</option>
                       <option value="BLOCK">Blocking</option>
@@ -878,7 +878,7 @@ export function ManualFixStage({
                       <option value="WARNING">Caution</option>
                     </select>
                   </label>
-                  <label className="flex items-center gap-2 text-[10px]">
+                  <label className="flex items-center gap-2 text-xs">
                     <input
                       type="checkbox"
                       checked={changedOnly}
@@ -886,7 +886,7 @@ export function ManualFixStage({
                     />
                     Changed only
                   </label>
-                  <label className="flex items-center gap-2 text-[10px]">
+                  <label className="flex items-center gap-2 text-xs">
                     <input
                       type="checkbox"
                       checked={unresolvedOnly}
@@ -901,7 +901,7 @@ export function ManualFixStage({
                       setChangedOnly(false);
                       setUnresolvedOnly(false);
                     }}
-                    className="text-[10px] text-primary font-medium"
+                    className="text-xs text-primary font-medium"
                   >
                     Clear filters
                   </button>
@@ -966,12 +966,12 @@ export function ManualFixStage({
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2.5">
                           <span className="w-3 h-3 border border-border rounded-sm shrink-0" />
-                          <span className="font-bold text-[12px] text-foreground">
+                          <span className="font-bold text-xs text-foreground">
                             Row {row.sourceRowNumber}
                           </span>
                           {isRowDirty && (
                             <span
-                              className="text-primary text-[10px] font-bold"
+                              className="text-primary text-xs font-bold"
                               title="Unsaved changes"
                             >
                               ●
@@ -980,7 +980,7 @@ export function ManualFixStage({
                         </div>
                         <div className="flex gap-1.5">
                           <span
-                            className={`text-[9px] rounded px-2 py-0.5 font-semibold border ${
+                            className={`text-xs rounded px-2 py-0.5 font-semibold border ${
                               row.status === "rejected"
                                 ? "text-destructive border-destructive/40 bg-destructive/5"
                                 : row.status === "needs_review"
@@ -994,19 +994,19 @@ export function ManualFixStage({
                               ? "NEEDS REVIEW"
                               : row.status.toUpperCase()}
                           </span>
-                          <span className="text-[9px] rounded px-2 py-0.5 font-semibold text-indigo-600 border border-indigo-200 bg-indigo-50">
+                          <span className="text-xs rounded px-2 py-0.5 font-semibold text-indigo-600 border border-indigo-200 bg-indigo-50">
                             {row.normalizedQuestion?.type || "UNKNOWN"}
                           </span>
                         </div>
                       </div>
 
                       {/* Stem preview */}
-                      <p className="text-[10px] text-muted-foreground truncate ml-[26px] mb-1.5 italic">
+                      <p className="text-xs text-muted-foreground truncate ml-[26px] mb-1.5 italic">
                         {stem || "No stem text…"}
                       </p>
 
                       {/* Meta line */}
-                      <p className="text-[9px] text-muted-foreground/70 ml-[26px]">
+                      <p className="text-xs text-muted-foreground/70 ml-[26px]">
                         {editorState &&
                         row.id === selectedRowId &&
                         editorState.metadata
@@ -1021,7 +1021,7 @@ export function ManualFixStage({
                           {row.issues.slice(0, 2).map((issue) => (
                             <span
                               key={issue.id}
-                              className={`text-[9px] px-2 py-0.5 rounded border font-semibold truncate max-w-[200px] inline-block align-bottom ${
+                              className={`text-xs px-2 py-0.5 rounded border font-semibold truncate max-w-[200px] inline-block align-bottom ${
                                 issue.severity === "block"
                                   ? "border-destructive/40 bg-destructive/5 text-destructive"
                                   : issue.severity === "review"
@@ -1034,7 +1034,7 @@ export function ManualFixStage({
                             </span>
                           ))}
                           {row.issues.length > 2 && (
-                            <span className="text-[8px] px-2 py-0.5 rounded border border-border bg-muted text-muted-foreground">
+                            <span className="text-xs px-2 py-0.5 rounded border border-border bg-muted text-muted-foreground">
                               +{row.issues.length - 2}
                             </span>
                           )}
@@ -1047,7 +1047,7 @@ export function ManualFixStage({
             </div>
 
             {/* ── Pagination Footer ─────────────────────────────────────── */}
-            <div className="h-[54px] border-t border-border grid grid-cols-3 items-center px-4 text-[10px] shrink-0">
+            <div className="h-[54px] border-t border-border grid grid-cols-3 items-center px-4 text-xs shrink-0">
               <div className="flex items-center gap-1.5">
                 Rows per page:
                 <select
@@ -1056,7 +1056,7 @@ export function ManualFixStage({
                     setPageSize(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="h-[26px] border border-border rounded-md bg-background px-1 text-[10px]"
+                  className="h-[26px] border border-border rounded-md bg-background px-1 text-xs"
                 >
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -1135,11 +1135,11 @@ export function ManualFixStage({
                   Next unresolved
                 </button>
                 {hasUnsavedChanges ? (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
                     Unsaved
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/10 text-success">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success">
                     Saved
                   </span>
                 )}
@@ -1157,7 +1157,7 @@ export function ManualFixStage({
                   {isMoreMenuOpen && (
                     <div className="absolute right-0 top-[32px] w-[230px] bg-background border border-border rounded-lg shadow-xl z-40 p-1.5 space-y-0.5">
                       <button
-                        className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-[10px]"
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-xs"
                         onClick={() => {
                           setSimulatedServerVersion({
                             ...selectedRow,
@@ -1172,7 +1172,7 @@ export function ManualFixStage({
                         Simulate version conflict
                       </button>
                       <button
-                        className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-[10px]"
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-xs"
                         onClick={() => {
                           toast.warning("Simulation noted (UI only).");
                           setIsMoreMenuOpen(false);
@@ -1186,7 +1186,7 @@ export function ManualFixStage({
                 <button
                   onClick={() => saveEdit()}
                   disabled={!hasUnsavedChanges}
-                  className="h-[30px] px-2.5 border border-border rounded-md bg-background text-[10px] font-medium disabled:opacity-40"
+                  className="h-[30px] px-2.5 border border-border rounded-md bg-background text-xs font-medium disabled:opacity-40"
                 >
                   ▣ Save Draft
                 </button>
@@ -1195,7 +1195,7 @@ export function ManualFixStage({
                     saveEdit();
                     handleNextRow(1);
                   }}
-                  className="h-[30px] px-3 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold border border-primary"
+                  className="h-[30px] px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold border border-primary"
                 >
                   ▣ Save & Validate
                 </button>
@@ -1205,8 +1205,8 @@ export function ManualFixStage({
             {/* ── Issue Banner ──────────────────────────────────────── */}
             {selectedRow.issues.length > 0 ? (
               <div className="mx-5 mt-3 border border-destructive/30 bg-gradient-to-r from-destructive/5 to-destructive/[0.03] rounded-md p-3">
-                <div className="flex items-center gap-2.5 text-[11px] mb-2">
-                  <span className="w-[17px] h-[17px] border border-destructive rounded-full grid place-items-center text-destructive font-bold text-[10px]">
+                <div className="flex items-center gap-2.5 text-xs mb-2">
+                  <span className="w-[17px] h-[17px] border border-destructive rounded-full grid place-items-center text-destructive font-bold text-xs">
                     !
                   </span>
                   <strong className="text-foreground">
@@ -1224,7 +1224,7 @@ export function ManualFixStage({
                   {selectedRow.issues.map((issue) => (
                     <button
                       key={issue.id}
-                      className={`min-h-[23px] px-2 py-1 rounded text-[10px] font-medium border text-left leading-tight ${
+                      className={`min-h-[23px] px-2 py-1 rounded text-xs font-medium border text-left leading-tight ${
                         issue.severity === "block"
                           ? "border-purple-300 text-purple-700 bg-purple-50"
                           : issue.severity === "review"
@@ -1238,7 +1238,7 @@ export function ManualFixStage({
                 </div>
               </div>
             ) : (
-              <div className="mx-5 mt-3 border border-success/30 bg-success/5 rounded-md p-3 flex items-center gap-2 text-success text-[11px] font-medium">
+              <div className="mx-5 mt-3 border border-success/30 bg-success/5 rounded-md p-3 flex items-center gap-2 text-success text-xs font-medium">
                 <ShieldCheck className="h-4 w-4" />
                 <span>✓ No unresolved validation issues.</span>
               </div>
@@ -1267,12 +1267,12 @@ export function ManualFixStage({
                       >
                         <GripVertical className="h-4 w-4" />
                       </button>
-                      <strong className="text-[11px] font-semibold">
+                      <strong className="text-xs font-semibold">
                         Question Stem{" "}
                         <em className="text-destructive not-italic">*</em>
                       </strong>
                       <span
-                        className="inline-grid place-items-center w-[13px] h-[13px] border border-muted-foreground/50 rounded-full text-[9px] text-muted-foreground cursor-help"
+                        className="inline-grid place-items-center w-[13px] h-[13px] border border-muted-foreground/50 rounded-full text-xs text-muted-foreground cursor-help"
                         title="Learner-facing question text"
                       >
                         ?
@@ -1281,7 +1281,7 @@ export function ManualFixStage({
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => setIsPreviewDrawerOpen(true)}
-                        className="h-[27px] px-2 border border-border rounded-md bg-background text-[10px] flex items-center gap-1.5 hover:bg-muted font-medium"
+                        className="h-[27px] px-2 border border-border rounded-md bg-background text-xs flex items-center gap-1.5 hover:bg-muted font-medium"
                         title="Preview Question"
                       >
                         <Eye className="h-3.5 w-3.5 text-muted-foreground" />{" "}
@@ -1290,7 +1290,7 @@ export function ManualFixStage({
                       <button
                         onClick={undoLastEdit}
                         disabled={!canUndo}
-                        className="h-[27px] px-2 border border-border rounded-md bg-background text-[10px] flex items-center gap-1.5 hover:bg-muted font-medium disabled:opacity-40 disabled:hover:bg-background"
+                        className="h-[27px] px-2 border border-border rounded-md bg-background text-xs flex items-center gap-1.5 hover:bg-muted font-medium disabled:opacity-40 disabled:hover:bg-background"
                         title="Undo Last Edit"
                       >
                         <Undo2 className="h-3.5 w-3.5 text-muted-foreground" />{" "}
@@ -1298,7 +1298,7 @@ export function ManualFixStage({
                       </button>
                       <button
                         onClick={() => setIsSourceDrawerOpen(true)}
-                        className="h-[27px] px-2 border border-border rounded-md bg-background text-[10px]"
+                        className="h-[27px] px-2 border border-border rounded-md bg-background text-xs"
                       >
                         Compare
                       </button>
@@ -1353,18 +1353,18 @@ export function ManualFixStage({
                     className="min-h-[112px] border-0"
                     placeholder="Type question stem..."
                   />
-                  <div className="h-[27px] border-t border-border/50 flex justify-between items-center px-3 text-[10px] text-muted-foreground bg-muted/5">
+                  <div className="h-[27px] border-t border-border/50 flex justify-between items-center px-3 text-xs text-muted-foreground bg-muted/5">
                     <span>
                       chars: {editorState.stem.replace(/<[^>]*>/g, "").length}
                     </span>
                     <span>
                       Math{" "}
                       {stemHasMath ? (
-                        <b className="bg-success text-success-foreground rounded-full px-1.5 py-0.5 text-[8px]">
+                        <b className="bg-success text-success-foreground rounded-full px-1.5 py-0.5 text-xs">
                           ON
                         </b>
                       ) : (
-                        <b className="text-muted-foreground text-[8px]">OFF</b>
+                        <b className="text-muted-foreground text-xs">OFF</b>
                       )}
                     </span>
                   </div>
@@ -1389,7 +1389,7 @@ export function ManualFixStage({
                     >
                       <GripVertical className="h-4 w-4" />
                     </button>
-                    <strong className="text-[10px]">
+                    <strong className="text-xs">
                       Response interaction
                     </strong>
                     <Select
@@ -1398,7 +1398,7 @@ export function ManualFixStage({
                         if (val !== editorState.type) setPendingTypeChange(val);
                       }}
                     >
-                      <SelectTrigger className="h-[30px] text-[10px]">
+                      <SelectTrigger className="h-[30px] text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1427,14 +1427,14 @@ export function ManualFixStage({
                     </Select>
                   </div>
 
-                  <div className="h-[36px] flex items-center px-3 text-[10px] font-bold text-foreground">
+                  <div className="h-[36px] flex items-center px-3 text-xs font-bold text-foreground">
                     {editorState.type === "TEXT_ENTRY"
                       ? "Accepted Answers"
                       : editorState.type === "ORDER"
                         ? "Sequence Items"
                         : "Options"}{" "}
                     <em className="text-destructive not-italic ml-0.5">*</em>
-                    <span className="ml-1.5 inline-grid place-items-center w-[13px] h-[13px] border border-muted-foreground/50 rounded-full text-[9px] text-muted-foreground">
+                    <span className="ml-1.5 inline-grid place-items-center w-[13px] h-[13px] border border-muted-foreground/50 rounded-full text-xs text-muted-foreground">
                       ?
                     </span>
                   </div>
@@ -1443,7 +1443,7 @@ export function ManualFixStage({
                   {(editorState.type === "MCQ" ||
                     editorState.type === "MSQ") && (
                     <>
-                      <div className="grid grid-cols-[20px_28px_minmax(0,1fr)_75px_52px] items-center h-[30px] bg-muted/30 border-y border-border px-2.5 text-[9px] font-semibold text-muted-foreground uppercase">
+                      <div className="grid grid-cols-[20px_28px_minmax(0,1fr)_75px_52px] items-center h-[30px] bg-muted/30 border-y border-border px-2.5 text-xs font-semibold text-muted-foreground uppercase">
                         <span>#</span>
                         <span></span>
                         <span>Option Text</span>
@@ -1612,7 +1612,7 @@ export function ManualFixStage({
                             ],
                           });
                         }}
-                        className="h-[31px] mx-2.5 my-2 w-[calc(100%-20px)] border border-dashed border-primary/40 rounded bg-primary/5 text-primary text-[10px] font-medium"
+                        className="h-[31px] mx-2.5 my-2 w-[calc(100%-20px)] border border-dashed border-primary/40 rounded bg-primary/5 text-primary text-xs font-medium"
                       >
                         ＋ Add Option
                       </button>
@@ -1632,7 +1632,7 @@ export function ManualFixStage({
                                 textEntryMode: m,
                               })
                             }
-                            className={`h-[29px] px-3 text-[10px] border-0 ${
+                            className={`h-[29px] px-3 text-xs border-0 ${
                               editorState.textEntryMode === m
                                 ? "bg-primary text-primary-foreground font-semibold"
                                 : "bg-background text-foreground"
@@ -1643,7 +1643,7 @@ export function ManualFixStage({
                         ))}
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold">
+                        <label className="text-xs font-bold">
                           Accepted answers
                         </label>
                         <textarea
@@ -1663,7 +1663,7 @@ export function ManualFixStage({
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold">
+                          <label className="text-xs font-bold">
                             Tolerance
                           </label>
                           <input
@@ -1683,7 +1683,7 @@ export function ManualFixStage({
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold">Unit</label>
+                          <label className="text-xs font-bold">Unit</label>
                           <input
                             type="text"
                             value={editorState.units || ""}
@@ -1698,7 +1698,7 @@ export function ManualFixStage({
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold">
+                          <label className="text-xs font-bold">
                             Rounding
                           </label>
                           <select className="h-[31px] w-full border border-border rounded px-2 text-xs">
@@ -1708,7 +1708,7 @@ export function ManualFixStage({
                           </select>
                         </div>
                       </div>
-                      <div className="flex gap-3 text-[10px] text-muted-foreground">
+                      <div className="flex gap-3 text-xs text-muted-foreground">
                         <label className="flex items-center gap-1">
                           <input
                             type="checkbox"
@@ -1879,7 +1879,7 @@ export function ManualFixStage({
                             ],
                           });
                         }}
-                        className="w-full h-[31px] border border-dashed border-primary/40 rounded bg-primary/5 text-primary text-[10px]"
+                        className="w-full h-[31px] border border-dashed border-primary/40 rounded bg-primary/5 text-primary text-xs"
                       >
                         + Add sequence item
                       </button>
@@ -1907,7 +1907,7 @@ export function ManualFixStage({
                       >
                         <GripVertical className="h-4 w-4" />
                       </button>
-                      <strong className="text-[11px]">
+                      <strong className="text-xs">
                         Metadata & Scoring
                       </strong>
                     </div>
@@ -1915,7 +1915,7 @@ export function ManualFixStage({
                       onClick={() =>
                         setIsMetadataCollapsed(!isMetadataCollapsed)
                       }
-                      className="h-[27px] px-2 border border-border rounded-md bg-background text-[10px]"
+                      className="h-[27px] px-2 border border-border rounded-md bg-background text-xs"
                     >
                       {isMetadataCollapsed ? "Expand" : "Collapse"}
                     </button>
@@ -1959,7 +1959,7 @@ export function ManualFixStage({
             {isSidebarCollapsed && (
               <button
                 onClick={() => setIsSidebarCollapsed(false)}
-                className="mb-4 h-[30px] px-3 border border-border rounded-md bg-background text-[10px] font-medium flex items-center gap-1.5 hover:bg-muted"
+                className="mb-4 h-[30px] px-3 border border-border rounded-md bg-background text-xs font-medium flex items-center gap-1.5 hover:bg-muted"
               >
                 <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />{" "}
                 Show Sidebar

@@ -114,7 +114,7 @@ export function buildExportAuthoringComponents(
   });
 }
 
-export function buildAssessmentCoreManifestMetadata(row: QuestionRow): string {
+export function buildManifestMetadata(row: QuestionRow): string {
   const fields: Array<[string, unknown]> = [
     ["questionId", row.metadata.questionId],
     ["subject", row.metadata.subject],

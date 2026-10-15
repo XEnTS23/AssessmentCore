@@ -26,15 +26,15 @@ export function LatexSourceEditor({ latex, onChange, textAreaRef, isValid }: Pro
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 border border-border rounded px-2 py-1 text-[11px] text-muted-foreground cursor-pointer hover:bg-muted">
+          <div className="flex items-center gap-1 border border-border rounded px-2 py-1 text-xs text-muted-foreground cursor-pointer hover:bg-muted">
             Auto <ChevronDown className="w-3 h-3" />
           </div>
-          <button className="flex items-center gap-1 border border-border rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted">
+          <button className="flex items-center gap-1 border border-border rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted">
             Format
           </button>
           <button 
             onClick={() => onChange("")}
-            className="flex items-center gap-1 border border-border rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+            className="flex items-center gap-1 border border-border rounded px-2 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
           >
             <Trash2 className="w-3 h-3" /> Clear
           </button>
@@ -44,7 +44,7 @@ export function LatexSourceEditor({ latex, onChange, textAreaRef, isValid }: Pro
       {/* Editor Body */}
       <div className="flex min-h-[120px] bg-muted">
         {/* Line Numbers Gutter */}
-        <div className="w-10 flex flex-col items-end py-3 pr-2 border-r border-border bg-muted text-[11px] text-muted-foreground/70 select-none">
+        <div className="w-10 flex flex-col items-end py-3 pr-2 border-r border-border bg-muted text-xs text-muted-foreground/70 select-none">
           {lines.map(n => (
             <div key={n} className="leading-5">{n}</div>
           ))}
@@ -62,7 +62,7 @@ export function LatexSourceEditor({ latex, onChange, textAreaRef, isValid }: Pro
       </div>
 
       {/* Editor Footer */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-card text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-card text-xs text-muted-foreground">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1 text-green-600 font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" /> Valid LaTeX

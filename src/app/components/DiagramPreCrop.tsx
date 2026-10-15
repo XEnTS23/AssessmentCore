@@ -260,7 +260,7 @@ export function DiagramPreCrop({
         {/* Label Badge */}
         {!isCurrent && crop.type && (
           <div
-            className={`absolute -top-6 left-[-2px] px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider rounded-t-sm whitespace-nowrap ${crop.type === "stem" ? "bg-blue-500" : "bg-emerald-500"}`}
+            className={`absolute -top-6 left-[-2px] px-2 py-0.5 text-xs font-bold text-white uppercase tracking-wider rounded-t-sm whitespace-nowrap ${crop.type === "stem" ? "bg-blue-500" : "bg-emerald-500"}`}
             style={{
               transform: `scale(${1 / zoomLevel})`,
               transformOrigin: "bottom left",
@@ -331,7 +331,7 @@ export function DiagramPreCrop({
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {pendingType === "stem"
                     ? "Stem diagram"
                     : `Option ${pendingLabel} diagram`}{" "}
@@ -379,7 +379,7 @@ export function DiagramPreCrop({
             <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
               Pages
             </h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {allPages.length} total
             </p>
           </div>
@@ -401,7 +401,7 @@ export function DiagramPreCrop({
                     className="w-full h-full object-contain"
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
-                    <p className="text-[10px] font-semibold text-white text-center">
+                    <p className="text-xs font-semibold text-white text-center">
                       Page {index + 1}
                     </p>
                   </div>

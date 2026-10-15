@@ -60,7 +60,7 @@ function QtiSnippet() {
 
   return (
     <>
-      {cm("<!-- QTI 2.1 IMS Standard — AssessmentCore Output -->\n")}
+      {cm("<!-- QTI 2.1 IMS Standard — Husimi Output -->\n")}
       {br("<")}
       {kw("assessmentItem")}
       {"\n"}
@@ -281,14 +281,14 @@ export function ValidationDashboard({
           {/* Brand row */}
           <div className="flex items-center gap-3 mb-1">
             <img
-              src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
-              alt="AssessmentCore logo"
+              src="/logo-dark-1.png"
+              alt="Husimi logo"
               className="w-9 h-9 rounded-lg object-contain border border-white/20 bg-card/10"
             />
             <span className="text-2xl font-black tracking-tight">
-              AssessmentCore
+              Husimi
             </span>
-            <span className="ml-1 bg-red-800/50 border border-red-600/40 text-red-200 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="ml-1 bg-red-800/50 border border-red-600/40 text-red-200 text-xs font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
               Enterprise
             </span>
           </div>
@@ -345,7 +345,7 @@ export function ValidationDashboard({
                 <p className={cn("text-xl font-black leading-none", kpi.color)}>
                   {kpi.value}
                 </p>
-                <p className="text-[11px] text-red-200/60 uppercase tracking-wide mt-1">
+                <p className="text-xs text-red-200/60 uppercase tracking-wide mt-1">
                   {kpi.label}
                 </p>
               </div>
@@ -410,10 +410,10 @@ export function ValidationDashboard({
                 </div>
                 {/* Badge */}
                 <div className="bg-[#6B1E1E] text-primary-foreground rounded-full px-4 py-2 text-center shadow-md mt-1">
-                  <p className="text-[15px] font-black leading-none">
+                  <p className="text-sm font-black leading-none">
                     {dedupPct}%
                   </p>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5 opacity-75">
+                  <p className="text-xs font-bold uppercase tracking-widest mt-0.5 opacity-75">
                     Removed
                   </p>
                 </div>
@@ -466,7 +466,7 @@ export function ValidationDashboard({
               </h2>
               <p className="text-sm text-muted-foreground">
                 From {fmt(uniqueCount)} unique questions — here is what
-                AssessmentCore can deliver
+                Husimi can deliver
               </p>
             </div>
           </div>
@@ -482,10 +482,10 @@ export function ValidationDashboard({
                 <p className="text-4xl font-black text-[#15803D] leading-none tabular-nums">
                   {fmt(readyNowCount)}
                 </p>
-                <p className="text-[11px] font-bold text-success mt-2 uppercase tracking-wider">
+                <p className="text-xs font-bold text-success mt-2 uppercase tracking-wider">
                   Ready Now
                 </p>
-                <p className="text-[11px] text-success/70 mt-0.5">
+                <p className="text-xs text-success/70 mt-0.5">
                   {readyPct.toFixed(0)}% of unique bank
                 </p>
                 <div className="mt-3 pt-3 border-t border-emerald-100">
@@ -504,10 +504,10 @@ export function ValidationDashboard({
                 <p className="text-4xl font-black text-[#B45309] leading-none tabular-nums">
                   {fmt(recoverableCount)}
                 </p>
-                <p className="text-[11px] font-bold text-warning mt-2 uppercase tracking-wider">
+                <p className="text-xs font-bold text-warning mt-2 uppercase tracking-wider">
                   Recoverable
                 </p>
-                <p className="text-[11px] text-warning/70 mt-0.5">
+                <p className="text-xs text-warning/70 mt-0.5">
                   {recoverPct.toFixed(0)}% of unique bank
                 </p>
                 <div className="mt-3 pt-3 border-t border-amber-100">
@@ -523,13 +523,13 @@ export function ValidationDashboard({
                 <div className="w-11 h-11 rounded-full bg-muted border-2 border-border flex items-center justify-center mx-auto mb-3">
                   <AlertCircle className="w-5 h-5 text-[#64748B]" />
                 </div>
-                <p className="text-4xl font-black text-[#475569] leading-none tabular-nums">
+                <p className="text-4xl font-black text-muted-foreground leading-none tabular-nums">
                   {fmt(needsReviewCount)}
                 </p>
-                <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wider">
+                <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-wider">
                   Needs Deeper Review
                 </p>
-                <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
                   {reviewPct.toFixed(0)}% of unique bank
                 </p>
                 <div className="mt-3 pt-3 border-t border-border">
@@ -619,14 +619,14 @@ export function ValidationDashboard({
                       <p className="text-lg font-black">
                         {fmt(recoverableCount)}
                       </p>
-                      <p className="text-[10px] text-[#6B7280] font-normal">
+                      <p className="text-xs text-[#6B7280] font-normal">
                         Questions Saved
                       </p>
                     </div>
                     <span className="text-[#93C5FD] text-lg">×</span>
                     <div className="bg-card/70 rounded-lg px-4 py-2 text-center border border-blue-100">
                       <p className="text-lg font-black">0.5</p>
-                      <p className="text-[10px] text-[#6B7280] font-normal">
+                      <p className="text-xs text-[#6B7280] font-normal">
                         Hrs / Question
                       </p>
                     </div>
@@ -635,7 +635,7 @@ export function ValidationDashboard({
                       <p className="text-lg font-black">
                         ~{fmt(roiHoursSaved)} hrs
                       </p>
-                      <p className="text-[10px] opacity-70 font-normal">
+                      <p className="text-xs opacity-70 font-normal">
                         Total Saved
                       </p>
                     </div>
@@ -651,7 +651,7 @@ export function ValidationDashboard({
           <div className="flex items-center gap-3 mb-5">
             <SectionBadge n={3} color="#B45309" />
             <div>
-              <h2 className="text-xl font-bold text-[#111827]">
+              <h2 className="text-xl font-bold text-foreground">
                 LMS Rejection Risks
               </h2>
               <p className="text-sm text-[#6B7280]">
@@ -704,12 +704,12 @@ export function ValidationDashboard({
                   {/* Content */}
                   <div className="flex-1 px-5 py-4">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-bold text-[#111827] text-[15px]">
+                      <h3 className="font-bold text-foreground text-sm">
                         {issue.title}
                       </h3>
                       <span
                         className={cn(
-                          "text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide",
+                          "text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide",
                           isCritical
                             ? "bg-destructive-light text-destructive border border-destructive"
                             : "bg-warning-light text-warning border border-warning",
@@ -754,8 +754,8 @@ export function ValidationDashboard({
           <div className="flex items-center gap-3 mb-5">
             <SectionBadge n={4} color="#047857" />
             <div>
-              <h2 className="text-xl font-bold text-[#111827]">
-                The AssessmentCore Transformation
+              <h2 className="text-xl font-bold text-foreground">
+                The Husimi Transformation
               </h2>
               <p className="text-sm text-[#6B7280]">
                 From raw spreadsheet chaos to LMS-ready QTI 2.1 standard
@@ -775,7 +775,7 @@ export function ValidationDashboard({
               </div>
 
               <div className="p-5 overflow-x-auto">
-                <table className="text-[11px] border-collapse w-full min-w-max font-mono">
+                <table className="text-xs border-collapse w-full min-w-max font-mono">
                   <thead>
                     <tr className="bg-[#F8FAFC]">
                       {[
@@ -902,7 +902,7 @@ export function ValidationDashboard({
                     <span
                       key={tag.label}
                       className={cn(
-                        "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                        "inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border",
                         tag.color,
                       )}
                     >
@@ -921,7 +921,7 @@ export function ValidationDashboard({
                 <span className="text-sm font-bold text-[#4ADE80]">
                   AFTER — QTI 2.1 Standard
                 </span>
-                <span className="ml-auto text-[10px] text-[#4B5563] font-mono bg-[#111827] px-2 py-0.5 rounded">
+                <span className="ml-auto text-xs text-[#4B5563] font-mono bg-[#111827] px-2 py-0.5 rounded">
                   assessmentItem.xml
                 </span>
               </div>
@@ -943,7 +943,7 @@ export function ValidationDashboard({
                 ].map((badge) => (
                   <span
                     key={badge}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/50 text-[#4ADE80] border border-emerald-800/60"
+                    className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-900/50 text-[#4ADE80] border border-emerald-800/60"
                   >
                     {badge}
                   </span>
@@ -966,12 +966,12 @@ export function ValidationDashboard({
               {/* Brand */}
               <div className="flex items-center justify-center gap-2 mb-5">
                 <img
-                  src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
-                  alt="AssessmentCore logo"
+                  src="/logo-dark-1.png"
+                  alt="Husimi logo"
                   className="w-5 h-5 rounded object-contain"
                 />
                 <span className="text-sm font-bold text-red-200/60 uppercase tracking-widest">
-                  AssessmentCore · Next Steps
+                  Husimi · Next Steps
                 </span>
               </div>
 
@@ -1035,7 +1035,7 @@ export function ValidationDashboard({
         <footer className="text-center pb-4">
           <p className="text-xs text-[#94A3B8]">
             Confidential · Generated by{" "}
-            <span className="font-bold text-[#6B1E1E]">AssessmentCore</span> ·{" "}
+            <span className="font-bold text-[#6B1E1E]">Husimi</span> ·{" "}
             {date}
           </p>
         </footer>

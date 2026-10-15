@@ -26,7 +26,7 @@ function LogRow({
         ? "text-warning"
         : "text-chart-1";
   return (
-    <div className="text-[11px] leading-6 text-muted-foreground">
+    <div className="text-xs leading-6 text-muted-foreground">
       <span>[14:02:11]</span> <span className={color}>{label}</span> {value}
     </div>
   );
@@ -44,12 +44,12 @@ export function AuthScaffold({
       <section className="flex flex-col border-r border-border bg-card px-7 py-8 sm:px-12">
         <Link to="/" className="inline-flex items-center gap-2">
           <img
-            src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
-            alt="AssessmentCore logo"
+            src="/logo-dark-1.png"
+            alt="Husimi logo"
             className="h-8 w-8 rounded-md object-contain"
           />
           <span className="text-sm font-semibold text-foreground">
-            AssessmentCore
+            Husimi
           </span>
         </Link>
 
@@ -83,7 +83,7 @@ export function AuthScaffold({
         <div className="relative w-full max-w-lg rounded-xl border border-border bg-card shadow-xl">
           <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
             <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-mono text-[11px] text-muted-foreground">
+            <span className="font-mono text-xs text-muted-foreground">
               validation.log
             </span>
           </div>

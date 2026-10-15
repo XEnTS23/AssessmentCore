@@ -544,7 +544,7 @@ export default function OCRProcessor() {
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 flex-1 overflow-hidden">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">
+              <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
                 <ScanText className="h-3 w-3" />
                 Vision extraction
               </div>
@@ -565,17 +565,17 @@ export default function OCRProcessor() {
             <div className="space-y-4 overflow-y-auto">
               <div className="rounded-lg border border-border bg-card p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     <ScanText className="h-3.5 w-3.5" />
                     OCR Summary
                   </div>
-                  <span className="rounded-md border border-border bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                  <span className="rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                     Live
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-md border border-border bg-muted p-3">
-                    <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <FileText className="h-3.5 w-3.5" />
                       Selected
                     </div>
@@ -587,7 +587,7 @@ export default function OCRProcessor() {
                     </div>
                   </div>
                   <div className="rounded-md border border-border bg-muted p-3">
-                    <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <Database className="h-3.5 w-3.5" />
                       Processed
                     </div>
@@ -599,7 +599,7 @@ export default function OCRProcessor() {
                     </div>
                   </div>
                   <div className="rounded-md border border-border bg-muted p-3">
-                    <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <TableProperties className="h-3.5 w-3.5" />
                       Found
                     </div>
@@ -936,7 +936,7 @@ export default function OCRProcessor() {
                 <Progress value={progressValue} className="h-2" />
               </div>
 
-              <p className="mt-6 text-[11px] text-muted-foreground uppercase tracking-widest font-bold italic">
+              <p className="mt-6 text-xs text-muted-foreground uppercase tracking-widest font-bold italic">
                 Optimizing vision parameters...
               </p>
             </div>

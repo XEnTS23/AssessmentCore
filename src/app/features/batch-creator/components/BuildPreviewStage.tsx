@@ -61,7 +61,7 @@ function TypeBadge({ type }: { type: string }) {
   };
   return (
     <span
-      className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${colors[type] ?? "bg-muted text-muted-foreground"}`}
+      className={`text-xs font-bold uppercase px-1.5 py-0.5 rounded ${colors[type] ?? "bg-muted text-muted-foreground"}`}
     >
       {type}
     </span>
@@ -210,7 +210,7 @@ export function BuildPreviewStage({
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Column 1: Question list */}
         <div className="w-56 shrink-0 border-r flex flex-col overflow-hidden bg-background">
-          <div className="px-4 py-3 border-b text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Questions ({stage.rows.length})
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -229,14 +229,14 @@ export function BuildPreviewStage({
                       : "hover:bg-muted/40"
                   }`}
                 >
-                  <span className="text-[10px] font-mono text-muted-foreground shrink-0 mt-0.5 w-5">
+                  <span className="text-xs font-mono text-muted-foreground shrink-0 mt-0.5 w-5">
                     {p.rowNumber}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1 mb-0.5">
                       <TypeBadge type={p.typeLabel.split(" ")[0]} />
                     </div>
-                    <p className="text-[11px] text-foreground truncate leading-snug">
+                    <p className="text-xs text-foreground truncate leading-snug">
                       {p.stem || "—"}
                     </p>
                   </div>
@@ -434,7 +434,7 @@ function PreviewCard({ preview }: { preview: QuestionPreview }) {
     <div className="rounded-lg border bg-card p-3 space-y-2 text-xs">
       <div className="flex items-center gap-2">
         <TypeBadge type={preview.typeLabel.split(" ")[0]} />
-        <span className="font-mono text-[10px] text-muted-foreground truncate">
+        <span className="font-mono text-xs text-muted-foreground truncate">
           {preview.questionId}
         </span>
       </div>
@@ -457,7 +457,7 @@ function PreviewCard({ preview }: { preview: QuestionPreview }) {
           ))}
         </ul>
       )}
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t">
+      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t">
         <span>
           Answer:{" "}
           <strong className="text-foreground">{preview.answerSummary}</strong>

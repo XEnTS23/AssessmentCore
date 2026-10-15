@@ -522,7 +522,7 @@ export function LMSExportPage() {
             <div className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
               <Card className="border-[#d7e5ff] shadow-sm bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)]">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-[#111827]">
+                  <CardTitle className="flex items-center gap-2 text-foreground">
                     <Wand2 className="w-5 h-5 text-[#0F6CBD]" />
                     Select Target LMS
                   </CardTitle>
@@ -549,7 +549,7 @@ export function LMSExportPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="text-3xl">{platform.icon}</div>
-                              <p className="mt-3 font-semibold text-[#111827]">
+                              <p className="mt-3 font-semibold text-foreground">
                                 {platform.name}
                               </p>
                               <p className="mt-1 text-sm text-[#64748B]">
@@ -579,7 +579,7 @@ export function LMSExportPage() {
 
               <Card className="border-[#d7e5ff] shadow-sm bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)]">
                 <CardHeader>
-                  <CardTitle className="text-[#111827]">
+                  <CardTitle className="text-foreground">
                     Export Summary
                   </CardTitle>
                   <CardDescription>
@@ -592,10 +592,10 @@ export function LMSExportPage() {
                     <p className="text-xs uppercase tracking-wide text-[#64748B]">
                       Uploaded Package
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-[#111827]">
+                    <p className="mt-1 text-sm font-semibold text-foreground">
                       {packageSummary?.fileName}
                     </p>
-                    <p className="mt-2 text-sm text-[#475569]">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       {packageSummary?.xmlCount || 0} item XML,{" "}
                       {packageSummary?.imageCount || 0} image files, manifest
                       verified.
@@ -606,10 +606,10 @@ export function LMSExportPage() {
                     <p className="text-xs uppercase tracking-wide text-[#64748B]">
                       Selected LMS
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-[#111827]">
+                    <p className="mt-1 text-sm font-semibold text-foreground">
                       {selectedPlatformMeta.name}
                     </p>
-                    <p className="mt-2 text-sm text-[#475569]">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       {selectedPlatformMeta.description}
                     </p>
                   </div>
@@ -694,7 +694,7 @@ export function LMSExportPage() {
           {selectedPlatform === "canvas" && (
             <Card className="border-[#d7e5ff] shadow-sm bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)]">
               <CardHeader>
-                <CardTitle className="text-[#111827]">
+                <CardTitle className="text-foreground">
                   Canvas XML Preview
                 </CardTitle>
                 <CardDescription>
@@ -815,7 +815,7 @@ export function LMSExportPage() {
                                         </Badge>
                                       )}
                                     </td>
-                                    <td className="px-3 py-2 border-b border-[#F1F5F9] text-[#475569] text-xs max-w-xs overflow-hidden text-ellipsis">
+                                    <td className="px-3 py-2 border-b border-[#F1F5F9] text-muted-foreground text-xs max-w-xs overflow-hidden text-ellipsis">
                                       {item.issues.length > 0
                                         ? item.issues[0]
                                         : "-"}

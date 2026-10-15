@@ -48,11 +48,11 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
                 {s.keys.map((k, j) => (
                   <span key={j}>
                     {j > 0 && (
-                      <span className="text-muted-foreground mx-0.5 text-[10px]">
+                      <span className="text-muted-foreground mx-0.5 text-xs">
                         +
                       </span>
                     )}
-                    <kbd className="inline-flex h-6 min-w-[24px] items-center justify-center rounded border border-border bg-muted px-1.5 text-[10px] font-mono">
+                    <kbd className="inline-flex h-6 min-w-[24px] items-center justify-center rounded border border-border bg-muted px-1.5 text-xs font-mono">
                       {k}
                     </kbd>
                   </span>

@@ -16,7 +16,7 @@ export default function App() {
       'link[rel="icon"]',
     ) as HTMLLinkElement | null;
     if (favicon) {
-      favicon.href = "/AC_logo.png";
+      favicon.href = "/logo-dark-1.png";
     }
   }, []);
 

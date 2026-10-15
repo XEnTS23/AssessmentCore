@@ -8,13 +8,13 @@ interface Props {
 }
 
 export function EquationWorkspaceTabs({ activeTab, onChangeTab }: Props) {
-  const tabs = [
+  const tabs: readonly { id: Props["activeTab"]; label: string; icon: React.ReactElement; beta?: boolean }[] = [
     { id: "keyboard", label: "Keyboard", icon: <Keyboard className="w-4 h-4" /> },
     { id: "templates", label: "Templates", icon: <LayoutTemplate className="w-4 h-4" /> },
     { id: "snippets", label: "Snippets", icon: <Scissors className="w-4 h-4" /> },
     { id: "upload", label: "Upload", icon: <Upload className="w-4 h-4" /> },
     { id: "handwriting", label: "Handwriting", icon: <PenTool className="w-4 h-4" />, beta: true },
-  ] as const;
+  ];
 
   return (
     <div className="flex items-center gap-4 px-4 pt-4 border-b border-border bg-card overflow-x-auto scrollbar-hide shrink-0">
@@ -32,7 +32,7 @@ export function EquationWorkspaceTabs({ activeTab, onChangeTab }: Props) {
           {tab.icon}
           {tab.label}
           {tab.beta && (
-            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
+            <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary">
               Beta
             </span>
           )}

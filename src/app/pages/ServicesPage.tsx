@@ -2,58 +2,114 @@ import { Link } from "react-router";
 import {
   ArrowRight,
   Briefcase,
-  Building2,
-  CheckCircle,
-  FileDigit,
+  Check,
+  CheckCircle2,
+  Cpu,
+  FileCheck2,
+  FileCode2,
+  FileSpreadsheet,
+  FileText,
   GraduationCap,
-  HardDriveUpload,
+  Layers,
   LineChart,
-  PackageCheck,
-  Facebook,
-  Github,
-  Linkedin,
-  Mail,
-  MapPin,
-  MessageCircle,
-  Phone,
-  Youtube,
+  Network,
+  RefreshCw,
+  Search,
+  Server,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
-import { useTheme } from "../../contexts/ThemeContext";
 import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
+import { ContactProjectForm } from "../components/ContactProjectForm";
 
 export function ServicesPage() {
-  const { isDark } = useTheme();
-  const { isAuthenticated } = useAuth();
-
-  const services = [
+  const servicePillars = [
     {
-      icon: <HardDriveUpload className="h-6 w-6" />,
-      title: "Legacy PDF & Document Digitization",
-      description:
-        "Transform decades of legacy paper tests, multi-column PDFs, and raw CSVs into modern formats. Our deterministic OCR pipeline perfectly extracts bilingual text, LaTeX equations, and complex spatial diagrams.",
-      tags: ["PDF OCR", "Bilingual Extraction", "Data Normalization"],
+      id: "content-development",
+      number: "01",
+      title: "Assessment Content Development",
+      summary:
+        "Create high-quality digital assessment content for learning platforms, test-prep products, publishers, and assessment systems.",
+      capabilities: [
+        "MCQ / single-choice items",
+        "Multiple-response items (MSQ)",
+        "Text-entry & numeric questions",
+        "Structured and interactive assessment items",
+        "STEM question development (Physics, Math, Chemistry)",
+        "Answer explanations and step-by-step feedback",
+        "Difficulty tagging & cognitive level mapping",
+        "Curriculum and taxonomy alignment",
+        "Subject-matter expert (SME) review workflows",
+        "Content formatting and standardization",
+      ],
+      deliverable:
+        "Delivered as structured question banks ready for platform authoring or LMS import, complete with keys, explanations, and media assets.",
     },
     {
-      icon: <PackageCheck className="h-6 w-6" />,
-      title: "LMS-Native Packaging",
-      description:
-        "We don't just generate generic QTI. Our service applies specific formatting adapters to output strictly compliant IMS packages customized for the distinct rendering quirks of Canvas, Moodle, and Blackboard.",
-      tags: ["QTI 3.0 Standard", "Canvas Adapters", "MathML Optimization"],
+      id: "digitization",
+      number: "02",
+      title: "Assessment Content Digitization",
+      summary:
+        "Turn unstructured and legacy educational material into clean, structured digital assessment content. Ambiguous items are flagged for human review.",
+      capabilities: [
+        "PDF to structured questions (native & scanned)",
+        "Word document (.docx) extraction & conversion",
+        "Spreadsheet / CSV normalization",
+        "Scanned-paper test digitization",
+        "Handwritten assessment conversion",
+        "Mathematical notation recognition (LaTeX/MathML)",
+        "STEM figure and circuit diagram handling",
+        "Chemistry skeletal structure handling",
+        "Question segmentation across complex layouts",
+        "Answer-option extraction & key mapping",
+        "Interaction-type detection",
+      ],
+      deliverable:
+        "Raw documents converted into structured digital items with diagrams neatly cropped, linked, and verified.",
     },
     {
-      icon: <LineChart className="h-6 w-6" />,
-      title: "Algorithmic Quality Auditing",
-      description:
-        "Ensure structural integrity across massive datasets. Our deterministic validation engine scans for missing options, broken LaTeX delimiters, and unlinked diagrams, allowing you to fix extraction anomalies in a guided UI.",
-      tags: ["Pedagogical Review", "Structural Validation", "Error Flagging"],
+      id: "qa-remediation",
+      number: "03",
+      title: "Question Bank QA & Remediation",
+      summary:
+        "Clean, normalize, and validate existing question banks before they reach learners or production systems. Identify uncertainty before production.",
+      capabilities: [
+        "Answer-key verification workflows",
+        "Malformed option & truncated stem detection",
+        "Duplicate-content & ID collision checks",
+        "Metadata and taxonomy normalization",
+        "Question-type consistency enforcement",
+        "Math notation & LaTeX delimiter validation",
+        "Missing asset and broken image detection",
+        "Formatting and whitespace cleanup",
+        "Detailed exception reporting",
+        "Human review of uncertain or ambiguous items",
+      ],
+      deliverable:
+        "A remediated question bank with an audit report detailing every flagged exception, repair made, and manual decision required.",
     },
     {
-      icon: <FileDigit className="h-6 w-6" />,
-      title: "Custom Template Engineering",
-      description:
-        "Got custom metadata? We provide precise XML placeholder mapping. Route your custom spreadsheet columns directly into specific LMS metadata fields using our deterministic routing architecture.",
-      tags: ["Metadata Mapping", "Custom XML", "Schema Enforcement"],
+      id: "lms-migration",
+      number: "04",
+      title: "LMS & Assessment Migration",
+      summary:
+        "Prepare assessment content for modern LMS and assessment platforms without forcing internal teams to rebuild every item manually.",
+      capabilities: [
+        "Canvas assessment workflows & QTI packaging",
+        "Moodle quiz XML & QTI import formatting",
+        "QTI 2.1 standard packages",
+        "QTI 3.0 standard packages",
+        "Structured JSON exports for custom web apps",
+        "CSV / Excel bulk upload schemas",
+        "Media asset packaging & path resolution",
+        "Import troubleshooting & platform quirk adaptation",
+        "Legacy assessment conversion",
+        "Platform-specific validation before deployment",
+      ],
+      deliverable:
+        "Validated export packages tested against target platform requirements, with manual workarounds provided for platform rendering quirks.",
     },
   ];
 
@@ -63,232 +119,140 @@ export function ServicesPage() {
 
       {/* Hero Section */}
       <section className="mx-auto w-full max-w-6xl px-6 pb-16 pt-20">
-        <div className="flex flex-col items-start">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-            <Briefcase className="h-4 w-4" />
-            Enterprise Capabilities
+        <div className="flex flex-col items-start max-w-3xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+            <Briefcase className="h-3.5 w-3.5" />
+            Service Offerings
           </div>
-          <h1 className="max-w-4xl text-5xl font-semibold tracking-tight leading-[1.1]">
-            Industrial-grade{" "}
-            <span className="text-primary">assessment engineering.</span>
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl leading-[1.1]">
+            Assessment content services, powered by proprietary technology.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Our computational services ensure perfect data integrity from messy
-            legacy PDFs to the final LMS screen.
+          <p className="mt-5 text-base sm:text-lg leading-relaxed text-muted-foreground">
+            Husimi helps education companies create, digitize, validate, and migrate assessment content. We combine assessment-authoring experience with proprietary automation technology to take responsibility for real assessment-content backlogs.
           </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a
+              href="#contact"
+              className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-6 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Discuss a Service Requirement
+              <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* Core Services Grid */}
-      <section className="border-t border-border bg-muted/30 px-6 py-20 transition-colors duration-200">
-        <div className="mx-auto w-full max-w-6xl">
-          <div className="grid gap-10 md:grid-cols-2">
-            {services.map((service, idx) => (
-              <div
-                key={idx}
-                className="group relative flex flex-col rounded-[0.625rem] border border-border bg-card p-8 shadow-sm transition-all hover:shadow-md"
-              >
-                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl border border-primary/10 bg-primary/5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                  {service.icon}
+      {/* Service Pillars Detailed Breakdown */}
+      <section className="border-t border-border bg-muted/20 px-6 py-20 transition-colors">
+        <div className="mx-auto w-full max-w-6xl space-y-16">
+          {servicePillars.map((pillar) => (
+            <div
+              key={pillar.id}
+              id={pillar.id}
+              className="scroll-mt-24 rounded-2xl border border-border bg-card p-8 shadow-xs"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    Pillar {pillar.number}
+                  </div>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    {pillar.title}
+                  </h2>
                 </div>
-                <h3 className="mb-3 text-2xl font-semibold tracking-tight text-foreground">
-                  {service.title}
+                <a
+                  href="#contact"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-4 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  <span>Scope this service</span>
+                  <ArrowRight className="h-3 w-3" />
+                </a>
+              </div>
+
+              <p className="mt-5 text-sm leading-relaxed text-muted-foreground max-w-3xl">
+                {pillar.summary}
+              </p>
+
+              <div className="mt-8">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                  Capabilities &amp; Scope:
                 </h3>
-                <p className="mb-8 flex-1 text-base leading-relaxed text-muted-foreground">
-                  {service.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-auto border-t border-border/50 pt-6">
-                  {service.tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-foreground"
+                <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {pillar.capabilities.map((cap) => (
+                    <div
+                      key={cap}
+                      className="flex items-start gap-2 text-xs text-muted-foreground"
                     >
-                      <CheckCircle className="h-3 w-3 text-emerald-500" />
-                      {tag}
-                    </span>
+                      <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{cap}</span>
+                    </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="mt-8 rounded-lg border border-border/80 bg-muted/30 p-4 text-xs text-foreground">
+                <span className="font-semibold text-foreground">Deliverable: </span>
+                <span className="text-muted-foreground">{pillar.deliverable}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Engagement Workflow */}
+      <section className="px-6 py-20 transition-colors">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="max-w-2xl">
+            <div className="text-xs font-semibold uppercase tracking-wide text-primary">
+              Delivery Framework
+            </div>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+              How Husimi delivers your project
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              We structure projects so you can verify content accuracy and target platform import success early with low initial investment.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                step: "01. Discovery & Sample",
+                desc: "We analyze a sample of your content to determine math notation, diagram styles, and target LMS quirks.",
+              },
+              {
+                step: "02. Processing & QA",
+                desc: "Our automated engine extracts and structures the data, followed by human review of ambiguous questions.",
+              },
+              {
+                step: "03. Validation Audit",
+                desc: "Every item is checked against target schema rules, and an exception log is shared for transparency.",
+              },
+              {
+                step: "04. Platform Delivery",
+                desc: "Packages are delivered in your target format (QTI, Canvas, Moodle, JSON) ready for instructor use.",
+              },
+            ].map((st, idx) => (
+              <div key={idx} className="rounded-xl border border-border bg-card p-5 shadow-xs">
+                <div className="text-xs font-semibold text-primary">{st.step}</div>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {st.desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Use Cases / Target Audience */}
-      <section className="mx-auto w-full max-w-6xl px-6 py-24">
-        <div className="rounded-[0.625rem] border border-border bg-card p-10 md:p-16 text-center shadow-lg">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Built for scale. Trusted by experts.
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Our infrastructure is designed to handle the rigorous demands of
-            institutional data migration.
-          </p>
-
-          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-2 max-w-4xl mx-auto">
-            <div className="flex flex-col items-center p-6">
-              <div className="mb-4 rounded-full bg-blue-50 p-4 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-                <GraduationCap className="h-8 w-8" />
-              </div>
-              <h4 className="text-lg font-semibold">
-                EdTechs & Coaching Institutes
-              </h4>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Digitize 10 years of legacy mock tests and bilingual STEM
-                question banks into your LMS without losing spatial formatting
-                or complex physics diagrams.
-              </p>
-            </div>
-            <div className="flex flex-col items-center p-6">
-              <div className="mb-4 rounded-full bg-emerald-50 p-4 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
-                <Building2 className="h-8 w-8" />
-              </div>
-              <h4 className="text-lg font-semibold">Educational Publishers</h4>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Standardize test banks across different authors and export
-                pristine QTI 3.0 packages for seamless distribution.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-12 flex justify-center">
-            <Link
-              to="/contact"
-              className="inline-flex h-12 items-center gap-2 rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-all"
-            >
-              Start processing your data
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+      {/* Contact Section */}
+      <section id="contact" className="border-t border-border px-6 py-20 transition-colors">
+        <div className="mx-auto w-full max-w-6xl">
+          <ContactProjectForm embedded />
         </div>
       </section>
 
-      {/* Standard Footer */}
-      <footer className="border-t border-border bg-muted/50 px-6 transition-colors duration-200">
-        <div className="mx-auto w-full max-w-7xl py-10">
-          <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
-            <div>
-              <div className="flex items-center gap-2">
-                <img
-                  src={isDark ? "/logo-dark-1.png" : "/AC_logo.png"}
-                  alt="AssessmentCore logo"
-                  className="h-7 w-7 rounded-md object-contain"
-                />
-                <span className="text-sm font-semibold text-foreground">
-                  AssessmentCore
-                </span>
-              </div>
-              <p className="mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
-                Build, validate, and export high-quality assessments with a
-                deterministic workflow and LMS-ready outputs.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Contact
-              </h4>
-              <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-                <a
-                  href="mailto:hello@assessmentcore.in"
-                  className="flex items-center gap-2 hover:text-foreground transition-colors"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  hello@assessmentcore.in
-                </a>
-                <a
-                  href="tel:+919382565942"
-                  className="flex items-center gap-2 hover:text-foreground transition-colors"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  +91 9382565942
-                </a>
-                <div className="flex items-start gap-2">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5" />
-                  <span>Tamluk, India</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Connect
-              </h4>
-              <div className="mt-3 flex items-center gap-2">
-                <a
-                  href="https://www.linkedin.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="LinkedIn"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Linkedin className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://github.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="GitHub"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Github className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://www.facebook.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Facebook"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Facebook className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://wa.me/919382565942"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="WhatsApp"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://www.youtube.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="YouTube"
-                  className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                >
-                  <Youtube className="h-4 w-4" />
-                </a>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <Link
-                  to="/documentation"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Documentation
-                </Link>
-                <Link
-                  to="/changelog"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Changelog
-                </Link>
-                <Link
-                  to="/status"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Status
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground">
-            AssessmentCore · v1.0 · {new Date().getFullYear()}
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

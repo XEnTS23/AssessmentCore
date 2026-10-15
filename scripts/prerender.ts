@@ -51,7 +51,7 @@ function renderComponent(Component: React.ComponentType, routePath: string): str
 }
 
 function replaceMeta(html: string, attr: 'name' | 'property', key: string, content: string): string {
-  const regex = new RegExp(`<meta[\\s\\S]*?${attr}=["']${key}["'][\\s\\S]*?>`, 'i');
+  const regex = new RegExp(`<meta[^>]*?${attr}=["']${key}["'][^>]*?>`, 'i');
   const replacement = `<meta ${attr}="${key}" content="${content.replace(/"/g, '&quot;')}" />`;
   if (regex.test(html)) {
     return html.replace(regex, replacement);
@@ -89,7 +89,7 @@ function prerender() {
       // Title
       .replace(/<title>[\s\S]*?<\/title>/i, `<title>${config.title}</title>`)
       // Canonical
-      .replace(/<link[\s\S]*?rel=["']canonical["'][\s\S]*?>/i, `<link rel="canonical" href="${canonicalUrl}" />`)
+      .replace(/<link[^>]*?rel=["']canonical["'][^>]*?>/i, `<link rel="canonical" href="${canonicalUrl}" />`)
       // Inject JSON-LD before </head>
       .replace('</head>', `${structuredDataTag}\n  </head>`)
       // Inject rendered HTML into #root

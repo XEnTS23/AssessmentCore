@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "build": "vite build && vite-node scripts/prerender.ts",
     "seo:check": "vite-node scripts/seo-check.ts",
@@ -15,6 +19,7 @@
     "report:validator:regression": "npm run fixture:generate:validator && vite-node scripts/report-validator-regression.ts"
   },
   "dependencies": {
+    "@husimi/brand": "*",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",

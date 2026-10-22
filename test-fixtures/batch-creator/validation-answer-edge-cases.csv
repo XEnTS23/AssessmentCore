@@ -1,7 +1,0 @@
-Question ID,Type,Question,Option A,Option B,Option C,Answer
-edge-mcq-ambiguous,MCQ,Which city is intended?,Paris, paris ,London,Paris
-edge-mcq-unmatched,MCQ,Choose a primary colour.,Red,Blue,Green,Purple
-edge-msq-mixed,MSQ,Select the cool colours.,Red,Blue,Green,A|Blue
-edge-msq-ambiguous,MSQ,Select the repeated value.,Same, same ,Different,Same
-edge-latex-mismatch,MCQ,Solve \(x + 1],1,2,3,A
-edge-order-duplicate,ORDER,Arrange these stages.,Plan,Build,Test,A|A|C

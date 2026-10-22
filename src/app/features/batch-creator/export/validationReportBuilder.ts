@@ -53,20 +53,48 @@ export interface ValidationReportOutput {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// Palette mirrors the Husimi website theme tokens (src/styles/theme.css).
+const THEME = {
+  ink: "#111827",
+  black: "#000000",
+  muted: "#64748b",
+  subtle: "#94a3b8",
+  border: "#e2e8f0",
+  borderLight: "#f1f5f9",
+  surface: "#ffffff",
+  background: "#f8fafc",
+  accent: "#0b5a9a",
+  accentLight: "#e0f0ff",
+  success: "#16a34a",
+  successLight: "#f0fdf4",
+  warning: "#ea580c",
+  warningLight: "#fff7ed",
+  destructive: "#dc2626",
+  destructiveLight: "#fef2f2",
+};
+
 const SEVERITY_COLOR: Record<IssueSeverity, string> = {
-  block: "#dc2626",
+  block: THEME.destructive,
   engine_defect: "#991b1b",
-  review: "#d97706",
-  warning: "#ca8a04",
-  info: "#2563eb",
+  review: THEME.warning,
+  warning: "#b45309",
+  info: THEME.accent,
 };
 
 const SEVERITY_BG: Record<IssueSeverity, string> = {
-  block: "#fef2f2",
+  block: THEME.destructiveLight,
   engine_defect: "#fee2e2",
-  review: "#fffbeb",
-  warning: "#fefce8",
-  info: "#eff6ff",
+  review: THEME.warningLight,
+  warning: "#fffbeb",
+  info: THEME.accentLight,
+};
+
+const SEVERITY_LABEL: Record<IssueSeverity, string> = {
+  block: "Block",
+  engine_defect: "Engine Defect",
+  review: "Review",
+  warning: "Warning",
+  info: "Info",
 };
 
 const CATEGORY_LABEL: Record<IssueCategory, string> = {
@@ -97,60 +125,189 @@ function esc(s: string | undefined | null): string {
 
 function statusBadge(status: QuestionRow["status"]): string {
   const map: Record<string, [string, string]> = {
-    valid: ["#16a34a", "#dcfce7"],
-    rejected: ["#dc2626", "#fef2f2"],
-    needs_review: ["#d97706", "#fffbeb"],
-    caution: ["#ca8a04", "#fefce8"],
-    raw: ["#6b7280", "#f3f4f6"],
-    normalized: ["#2563eb", "#eff6ff"],
+    valid: [THEME.success, THEME.successLight],
+    rejected: [THEME.destructive, THEME.destructiveLight],
+    needs_review: [THEME.warning, THEME.warningLight],
+    caution: ["#b45309", "#fffbeb"],
+    raw: [THEME.muted, THEME.borderLight],
+    normalized: [THEME.accent, THEME.accentLight],
   };
-  const [color, bg] = map[status] ?? ["#6b7280", "#f3f4f6"];
-  return `<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:99px;background:${bg};color:${color}">${esc(status.replace("_", " "))}</span>`;
+  const [color, bg] = map[status] ?? [THEME.muted, THEME.borderLight];
+  return `<span class="pill" style="background:${bg};color:${color}"><span class="dot" style="background:${color}"></span>${esc(status.replace("_", " "))}</span>`;
+}
+
+function statTile(label: string, value: number | string, dotColor?: string): string {
+  return `<div class="stat">
+      <div class="stat-lbl">${dotColor ? `<span class="dot" style="background:${dotColor}"></span>` : ""}${esc(label)}</div>
+      <div class="stat-num">${value}</div>
+    </div>`;
+}
+
+/** Label / count row with a proportional bar, used in the issue breakdowns. */
+function barRow(label: string, count: number, max: number, color: string): string {
+  const width = max > 0 ? Math.max(2, (count / max) * 100) : 0;
+  return `<tr>
+      <td class="bar-lbl">${label}</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill" style="width:${width.toFixed(1)}%;background:${color}"></div></div></td>
+      <td class="num">${count}</td>
+    </tr>`;
+}
+
+function sectionHeading(index: number, title: string, aside = ""): string {
+  return `<div class="section-head">
+    <span class="section-idx">${String(index).padStart(2, "0")}</span>
+    <h2>${title}</h2>
+    ${aside ? `<span class="section-aside">${aside}</span>` : ""}
+  </div>`;
 }
 
 // ─── Section builders (each returns an HTML string) ──────────────────────────
 
 function buildStyles(): string {
-  return `<style>
+  return `<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
     *,*::before,*::after{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.55;
-         color:#1e1e2e;background:#f8f8fc;margin:0;padding:24px}
-    .page{max-width:1100px;margin:0 auto}
-    h1{font-size:22px;font-weight:800;color:#1e1e2e;margin:0 0 4px}
-    h2{font-size:15px;font-weight:700;color:#1e1e2e;margin:24px 0 12px;
-       border-bottom:2px solid #e5e7eb;padding-bottom:6px}
-    h3{font-size:13px;font-weight:700;color:#374151;margin:16px 0 8px}
-    .meta{font-size:11px;color:#6b7280;margin-bottom:24px}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px}
-    .stat{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-    .stat-num{font-size:28px;font-weight:800;line-height:1}
-    .stat-lbl{font-size:11px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+    body{font-family:"Archivo","Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;
+         color:${THEME.ink};background:${THEME.background};margin:0;padding:32px 24px;
+         -webkit-font-smoothing:antialiased}
+    .mono{font-family:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .page{max-width:1100px;margin:0 auto;background:${THEME.surface};border:1px solid ${THEME.border};
+          border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+    .page-inner{padding:32px 40px 40px}
+
+    /* Brand bar */
+    .brandbar{display:flex;align-items:center;justify-content:space-between;gap:16px;
+              padding:16px 40px;border-bottom:1px solid ${THEME.border}}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .brand-mark{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+                border-radius:8px;background:${THEME.black};color:#fff;font-weight:800;font-size:15px;letter-spacing:-.04em}
+    .brand-name{display:flex;flex-direction:column;line-height:1.05}
+    .brand-name b{font-size:14px;font-weight:600;letter-spacing:-.01em;color:${THEME.ink}}
+    .brand-name span{font-size:12px;color:${THEME.muted}}
+    .doc-type{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:${THEME.muted}}
+
+    /* Title block */
+    .title-block{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;
+                 padding-bottom:24px;border-bottom:1px solid ${THEME.border};margin-bottom:8px}
+    .eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:${THEME.accent};margin:0 0 6px}
+    h1{font-size:26px;font-weight:700;letter-spacing:-.02em;color:${THEME.black};margin:0}
+    .subtitle{font-size:13px;color:${THEME.muted};margin:6px 0 0}
+    .meta-grid{display:grid;grid-template-columns:auto auto;gap:4px 16px;font-size:12px}
+    .meta-grid dt{color:${THEME.muted}}
+    .meta-grid dd{margin:0;font-weight:600;text-align:right}
+
+    /* Sections */
+    .section{margin-top:32px}
+    .section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+    .section-idx{font-family:"Roboto Mono",ui-monospace,monospace;font-size:11px;color:${THEME.subtle}}
+    h2{font-size:16px;font-weight:600;letter-spacing:-.01em;color:${THEME.black};margin:0}
+    .section-aside{margin-left:auto;font-size:12px;color:${THEME.muted}}
+    h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:${THEME.muted};margin:0 0 12px}
+    .card{background:${THEME.surface};border:1px solid ${THEME.border};border-radius:10px;padding:20px}
+    .note{font-size:12px;color:#374151;margin-top:12px}
+
+    /* Stats */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;
+               border:1px solid ${THEME.border};border-radius:10px;overflow:hidden}
+    .stat{padding:16px 18px;border-right:1px solid ${THEME.border};background:${THEME.surface}}
+    .stat:last-child{border-right:none}
+    .stat-lbl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:${THEME.muted};
+              text-transform:uppercase;letter-spacing:.06em}
+    .stat-num{font-size:26px;font-weight:700;letter-spacing:-.02em;color:${THEME.black};margin-top:6px;line-height:1}
+    .dot{display:inline-block;width:7px;height:7px;border-radius:99px;flex:none}
+
+    /* Pass rate */
+    .rate{display:flex;align-items:center;gap:20px;margin-top:16px;padding:16px 18px;
+          background:${THEME.background};border:1px solid ${THEME.border};border-radius:10px}
+    .rate-num{font-size:22px;font-weight:700;letter-spacing:-.02em;min-width:76px}
+    .rate-body{flex:1}
+    .rate-lbl{font-size:12px;color:${THEME.muted};margin-bottom:8px}
+    .track{height:6px;background:${THEME.border};border-radius:99px;overflow:hidden}
+    .track-fill{height:100%;border-radius:99px;background:${THEME.black}}
+
+    /* Tables */
     table{width:100%;border-collapse:collapse;font-size:12px}
-    th{background:#f1f5f9;text-align:left;padding:8px 10px;font-weight:600;border:1px solid #e5e7eb;white-space:nowrap}
-    td{padding:7px 10px;border:1px solid #e5e7eb;vertical-align:top}
-    tr:nth-child(even) td{background:#f9fafb}
-    .issue-block{border-left:3px solid;border-radius:4px;padding:8px 12px;margin:4px 0;font-size:11px}
-    .tag{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;background:#f1f5f9;color:#374151;margin-right:4px}
-    .progress-bar{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-top:6px}
-    .progress-fill{height:100%;border-radius:99px}
+    .bars td{padding:7px 0;border-bottom:1px solid ${THEME.borderLight};vertical-align:middle}
+    .bars tr:last-child td{border-bottom:none}
+    .bar-lbl{width:42%;padding-right:12px!important;color:#374151}
+    .bar-cell{width:46%}
+    .bar{height:6px;background:${THEME.borderLight};border-radius:99px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:99px}
+    .num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;padding-left:12px!important}
     .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    @media(max-width:640px){.two-col{grid-template-columns:1fr}.stat-grid{grid-template-columns:repeat(2,1fr)}}
+
+    .detail{border:1px solid ${THEME.border};border-radius:10px;overflow-x:auto}
+    .detail th{background:${THEME.background};text-align:left;padding:10px 12px;font-size:10px;font-weight:600;
+               text-transform:uppercase;letter-spacing:.08em;color:${THEME.muted};
+               border-bottom:1px solid ${THEME.border};white-space:nowrap}
+    .detail td{padding:10px 12px;border-bottom:1px solid ${THEME.borderLight};vertical-align:top}
+    .detail tr:last-child td{border-bottom:none}
+    .detail tbody tr:hover td{background:#fbfcfe}
+
+    .pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;text-transform:uppercase;
+          letter-spacing:.06em;padding:2px 8px;border-radius:99px;white-space:nowrap}
+    .tag{display:inline-block;font-size:10px;font-weight:500;padding:1px 6px;border-radius:4px;
+         background:${THEME.borderLight};color:#334155;border:1px solid ${THEME.border};margin-right:4px}
+    .issue{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;border-left:2px solid;
+           padding:6px 10px;margin:0 0 4px;font-size:11px;border-radius:0 6px 6px 0}
+    .issue:last-child{margin-bottom:0}
+    .issue-sev{font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+    .issue-cat{color:${THEME.muted}}
+    .issue-msg{color:${THEME.ink};flex-basis:100%}
+    .ok{display:inline-flex;align-items:center;gap:6px;color:${THEME.success};font-size:11px;font-weight:500}
+    .empty{display:flex;align-items:center;gap:10px;color:${THEME.success};font-weight:500}
+
+    /* Footer */
+    .footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 40px;
+            border-top:1px solid ${THEME.border};background:${THEME.background};font-size:11px;color:${THEME.muted}}
+
+    @media(max-width:720px){
+      body{padding:16px}
+      .page-inner{padding:24px 20px 28px}
+      .brandbar,.footer{padding-left:20px;padding-right:20px}
+      .two-col{grid-template-columns:1fr}
+      .stat-grid{grid-template-columns:repeat(2,1fr)}
+      .stat{border-bottom:1px solid ${THEME.border}}
+    }
+    @media print{
+      body{background:#fff;padding:0}
+      .page{border:none;box-shadow:none;border-radius:0;max-width:none}
+      .section{break-inside:avoid-page}
+      .detail{overflow:visible}
+      .detail tr{break-inside:avoid}
+      *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    }
   </style>`;
 }
 
-function buildHeader(generatedAt: string): string {
+function buildBrandBar(): string {
   return `
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-    <div style="width:40px;height:40px;background:linear-gradient(135deg,#6d28d9,#4f46e5);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px">📋</div>
-    <div>
-      <h1>Validation Report</h1>
-      <p class="meta">Generated ${esc(generatedAt)}</p>
+  <div class="brandbar">
+    <div class="brand">
+      <span class="brand-mark">H</span>
+      <span class="brand-name"><b>Husimi</b><span>Solutions</span></span>
     </div>
+    <span class="doc-type">Quality Assurance Report</span>
   </div>`;
 }
 
-function buildSummaryStats(rows: QuestionRow[]): string {
+function buildHeader(generatedAt: string, rows: QuestionRow[]): string {
+  return `
+  <div class="title-block">
+    <div>
+      <p class="eyebrow">Question Bank Validation</p>
+      <h1>Validation Report</h1>
+      <p class="subtitle">Structural, content and export-readiness checks across all imported questions.</p>
+    </div>
+    <dl class="meta-grid" style="margin:0">
+      <dt>Generated</dt><dd>${esc(generatedAt)}</dd>
+      <dt>Questions</dt><dd>${rows.length}</dd>
+    </dl>
+  </div>`;
+}
+
+function buildSummaryStats(rows: QuestionRow[], index: number): string {
   const counts = {
     valid: 0,
     rejected: 0,
@@ -169,39 +326,30 @@ function buildSummaryStats(rows: QuestionRow[]): string {
   const pct = (n: number) =>
     total > 0 ? ((n / total) * 100).toFixed(1) : "0.0";
 
-  const stats = [
-    { num: total, lbl: "Total Rows", color: "#6d28d9" },
-    { num: counts.valid, lbl: "Valid", color: "#16a34a" },
-    { num: counts.rejected, lbl: "Rejected", color: "#dc2626" },
-    { num: counts.needs_review, lbl: "Needs Review", color: "#d97706" },
-    { num: counts.caution, lbl: "Caution", color: "#ca8a04" },
-  ];
-
-  const statHtml = stats
-    .map(
-      (s) =>
-        `<div class="stat">
-      <div class="stat-num" style="color:${s.color}">${s.num}</div>
-      <div class="stat-lbl">${esc(s.lbl)}</div>
-    </div>`,
-    )
-    .join("");
+  const statHtml = [
+    statTile("Total Rows", total),
+    statTile("Valid", counts.valid, THEME.success),
+    statTile("Rejected", counts.rejected, THEME.destructive),
+    statTile("Needs Review", counts.needs_review, THEME.warning),
+    statTile("Caution", counts.caution, "#b45309"),
+  ].join("");
 
   const passRate = pct(counts.valid + counts.caution);
   return `
-  <h2>Summary</h2>
-  <div class="stat-grid">${statHtml}</div>
-  <div class="card" style="padding:14px 16px">
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-bottom:4px">
-      <span>Pass rate (valid + caution)</span><span style="font-weight:700;color:#1e1e2e">${passRate}%</span>
+  <section class="section">
+    ${sectionHeading(index, "Summary")}
+    <div class="stat-grid">${statHtml}</div>
+    <div class="rate">
+      <div class="rate-num">${passRate}%</div>
+      <div class="rate-body">
+        <div class="rate-lbl">Pass rate (valid + caution)</div>
+        <div class="track"><div class="track-fill" style="width:${passRate}%"></div></div>
+      </div>
     </div>
-    <div class="progress-bar">
-      <div class="progress-fill" style="width:${passRate}%;background:linear-gradient(90deg,#16a34a,#4ade80)"></div>
-    </div>
-  </div>`;
+  </section>`;
 }
 
-function buildIssueSummary(rows: QuestionRow[]): string {
+function buildIssueSummary(rows: QuestionRow[], index: number): string {
   // Aggregate issues by category and severity
   const catCounts: Record<string, number> = {};
   const sevCounts: Record<IssueSeverity, number> = {
@@ -222,115 +370,125 @@ function buildIssueSummary(rows: QuestionRow[]): string {
   }
 
   if (totalIssues === 0) {
-    return `<h2>Issue Summary</h2><div class="card" style="text-align:center;color:#16a34a;padding:20px">✅ No validation issues found.</div>`;
+    return `
+  <section class="section">
+    ${sectionHeading(index, "Issue Summary")}
+    <div class="card empty"><span class="dot" style="background:${THEME.success}"></span>No validation issues found.</div>
+  </section>`;
   }
 
-  const catRows = Object.entries(catCounts)
-    .map(
-      ([cat, count]) =>
-        `<tr><td>${esc(CATEGORY_LABEL[cat as IssueCategory] ?? cat)}</td><td style="text-align:right;font-weight:700">${count}</td></tr>`,
+  const catEntries = Object.entries(catCounts).sort(([, a], [, b]) => b - a);
+  const catMax = Math.max(...catEntries.map(([, c]) => c));
+  const catRows = catEntries
+    .map(([cat, count]) =>
+      barRow(
+        esc(CATEGORY_LABEL[cat as IssueCategory] ?? cat),
+        count,
+        catMax,
+        THEME.accent,
+      ),
     )
     .join("");
 
-  const sevRows = (Object.entries(sevCounts) as [IssueSeverity, number][])
-    .filter(([, c]) => c > 0)
-    .map(
-      ([sev, count]) =>
-        `<tr>
-      <td><span style="color:${SEVERITY_COLOR[sev]};font-weight:700">${esc(sev.toUpperCase())}</span></td>
-      <td style="text-align:right;font-weight:700">${count}</td>
-    </tr>`,
+  const sevEntries = (
+    Object.entries(sevCounts) as [IssueSeverity, number][]
+  ).filter(([, c]) => c > 0);
+  const sevMax = Math.max(...sevEntries.map(([, c]) => c));
+  const sevRows = sevEntries
+    .map(([sev, count]) =>
+      barRow(
+        `<span style="display:inline-flex;align-items:center;gap:6px"><span class="dot" style="background:${SEVERITY_COLOR[sev]}"></span>${esc(SEVERITY_LABEL[sev])}</span>`,
+        count,
+        sevMax,
+        SEVERITY_COLOR[sev],
+      ),
     )
     .join("");
 
   return `
-  <h2>Issue Summary <span style="font-size:12px;font-weight:400;color:#6b7280">(${totalIssues} total)</span></h2>
-  <div class="two-col">
-    <div class="card">
-      <h3>By Category</h3>
-      <table><tbody>${catRows}</tbody></table>
+  <section class="section">
+    ${sectionHeading(index, "Issue Summary", `${totalIssues} total`)}
+    <div class="two-col">
+      <div class="card">
+        <h3>By Category</h3>
+        <table class="bars"><tbody>${catRows}</tbody></table>
+      </div>
+      <div class="card">
+        <h3>By Severity</h3>
+        <table class="bars"><tbody>${sevRows}</tbody></table>
+      </div>
     </div>
-    <div class="card">
-      <h3>By Severity</h3>
-      <table><tbody>${sevRows}</tbody></table>
-    </div>
-  </div>`;
+  </section>`;
 }
 
-function buildCleaningSummary(cleaningResult: CleaningResult): string {
-  const { metrics, logs } = cleaningResult;
+function buildCleaningSummary(
+  cleaningResult: CleaningResult,
+  index: number,
+): string {
+  const { metrics } = cleaningResult;
   const topActions = Object.entries(metrics.actionBreakdown)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 8);
+  const actionMax = topActions.length > 0 ? topActions[0][1] : 0;
 
   const actionRows = topActions
-    .map(
-      ([action, count]) =>
-        `<tr><td><span class="tag">${esc(action.replace(/_/g, " "))}</span></td><td style="text-align:right;font-weight:700">${count}</td></tr>`,
+    .map(([action, count]) =>
+      barRow(
+        `<span class="tag">${esc(action.replace(/_/g, " "))}</span>`,
+        count,
+        actionMax,
+        THEME.ink,
+      ),
     )
     .join("");
 
   return `
-  <h2>Cleaning Summary</h2>
-  <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
-    ${[
-      ["Rows Processed", metrics.totalRowsProcessed],
-      ["Fields Cleaned", metrics.totalFieldsCleaned],
-      ["Pass 1 Changes", metrics.pass1Changes],
-      ["Pass 2 Changes", metrics.pass2Changes],
-    ]
-      .map(
-        ([lbl, num]) =>
-          `<div class="stat"><div class="stat-num" style="color:#6d28d9">${num}</div><div class="stat-lbl">${lbl}</div></div>`,
-      )
-      .join("")}
-  </div>
-  ${topActions.length > 0 ? `<div class="card"><h3>Top Cleaning Actions</h3><table><tbody>${actionRows}</tbody></table></div>` : ""}`;
+  <section class="section">
+    ${sectionHeading(index, "Cleaning Summary")}
+    <div class="stat-grid">
+      ${statTile("Rows Processed", metrics.totalRowsProcessed)}
+      ${statTile("Fields Cleaned", metrics.totalFieldsCleaned)}
+      ${statTile("Pass 1 Changes", metrics.pass1Changes)}
+      ${statTile("Pass 2 Changes", metrics.pass2Changes)}
+    </div>
+    ${topActions.length > 0 ? `<div class="card" style="margin-top:16px"><h3>Top Cleaning Actions</h3><table class="bars"><tbody>${actionRows}</tbody></table></div>` : ""}
+  </section>`;
 }
 
 function buildManualFixSummary(
   suggestionResult: SuggestionResult,
   autoFixedRowIds: Set<string>,
+  index: number,
 ): string {
   const auto = autoFixedRowIds.size;
   const total = suggestionResult.suggestions.length;
   const applied = suggestionResult.autoApplicable.length;
 
   return `
-  <h2>Manual Fix &amp; Suggestion Summary</h2>
-  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
-    ${[
-      ["Suggestions Generated", total, "#6d28d9"],
-      ["Auto-Applied", applied, "#16a34a"],
-      ["Rows Auto-Fixed", auto, "#2563eb"],
-    ]
-      .map(
-        ([lbl, num, color]) =>
-          `<div class="stat"><div class="stat-num" style="color:${color}">${num}</div><div class="stat-lbl">${lbl}</div></div>`,
-      )
-      .join("")}
-  </div>`;
+  <section class="section">
+    ${sectionHeading(index, "Manual Fix &amp; Suggestion Summary")}
+    <div class="stat-grid">
+      ${statTile("Suggestions Generated", total)}
+      ${statTile("Auto-Applied", applied, THEME.success)}
+      ${statTile("Rows Auto-Fixed", auto, THEME.accent)}
+    </div>
+  </section>`;
 }
 
-function buildAiAuditSummary(audit: AiAuditSummary): string {
+function buildAiAuditSummary(audit: AiAuditSummary, index: number): string {
   return `
-  <h2>AI Audit Summary</h2>
-  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
-    ${[
-      ["Checked", audit.totalChecked, "#6d28d9"],
-      ["Flagged", audit.flagged, "#dc2626"],
-      ["Auto-Fixed", audit.autoFixed, "#16a34a"],
-    ]
-      .map(
-        ([lbl, num, color]) =>
-          `<div class="stat"><div class="stat-num" style="color:${color}">${num}</div><div class="stat-lbl">${lbl}</div></div>`,
-      )
-      .join("")}
-  </div>
-  ${audit.notes ? `<div class="card" style="font-size:12px;color:#374151">${esc(audit.notes)}</div>` : ""}`;
+  <section class="section">
+    ${sectionHeading(index, "AI Audit Summary")}
+    <div class="stat-grid">
+      ${statTile("Checked", audit.totalChecked)}
+      ${statTile("Flagged", audit.flagged, THEME.destructive)}
+      ${statTile("Auto-Fixed", audit.autoFixed, THEME.success)}
+    </div>
+    ${audit.notes ? `<div class="card note">${esc(audit.notes)}</div>` : ""}
+  </section>`;
 }
 
-function buildRowTable(rows: QuestionRow[]): string {
+function buildRowTable(rows: QuestionRow[], index: number): string {
   const rowHtml = rows
     .map((row) => {
       const qid = esc(row.metadata?.questionId || row.id);
@@ -341,37 +499,47 @@ function buildRowTable(rows: QuestionRow[]): string {
       const issueHtml = (row.issues ?? [])
         .map(
           (issue) =>
-            `<div class="issue-block" style="border-color:${SEVERITY_COLOR[issue.severity]};background:${SEVERITY_BG[issue.severity]}">
-        <span style="color:${SEVERITY_COLOR[issue.severity]};font-weight:700">${esc(issue.severity.toUpperCase())}</span>
-        <span style="color:#6b7280;margin-left:4px">[${esc(CATEGORY_LABEL[issue.category] ?? issue.category)}]</span>
-        <span style="margin-left:6px">${esc(issue.message)}</span>
-        ${issue.field ? `<span class="tag" style="margin-left:6px">${esc(issue.field)}</span>` : ""}
+            `<div class="issue" style="border-color:${SEVERITY_COLOR[issue.severity]};background:${SEVERITY_BG[issue.severity]}">
+        <span class="issue-sev" style="color:${SEVERITY_COLOR[issue.severity]}">${esc(SEVERITY_LABEL[issue.severity] ?? issue.severity)}</span>
+        <span class="issue-cat">${esc(CATEGORY_LABEL[issue.category] ?? issue.category)}</span>
+        ${issue.field ? `<span class="tag mono">${esc(issue.field)}</span>` : ""}
+        <span class="issue-msg">${esc(issue.message)}</span>
       </div>`,
         )
         .join("");
 
       return `<tr>
-      <td style="font-family:monospace;font-size:11px;white-space:nowrap">${row.sourceRowNumber}</td>
-      <td style="font-family:monospace;font-size:11px">${qid}</td>
+      <td class="mono" style="font-size:11px;white-space:nowrap;color:${THEME.muted}">${row.sourceRowNumber}</td>
+      <td class="mono" style="font-size:11px">${qid}</td>
       <td>${statusBadge(row.status)}</td>
       <td><span class="tag">${type}</span></td>
       <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${stem}">${stem}</td>
-      <td style="min-width:220px">${issueHtml || '<span style="color:#16a34a;font-size:11px">✓ No issues</span>'}</td>
+      <td style="min-width:240px">${issueHtml || `<span class="ok"><span class="dot" style="background:${THEME.success}"></span>No issues</span>`}</td>
     </tr>`;
     })
     .join("");
 
   return `
-  <h2>Row-Level Detail</h2>
-  <div class="card" style="padding:0;overflow-x:auto">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th><th>Question ID</th><th>Status</th><th>Type</th><th>Stem (preview)</th><th>Issues</th>
-        </tr>
-      </thead>
-      <tbody>${rowHtml}</tbody>
-    </table>
+  <section class="section">
+    ${sectionHeading(index, "Row-Level Detail", `${rows.length} rows`)}
+    <div class="detail">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Question ID</th><th>Status</th><th>Type</th><th>Stem (preview)</th><th>Issues</th>
+          </tr>
+        </thead>
+        <tbody>${rowHtml}</tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+function buildFooter(generatedAt: string): string {
+  return `
+  <div class="footer">
+    <span>Prepared by <b style="color:${THEME.ink};font-weight:600">Husimi Solutions</b> &middot; Confidential</span>
+    <span>${esc(generatedAt)}</span>
   </div>`;
 }
 
@@ -384,22 +552,27 @@ export function buildValidationReport(
   const { rows, cleaningResult, suggestionResult, autoFixedRowIds, aiAudit } =
     input;
 
+  // Section numbers follow only the sections actually present.
+  let n = 0;
   const sections: string[] = [
-    buildStyles(),
     '<div class="page">',
-    buildHeader(generatedAt),
-    buildSummaryStats(rows),
-    buildIssueSummary(rows),
-    cleaningResult ? buildCleaningSummary(cleaningResult) : "",
+    buildBrandBar(),
+    '<div class="page-inner">',
+    buildHeader(generatedAt, rows),
+    buildSummaryStats(rows, ++n),
+    buildIssueSummary(rows, ++n),
+    cleaningResult ? buildCleaningSummary(cleaningResult, ++n) : "",
     suggestionResult && autoFixedRowIds
-      ? buildManualFixSummary(suggestionResult, autoFixedRowIds)
+      ? buildManualFixSummary(suggestionResult, autoFixedRowIds, ++n)
       : "",
-    aiAudit ? buildAiAuditSummary(aiAudit) : "",
-    buildRowTable(rows),
+    aiAudit ? buildAiAuditSummary(aiAudit, ++n) : "",
+    buildRowTable(rows, ++n),
+    "</div>",
+    buildFooter(generatedAt),
     "</div>",
   ];
 
-  const html = `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><title>Validation Report</title></head>\n<body>\n${sections.join("\n")}\n</body>\n</html>`;
+  const html = `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Validation Report · Husimi Solutions</title>\n${buildStyles()}\n</head>\n<body>\n${sections.join("\n")}\n</body>\n</html>`;
 
   const timestamp = new Date().toISOString().slice(0, 10);
   const fileName = `validation_report_${timestamp}.html`;

@@ -20,62 +20,6 @@ function getSupabaseGuardError(): AuthResponse {
 }
 
 export const authService = {
-  // Register a new user
-  async register(
-    email: string,
-    password: string,
-    name: string,
-  ): Promise<AuthResponse> {
-    if (!isSupabaseConfigured) return getSupabaseGuardError();
-
-    try {
-      // Sign up with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-          },
-        },
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      // Store user profile
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from("user_profiles")
-          .insert([
-            {
-              id: data.user.id,
-              email,
-              full_name: name,
-              created_at: new Date().toISOString(),
-            },
-          ]);
-
-        if (profileError) {
-          console.error("Error creating user profile:", profileError);
-        }
-      }
-
-      return {
-        success: true,
-        message:
-          "Registration successful! Please check your email to verify your account.",
-        user: data.user || undefined,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: mapAuthError(error, "Registration failed"),
-      };
-    }
-  },
-
   // Login with email and password
   async login(email: string, password: string): Promise<AuthResponse> {
     if (!isSupabaseConfigured) return getSupabaseGuardError();
@@ -99,60 +43,6 @@ export const authService = {
       return {
         success: false,
         error: mapAuthError(error, "Login failed"),
-      };
-    }
-  },
-
-  // Verify email with OTP
-  async verifyEmail(email: string, token: string): Promise<AuthResponse> {
-    if (!isSupabaseConfigured) return getSupabaseGuardError();
-
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: "signup",
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return {
-        success: true,
-        message: "Email verified successfully!",
-        user: data.user || undefined,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: mapAuthError(error, "Verification failed"),
-      };
-    }
-  },
-
-  // Resend verification email
-  async resendVerificationEmail(email: string): Promise<AuthResponse> {
-    if (!isSupabaseConfigured) return getSupabaseGuardError();
-
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email,
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return {
-        success: true,
-        message: "Verification email sent! Please check your inbox.",
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: mapAuthError(error, "Failed to resend email"),
       };
     }
   },
@@ -223,14 +113,11 @@ export const authService = {
     }
   },
 
-  // Get user subscription/usage status
+  // Get user usage counters
   async getUserUsage(userId: string) {
     if (!isSupabaseConfigured) {
       return null;
     }
-
-    // Check for global unlimited environment override first
-    const isGlobalUnlimited = import.meta.env.VITE_IS_UNLIMITED === "true";
 
     try {
       const { data, error } = await supabase
@@ -253,28 +140,12 @@ export const authService = {
             .select()
             .single();
 
-          const isUnlimited =
-            isGlobalUnlimited ||
-            !!(newUsage as any).is_unlimited ||
-            (newUsage as any).is_unlimited === "true";
-
-          return {
-            ...newUsage,
-            is_premium: isUnlimited,
-          };
+          return newUsage;
         }
         return null;
       }
 
-      const isUnlimited =
-        isGlobalUnlimited ||
-        !!(data as any).is_unlimited ||
-        (data as any).is_unlimited === "true";
-
-      return {
-        ...data,
-        is_premium: isUnlimited,
-      };
+      return data;
     } catch (error) {
       return null;
     }
@@ -376,56 +247,6 @@ export const authService = {
       return {
         success: false,
         error: mapAuthError(error, "Failed to track questions"),
-      };
-    }
-  },
-
-  // Send password reset email
-  async resetPasswordForEmail(email: string): Promise<AuthResponse> {
-    if (!isSupabaseConfigured) return getSupabaseGuardError();
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return {
-        success: true,
-        message: "Password reset email sent! Please check your inbox.",
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: mapAuthError(error, "Failed to send reset email"),
-      };
-    }
-  },
-
-  // Update user password (after reset)
-  async updatePassword(newPassword: string): Promise<AuthResponse> {
-    if (!isSupabaseConfigured) return getSupabaseGuardError();
-
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return {
-        success: true,
-        message: "Password updated successfully!",
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: mapAuthError(error, "Failed to update password"),
       };
     }
   },

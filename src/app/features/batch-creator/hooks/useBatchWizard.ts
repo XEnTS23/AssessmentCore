@@ -9,8 +9,6 @@ export interface StageDefinition {
   id: WizardStage;
   label: string;
   description: string;
-  /** If true, this stage is only available to premium users. */
-  premiumOnly: boolean;
 }
 
 const ALL_STAGES: StageDefinition[] = [
@@ -18,37 +16,31 @@ const ALL_STAGES: StageDefinition[] = [
     id: "UPLOAD",
     label: "Upload",
     description: "Upload your spreadsheet or CSV",
-    premiumOnly: false,
   },
   {
     id: "VALIDATION",
     label: "Validation",
     description: "Validate all questions against rules",
-    premiumOnly: false,
   },
   {
     id: "MANUAL_FIX",
     label: "Fix & Clean",
     description: "Apply auto-fixes and manual corrections",
-    premiumOnly: false,
   },
   {
     id: "AI_AUDIT",
     label: "AI Audit",
     description: "AI-powered quality audit",
-    premiumOnly: true,
   },
   {
     id: "CONFIGURE",
     label: "Configure",
     description: "Set export format and options",
-    premiumOnly: true,
   },
   {
     id: "BUILD_PREVIEW",
     label: "Build & Preview",
     description: "Generate XML and download package",
-    premiumOnly: true,
   },
 ];
 
@@ -96,12 +88,10 @@ export interface UseBatchWizardReturn {
 // ─── Hook implementation ─────────────────────────────────────────────────────
 
 export function useBatchWizard(options: {
-  /** Whether the current user has premium access. */
-  isPremium: boolean;
   /** Whether to include the AI Audit stage. */
   enableAiAudit?: boolean;
 }): UseBatchWizardReturn {
-  const { isPremium, enableAiAudit = true } = options;
+  const { enableAiAudit = true } = options;
 
   const [currentStage, setCurrentStage] = useState<WizardStage>("UPLOAD");
 
@@ -182,10 +172,6 @@ export function useBatchWizard(options: {
       // Can always go backwards
       if (targetIndex <= currentStageIndex) return true;
 
-      // Premium gate: free users cannot access premium stages
-      const targetDef = stages[targetIndex];
-      if (targetDef.premiumOnly && !isPremium) return false;
-
       // Can only go forward if all prior stages are complete
       for (let i = 0; i < targetIndex; i++) {
         const priorStageId = stages[i].id;
@@ -196,7 +182,7 @@ export function useBatchWizard(options: {
 
       return true;
     },
-    [stages, currentStageIndex, isPremium, isStageComplete],
+    [stages, currentStageIndex, isStageComplete],
   );
 
   const goToStage = useCallback(

@@ -62,18 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
 
           setUserProfile(profile);
-
-          const metadataUnlimited =
-            currentUser.app_metadata?.is_unlimited === true ||
-            currentUser.app_metadata?.is_unlimited === "true" ||
-            currentUser.user_metadata?.is_unlimited === true ||
-            currentUser.user_metadata?.is_unlimited === "true";
-
-          if (metadataUnlimited && usage) {
-            setUserUsage({ ...usage, is_premium: true });
-          } else {
-            setUserUsage(usage);
-          }
+          setUserUsage(usage);
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -92,15 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Redirect to reset password page when user clicks the email link
-      if (event === "PASSWORD_RECOVERY") {
-        setUser(session?.user || null);
-        // Expose user to window
-        (window as any).user = session?.user || null;
-        window.location.href = "/auth/reset-password";
-        return;
-      }
-
       // Only clear user on explicit sign-out — not on transient events
       // like TOKEN_REFRESHED where the session can briefly be null
       if (event === "SIGNED_OUT") {
@@ -135,18 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
 
           setUserProfile(profile);
-
-          const metadataUnlimited =
-            session.user.app_metadata?.is_unlimited === true ||
-            session.user.app_metadata?.is_unlimited === "true" ||
-            session.user.user_metadata?.is_unlimited === true ||
-            session.user.user_metadata?.is_unlimited === "true";
-
-          if (metadataUnlimited && usage) {
-            setUserUsage({ ...usage, is_premium: true });
-          } else {
-            setUserUsage(usage);
-          }
+          setUserUsage(usage);
         } catch (error) {
           console.error("Error fetching user data:", error);
           // Keep existing profile/usage data instead of nulling on timeout
@@ -173,34 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserProfile(profile);
 
       const usage = await authService.getUserUsage(response.user.id);
-
-      const metadataUnlimited =
-        response.user.app_metadata?.is_unlimited === true ||
-        response.user.app_metadata?.is_unlimited === "true" ||
-        response.user.user_metadata?.is_unlimited === true ||
-        response.user.user_metadata?.is_unlimited === "true";
-
-      if (metadataUnlimited && usage) {
-        setUserUsage({ ...usage, is_premium: true });
-      } else {
-        setUserUsage(usage);
-      }
-    }
-
-    return response;
-  };
-
-  const register = async (
-    email: string,
-    password: string,
-    name: string,
-  ): Promise<AuthResponse> => {
-    const response = await authService.register(email, password, name);
-
-    if (response.success && response.user) {
-      setUser(response.user);
-      const profile = await authService.getUserProfile(response.user.id);
-      setUserProfile(profile);
+      setUserUsage(usage);
     }
 
     return response;
@@ -220,39 +162,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response;
   };
 
-  const verifyEmail = async (
-    email: string,
-    token: string,
-  ): Promise<AuthResponse> => {
-    const response = await authService.verifyEmail(email, token);
-
-    if (response.success && response.user) {
-      setUser(response.user);
-    }
-
-    return response;
-  };
-
-  const resendVerificationEmail = (email: string): Promise<AuthResponse> => {
-    return authService.resendVerificationEmail(email);
-  };
-
   const trackExport = async () => {
     if (user) {
       await authService.trackExport(user.id);
       const usage = await authService.getUserUsage(user.id);
-
-      const metadataUnlimited =
-        user.app_metadata?.is_unlimited === true ||
-        user.app_metadata?.is_unlimited === "true" ||
-        user.user_metadata?.is_unlimited === true ||
-        user.user_metadata?.is_unlimited === "true";
-
-      if (metadataUnlimited && usage) {
-        setUserUsage({ ...usage, is_premium: true });
-      } else {
-        setUserUsage(usage);
-      }
+      setUserUsage(usage);
     }
   };
 
@@ -260,47 +174,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       await authService.trackQuestionsConverted(user.id, count);
       const usage = await authService.getUserUsage(user.id);
-
-      const metadataUnlimited =
-        user.app_metadata?.is_unlimited === true ||
-        user.app_metadata?.is_unlimited === "true" ||
-        user.user_metadata?.is_unlimited === true ||
-        user.user_metadata?.is_unlimited === "true";
-
-      if (metadataUnlimited && usage) {
-        setUserUsage({ ...usage, is_premium: true });
-      } else {
-        setUserUsage(usage);
-      }
+      setUserUsage(usage);
     }
   };
 
   const refreshUsage = async () => {
     if (user) {
       const usage = await authService.getUserUsage(user.id);
-
-      const metadataUnlimited =
-        user.app_metadata?.is_unlimited === true ||
-        user.app_metadata?.is_unlimited === "true" ||
-        user.user_metadata?.is_unlimited === true ||
-        user.user_metadata?.is_unlimited === "true";
-
-      if (metadataUnlimited && usage) {
-        setUserUsage({ ...usage, is_premium: true });
-      } else {
-        setUserUsage(usage);
-      }
+      setUserUsage(usage);
     }
-  };
-
-  const resetPasswordForEmail = async (
-    email: string,
-  ): Promise<AuthResponse> => {
-    return authService.resetPasswordForEmail(email);
-  };
-
-  const updatePassword = async (newPassword: string): Promise<AuthResponse> => {
-    return authService.updatePassword(newPassword);
   };
 
   const value: AuthContextType = {
@@ -310,15 +192,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userProfile,
     userUsage,
     login,
-    register,
     logout,
-    verifyEmail,
-    resendVerificationEmail,
     trackExport,
     trackQuestionsConverted,
     refreshUsage,
-    resetPasswordForEmail,
-    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

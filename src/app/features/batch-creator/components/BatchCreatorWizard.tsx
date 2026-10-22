@@ -1,4 +1,3 @@
-import { useAuth } from "../../../../contexts/AuthContext";
 import { useBatchWizard } from "../hooks/useBatchWizard";
 import { useUploadStage } from "../hooks/useUploadStage";
 import { UploadStage } from "./UploadStage";
@@ -28,11 +27,7 @@ const STAGE_PANELS: Record<WizardStage, React.FC<any>> = {
 
 export function BatchCreatorWizard() {
   const navigate = useNavigate();
-  const { userUsage } = useAuth();
-  const isPremium = userUsage?.is_premium ?? false;
-
   const wizard = useBatchWizard({
-    isPremium,
     enableAiAudit: true,
   });
 

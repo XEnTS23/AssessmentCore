@@ -8,7 +8,6 @@ import {
   Download,
   Home,
   LayoutDashboard,
-  Lock,
   Moon,
   ScanText,
   Sparkles,
@@ -117,12 +116,9 @@ export function WorkspaceLayout() {
           className={`border-b border-border px-4 py-3 flex flex-col justify-center transition-all ${isSidebarHovered ? "" : "items-center opacity-0 h-0 overflow-hidden py-0 border-b-0"}`}
         >
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
-            Current plan
+            Usage
           </div>
           <p className="mt-1 text-xs text-foreground whitespace-nowrap">
-            {userUsage?.is_premium ? "Premium" : "Free"} workspace
-          </p>
-          <p className="text-xs text-muted-foreground whitespace-nowrap">
             {userUsage?.total_questions_converted || 0} questions converted
           </p>
         </div>
@@ -132,25 +128,14 @@ export function WorkspaceLayout() {
             const active =
               location.pathname === item.to ||
               location.pathname.startsWith(`${item.to}/`);
-            const isLocked =
-              (item as any).premiumOnly && !userUsage?.is_premium;
             const isComingSoon = (item as any).comingSoon;
-            const isDisabled = isLocked || isComingSoon;
 
-            if (isDisabled) {
+            if (isComingSoon) {
               return (
                 <div
                   key={item.to}
                   className={`flex items-center rounded-md py-2 text-xs text-muted-foreground/60 cursor-not-allowed ${isSidebarHovered ? "gap-2 px-3 justify-start" : "gap-0 px-0 justify-center"}`}
-                  title={
-                    isComingSoon
-                      ? isSidebarHovered
-                        ? "Coming soon"
-                        : item.label
-                      : isSidebarHovered
-                        ? "Premium feature"
-                        : item.label
-                  }
+                  title={isSidebarHovered ? "Coming soon" : item.label}
                 >
                   <div className="shrink-0">{item.icon}</div>
                   {isSidebarHovered && (
@@ -158,13 +143,9 @@ export function WorkspaceLayout() {
                       <span className="flex-1 whitespace-nowrap">
                         {item.label}
                       </span>
-                      {isComingSoon ? (
-                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Soon
-                        </span>
-                      ) : (
-                        <Lock className="h-3 w-3 shrink-0 text-primary" />
-                      )}
+                      <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Soon
+                      </span>
                     </>
                   )}
                 </div>

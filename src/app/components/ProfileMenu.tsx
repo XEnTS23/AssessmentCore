@@ -9,11 +9,10 @@ interface ProfileMenuProps {
 }
 
 export function ProfileMenu({ variant = "workspace" }: ProfileMenuProps) {
-  const { user, userUsage, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const isPremium = !!userUsage?.is_premium;
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -37,11 +36,11 @@ export function ProfileMenu({ variant = "workspace" }: ProfileMenuProps) {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`flex items-center justify-center transition-colors hover:bg-accent ${compact ? "h-9 w-9" : "h-8 w-8"} ${isPremium ? "rounded-md bg-gradient-to-br from-[#4285F4] via-[#34A853] via-[#FBBC05] to-[#EA4335] p-[2px] shadow-[0_0_0_1px_rgba(66,133,244,0.15),0_8px_20px_rgba(66,133,244,0.12)]" : "rounded-md border border-border bg-card"}`}
+        className={`flex items-center justify-center rounded-md border border-border bg-card transition-colors hover:bg-accent ${compact ? "h-9 w-9" : "h-8 w-8"}`}
         aria-expanded={isOpen}
       >
         <div
-          className={`flex items-center justify-center ${isPremium ? "rounded-sm bg-black text-white shadow-inner" : "rounded-md bg-primary text-primary-foreground"} text-xs font-semibold ${compact ? "h-7 w-7" : "h-6 w-6"}`}
+          className={`flex items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-semibold ${compact ? "h-7 w-7" : "h-6 w-6"}`}
         >
           {initials}
         </div>

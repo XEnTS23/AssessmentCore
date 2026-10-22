@@ -9,7 +9,6 @@ import {
   Clock,
   Download,
   FileArchive,
-  Lock,
   LogIn,
   Package,
   Upload,
@@ -130,7 +129,7 @@ async function inspectZipPackage(file: File): Promise<UploadedPackageSummary> {
 
 export function LMSExportPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, loading, userUsage } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<"upload" | "configure">("upload");
   const [uploadedZipFile, setUploadedZipFile] = useState<File | null>(null);
   const [packageSummary, setPackageSummary] =
@@ -147,8 +146,6 @@ export function LMSExportPage() {
     new Set(),
   );
   const zipInputRef = useRef<HTMLInputElement>(null);
-
-  const isPaidUser = Boolean(userUsage?.is_premium);
 
   const selectedPlatformMeta = useMemo(
     () =>
@@ -336,37 +333,6 @@ export function LMSExportPage() {
               className="bg-primary hover:bg-primary/90 transition-colors text-primary-foreground"
             >
               <LogIn className="w-4 h-4 mr-2" /> Sign In
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!loading && isAuthenticated && !isPaidUser) {
-    return (
-      <div className="p-8 flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md w-full border-border">
-          <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto">
-              <Lock className="w-7 h-7 text-muted-foreground" />
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <h2 className="text-xl font-bold text-foreground">Pro Feature</h2>
-              <Badge className="bg-primary text-primary-foreground text-xs">
-                PRO
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              LMS package export is available for Pro users. Upgrade your plan
-              to upload a QTI ZIP, configure a target LMS, and download a
-              platform-adapted package.
-            </p>
-            <Button
-              disabled
-              className="bg-primary hover:bg-primary transition-colors text-primary-foreground opacity-80"
-            >
-              <Lock className="w-4 h-4 mr-2" /> Upgrade to Pro
             </Button>
           </CardContent>
         </Card>

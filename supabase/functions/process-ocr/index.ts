@@ -54,59 +54,31 @@ const extractJsonObject = (content: string): Record<string, unknown> => {
   );
 };
 
-async function checkUnlimitedStatus(req: Request): Promise<boolean> {
+/**
+ * The workspace is staff-only: reject any request that does not carry a
+ * signed-in user's session token (the public anon key is not enough).
+ */
+async function requireSignedInUser(req: Request): Promise<string> {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    console.warn("No Authorization header found");
-    return false;
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new HttpError("Sign in to use OCR", 401);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  // Use SERVICE_ROLE_KEY for admin-level check to bypass RLS issues
-  const supabaseAdminKey =
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
-    Deno.env.get("SUPABASE_ANON_KEY");
-
-  if (!supabaseUrl || !supabaseAdminKey) {
-    console.error("Missing Supabase configuration env vars");
-    return false;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new HttpError("Missing Supabase configuration env vars", 500);
   }
 
-  const supabaseClient = createClient(supabaseUrl, supabaseAdminKey);
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  const jwt = authHeader.slice("Bearer ".length);
+  const { data, error } = await supabaseClient.auth.getUser(jwt);
 
-  const jwt = authHeader.replace("Bearer ", "");
-
-  // Decode JWT to get user_id without hitting the Auth API
-  let userId: string | null = null;
-  try {
-    const payload = JSON.parse(atob(jwt.split(".")[1]));
-    userId = payload.sub;
-  } catch (e) {
-    console.error("Failed to decode JWT:", e.message);
-    return false;
+  if (error || !data?.user) {
+    throw new HttpError("Sign in to use OCR", 401);
   }
 
-  if (!userId) {
-    console.warn("No user_id (sub) found in JWT payload");
-    return false;
-  }
-
-  console.log(`Checking status for user ID: ${userId}`);
-
-  const { data: usageData, error } = await supabaseClient
-    .from("user_usage")
-    .select("is_unlimited")
-    .eq("user_id", userId)
-    .single();
-
-  if (error) {
-    console.error(`Database error for user ${userId}:`, error.message);
-    return false;
-  }
-
-  const result = !!usageData?.is_unlimited;
-  console.log(`User ${userId} status: ${result ? "PREMIUM" : "FREE"}`);
-  return result;
+  return data.user.id;
 }
 
 const MISTRAL_STANDARD_PROMPT = `You are a highly-specialized extraction engine for educational assessments targeting Bengali, Hindi, and English languages. 
@@ -637,355 +609,241 @@ serve(async (req: Request) => {
       throw new HttpError("Missing image content", 400);
     }
 
-    const isUnlimited = await checkUnlimitedStatus(req);
+    await requireSignedInUser(req);
 
-    if (isUnlimited) {
-      // Premium user -> Use Mistral Pixtral OCR
-      const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY");
-      if (!MISTRAL_API_KEY) {
-        throw new HttpError(
-          "Missing MISTRAL_API_KEY environment variable",
-          500,
+    const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY");
+    if (!MISTRAL_API_KEY) {
+      throw new HttpError(
+        "Missing MISTRAL_API_KEY environment variable",
+        500,
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAdminKey =
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+      Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseAdmin = createClient(supabaseUrl!, supabaseAdminKey!);
+
+    let finalImageBase64 = imageBase64;
+    const uploadedManualCrops: Array<ManualCrop & { publicUrl: string }> = [];
+
+    if (manualCrops.length > 0) {
+      try {
+        const img = await Image.decode(
+          Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0)),
         );
-      }
-
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const supabaseAdminKey =
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
-        Deno.env.get("SUPABASE_ANON_KEY");
-      const supabaseAdmin = createClient(supabaseUrl!, supabaseAdminKey!);
-
-      let finalImageBase64 = imageBase64;
-      const uploadedManualCrops: Array<ManualCrop & { publicUrl: string }> = [];
-
-      if (manualCrops.length > 0) {
-        try {
-          const img = await Image.decode(
-            Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0)),
-          );
-          for (const crop of manualCrops) {
-            const [yP, xP, hP, wP] = crop.coordinates;
-            const x = Math.floor((xP / 100) * img.width);
-            const y = Math.floor((yP / 100) * img.height);
-            const w = Math.max(1, Math.floor((wP / 100) * img.width));
-            const h = Math.max(1, Math.floor((hP / 100) * img.height));
-            const croppedImg = img.clone().crop(x, y, w, h);
-            const croppedBytes = await croppedImg.encodeJPEG(90);
-            const filePath = `manual_crops/${crypto.randomUUID()}.jpg`;
-            await supabaseAdmin.storage
-              .from("ocr-diagrams")
-              .upload(filePath, croppedBytes, { contentType: "image/jpeg" });
-            const {
-              data: { publicUrl },
-            } = supabaseAdmin.storage
-              .from("ocr-diagrams")
-              .getPublicUrl(filePath);
-            uploadedManualCrops.push({ ...crop, publicUrl });
-            const whiteBox = new Image(w, h).fill(0xffffffff);
-            img.composite(whiteBox, x, y);
-          }
-          const redactedBytes = await img.encodeJPEG(85);
-          const chunks: string[] = [];
-          const chunkSize = 8192;
-          for (let i = 0; i < redactedBytes.length; i += chunkSize) {
-            chunks.push(
-              String.fromCharCode.apply(
-                null,
-                Array.from(redactedBytes.subarray(i, i + chunkSize)),
-              ),
-            );
-          }
-          finalImageBase64 = btoa(chunks.join(""));
-        } catch (imgErr) {
-          console.warn("Redaction failed:", imgErr);
+        for (const crop of manualCrops) {
+          const [yP, xP, hP, wP] = crop.coordinates;
+          const x = Math.floor((xP / 100) * img.width);
+          const y = Math.floor((yP / 100) * img.height);
+          const w = Math.max(1, Math.floor((wP / 100) * img.width));
+          const h = Math.max(1, Math.floor((hP / 100) * img.height));
+          const croppedImg = img.clone().crop(x, y, w, h);
+          const croppedBytes = await croppedImg.encodeJPEG(90);
+          const filePath = `manual_crops/${crypto.randomUUID()}.jpg`;
+          await supabaseAdmin.storage
+            .from("ocr-diagrams")
+            .upload(filePath, croppedBytes, { contentType: "image/jpeg" });
+          const {
+            data: { publicUrl },
+          } = supabaseAdmin.storage
+            .from("ocr-diagrams")
+            .getPublicUrl(filePath);
+          uploadedManualCrops.push({ ...crop, publicUrl });
+          const whiteBox = new Image(w, h).fill(0xffffffff);
+          img.composite(whiteBox, x, y);
         }
+        const redactedBytes = await img.encodeJPEG(85);
+        const chunks: string[] = [];
+        const chunkSize = 8192;
+        for (let i = 0; i < redactedBytes.length; i += chunkSize) {
+          chunks.push(
+            String.fromCharCode.apply(
+              null,
+              Array.from(redactedBytes.subarray(i, i + chunkSize)),
+            ),
+          );
+        }
+        finalImageBase64 = btoa(chunks.join(""));
+      } catch (imgErr) {
+        console.warn("Redaction failed:", imgErr);
       }
+    }
 
-      const systemPrompt =
-        manualCrops.length > 0
-          ? MISTRAL_TEXT_ONLY_PROMPT
-          : MISTRAL_STANDARD_PROMPT;
-      const mistralResponse = await fetch(
-        "https://api.mistral.ai/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${MISTRAL_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "pixtral-12b-2409",
-            temperature: 0.2,
-            max_tokens: 4000,
-            messages: [
-              { role: "system", content: systemPrompt },
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:image/jpeg;base64,${finalImageBase64}`,
-                    },
+    const systemPrompt =
+      manualCrops.length > 0
+        ? MISTRAL_TEXT_ONLY_PROMPT
+        : MISTRAL_STANDARD_PROMPT;
+    const mistralResponse = await fetch(
+      "https://api.mistral.ai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${MISTRAL_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "pixtral-12b-2409",
+          temperature: 0.2,
+          max_tokens: 4000,
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${finalImageBase64}`,
                   },
-                ],
-              },
-            ],
-            response_format: { type: "json_object" },
-          }),
-        },
-      );
+                },
+              ],
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      },
+    );
 
-      if (!mistralResponse.ok) {
-        const err = await mistralResponse.text();
-        throw new HttpError(`Mistral failed`, 502, err.slice(0, 1000));
+    if (!mistralResponse.ok) {
+      const err = await mistralResponse.text();
+      throw new HttpError(`Mistral failed`, 502, err.slice(0, 1000));
+    }
+
+    const result = await mistralResponse.json();
+    const content = result?.choices?.[0]?.message?.content;
+    if (!content) throw new HttpError("Mistral returned no content", 502);
+
+    const parsedData = extractJsonObject(content);
+
+    // ── IoU-based diagram matching pipeline (replaces old 2D proximity) ───
+    if (
+      uploadedManualCrops.length > 0 &&
+      Array.isArray(parsedData.questions)
+    ) {
+      // Repair missing or invalid stem_boxes before sorting
+      const totalQ = parsedData.questions.length;
+      parsedData.questions.forEach((q: any, idx: number) => {
+        if (!q.stem_box || typeof q.stem_box[0] !== "number") {
+          q.stem_box = [idx / totalQ, 0, (idx + 1) / totalQ, 1];
+        }
+      });
+
+      // Step 1: Extract native image coordinates + markdown from Mistral OCR endpoint
+      // NOTE: We use the ORIGINAL (non-redacted) image so the OCR sees diagrams in context
+      const {
+        images: nativeImages,
+        dimensions: pageDimensions,
+        markdown: ocrMarkdown,
+      } = await extractMistralNativeImages(imageBase64, MISTRAL_API_KEY);
+
+      console.log(
+        `[IoU Pipeline] Native images found: ${nativeImages.length}, dimensions: ${JSON.stringify(pageDimensions)}`,
+      );
+      console.log(
+        `[IoU Pipeline] OCR markdown length: ${ocrMarkdown.length} chars`,
+      );
+      if (ocrMarkdown) {
+        console.log(
+          `[IoU Pipeline] OCR markdown preview: "${ocrMarkdown.slice(0, 300)}..."`,
+        );
       }
 
-      const result = await mistralResponse.json();
-      const content = result?.choices?.[0]?.message?.content;
-      if (!content) throw new HttpError("Mistral returned no content", 502);
+      // Attach native coordinate metadata to the response for client-side use
+      (parsedData as any).mistral_native_images = nativeImages;
+      (parsedData as any).page_dimensions = pageDimensions;
 
-      const parsedData = extractJsonObject(content);
-
-      // ── IoU-based diagram matching pipeline (replaces old 2D proximity) ───
-      if (
-        uploadedManualCrops.length > 0 &&
-        Array.isArray(parsedData.questions)
-      ) {
-        // Repair missing or invalid stem_boxes before sorting
-        const totalQ = parsedData.questions.length;
-        parsedData.questions.forEach((q: any, idx: number) => {
-          if (!q.stem_box || typeof q.stem_box[0] !== "number") {
-            q.stem_box = [idx / totalQ, 0, (idx + 1) / totalQ, 1];
-          }
-        });
-
-        // Step 1: Extract native image coordinates + markdown from Mistral OCR endpoint
-        // NOTE: We use the ORIGINAL (non-redacted) image so the OCR sees diagrams in context
-        const {
-          images: nativeImages,
-          dimensions: pageDimensions,
-          markdown: ocrMarkdown,
-        } = await extractMistralNativeImages(imageBase64, MISTRAL_API_KEY);
-
+      // Log all question stem_boxes for debugging
+      const questions = parsedData.questions;
+      console.log(
+        `[IoU Pipeline] ${questions.length} questions detected. Stem boxes:`,
+      );
+      questions.forEach((q: any, i: number) => {
+        const box = q.stem_box;
         console.log(
-          `[IoU Pipeline] Native images found: ${nativeImages.length}, dimensions: ${JSON.stringify(pageDimensions)}`,
+          `  Q${i}: stem_box=[${box.map((v: number) => v.toFixed(3)).join(", ")}] stem="${(q.stem || "").slice(0, 60)}..."`,
         );
+      });
+
+      // Log all crop coordinates
+      console.log(
+        `[IoU Pipeline] ${uploadedManualCrops.length} manual crops:`,
+      );
+      uploadedManualCrops.forEach((c: any) => {
+        const aabb = cropToAABB(c);
         console.log(
-          `[IoU Pipeline] OCR markdown length: ${ocrMarkdown.length} chars`,
+          `  Crop ${c.id} (${c.type}): coords=[${c.coordinates.join(",")}] → AABB=[${aabb.map((v) => v.toFixed(3)).join(", ")}] center_y=${((aabb[0] + aabb[2]) / 2).toFixed(3)}`,
         );
-        if (ocrMarkdown) {
+      });
+
+      // Step 2: Match each crop to the correct question using markdown-aware matching
+      uploadedManualCrops.forEach((crop) => {
+        const cropBox = cropToAABB(crop);
+
+        // ── Deterministic assignment: use user-specified Q number if available ──
+        let bestMatchIndex: number;
+        if (
+          typeof crop.questionNumber === "number" &&
+          crop.questionNumber >= 1
+        ) {
+          bestMatchIndex = Math.min(
+            crop.questionNumber - 1,
+            questions.length - 1,
+          );
           console.log(
-            `[IoU Pipeline] OCR markdown preview: "${ocrMarkdown.slice(0, 300)}..."`,
+            `[Direct Assignment] Crop ${crop.id} → Q${bestMatchIndex} (user specified Q${crop.questionNumber})`,
+          );
+        } else {
+          // Fallback to heuristic matching (markdown-aware → zone-based)
+          bestMatchIndex = findOwnerQuestion(
+            crop,
+            cropBox,
+            questions,
+            nativeImages,
+            pageDimensions,
+            ocrMarkdown,
           );
         }
 
-        // Attach native coordinate metadata to the response for client-side use
-        (parsedData as any).mistral_native_images = nativeImages;
-        (parsedData as any).page_dimensions = pageDimensions;
-
-        // Log all question stem_boxes for debugging
-        const questions = parsedData.questions;
         console.log(
-          `[IoU Pipeline] ${questions.length} questions detected. Stem boxes:`,
+          `[IoU Pipeline] Crop ${crop.id} (type=${crop.type}) -> Question index ${bestMatchIndex}`,
         );
-        questions.forEach((q: any, i: number) => {
-          const box = q.stem_box;
-          console.log(
-            `  Q${i}: stem_box=[${box.map((v: number) => v.toFixed(3)).join(", ")}] stem="${(q.stem || "").slice(0, 60)}..."`,
-          );
-        });
 
-        // Log all crop coordinates
-        console.log(
-          `[IoU Pipeline] ${uploadedManualCrops.length} manual crops:`,
-        );
-        uploadedManualCrops.forEach((c: any) => {
-          const aabb = cropToAABB(c);
-          console.log(
-            `  Crop ${c.id} (${c.type}): coords=[${c.coordinates.join(",")}] → AABB=[${aabb.map((v) => v.toFixed(3)).join(", ")}] center_y=${((aabb[0] + aabb[2]) / 2).toFixed(3)}`,
-          );
-        });
+        const targetQ = questions[bestMatchIndex];
+        if (!targetQ) return;
 
-        // Step 2: Match each crop to the correct question using markdown-aware matching
-        uploadedManualCrops.forEach((crop) => {
-          const cropBox = cropToAABB(crop);
+        if (crop.type === "stem") {
+          targetQ.media_url = crop.publicUrl;
 
-          // ── Deterministic assignment: use user-specified Q number if available ──
-          let bestMatchIndex: number;
-          if (
-            typeof crop.questionNumber === "number" &&
-            crop.questionNumber >= 1
-          ) {
-            bestMatchIndex = Math.min(
-              crop.questionNumber - 1,
-              questions.length - 1,
-            );
-            console.log(
-              `[Direct Assignment] Crop ${crop.id} → Q${bestMatchIndex} (user specified Q${crop.questionNumber})`,
-            );
-          } else {
-            // Fallback to heuristic matching (markdown-aware → zone-based)
-            bestMatchIndex = findOwnerQuestion(
-              crop,
-              cropBox,
-              questions,
-              nativeImages,
-              pageDimensions,
-              ocrMarkdown,
-            );
-          }
-
-          console.log(
-            `[IoU Pipeline] Crop ${crop.id} (type=${crop.type}) -> Question index ${bestMatchIndex}`,
-          );
-
-          const targetQ = questions[bestMatchIndex];
-          if (!targetQ) return;
-
-          if (crop.type === "stem") {
-            targetQ.media_url = crop.publicUrl;
-
-            if (!targetQ.diagrams) targetQ.diagrams = [];
-            targetQ.diagrams.push({
-              url: crop.publicUrl,
-              description: "Manually selected diagram",
-              box: [
-                crop.coordinates[0] / 100,
-                crop.coordinates[1] / 100,
-                (crop.coordinates[0] + crop.coordinates[2]) / 100,
-                (crop.coordinates[1] + crop.coordinates[3]) / 100,
-              ],
-            });
-            // Append the image link to the question stem
-            targetQ.stem =
-              `${targetQ.stem || ""} [MEDIA:${crop.publicUrl}]`.trim();
-          } else if (crop.type === "option" && crop.optionLabel) {
-            const optIdx = crop.optionLabel.charCodeAt(0) - 65;
-            if (targetQ.options && Array.isArray(targetQ.options)) {
-              targetQ.options[optIdx] =
-                `${targetQ.options[optIdx] || ""} [MEDIA:${crop.publicUrl}]`.trim();
-            }
-          }
-        });
-      }
-
-      return new Response(JSON.stringify(parsedData), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    } else {
-      // Free user path
-      console.log(
-        "Processing as FREE user (either not unlimited or check failed)",
-      );
-      const OCR_SPACE_API_KEY =
-        Deno.env.get("OCR_SPACE_API_KEY") || "helloworld";
-
-      const formData = new FormData();
-      formData.append("apikey", OCR_SPACE_API_KEY);
-      formData.append("base64Image", `data:image/jpeg;base64,${imageBase64}`);
-      formData.append("language", "auto");
-      formData.append("OCREngine", "2");
-      formData.append("scale", "true");
-
-      const ocrSpaceResponse = await fetch(
-        "https://api.ocr.space/parse/image",
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!ocrSpaceResponse.ok) {
-        const err = await ocrSpaceResponse.text();
-        throw new HttpError(
-          `OCR.space failed (status ${ocrSpaceResponse.status})`,
-          502,
-          err.slice(0, 1000),
-        );
-      }
-
-      const ocrResult = await ocrSpaceResponse.json();
-
-      if (ocrResult.IsErroredOnProcessing) {
-        const errorMsg =
-          ocrResult.ErrorMessage?.[0] || "Unknown OCR.space error";
-        throw new HttpError(`OCR.space failed: ${errorMsg}`, 502);
-      }
-
-      const parsedText = ocrResult?.ParsedResults?.[0]?.ParsedText || "";
-      console.log("Raw OCR Text Length:", parsedText.length);
-
-      if (parsedText.trim().length < 5) {
-        return new Response(JSON.stringify({ questions: [] }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        });
-      }
-
-      // Restructure with OpenRouter (Free Model)
-      const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-      if (!OPENROUTER_API_KEY) {
-        throw new HttpError(
-          "Missing OPENROUTER_API_KEY environment variable",
-          500,
-        );
-      }
-
-      const openRouterResponse = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": "https://assessment-core.vercel.app", // Change to your actual URL
-            "X-Title": "AssessmentCore",
-          },
-          body: JSON.stringify({
-            model: "meta-llama/llama-3.1-8b-instruct:free",
-            messages: [
-              { role: "system", content: GEMINI_SYSTEM_PROMPT },
-              {
-                role: "user",
-                content: `Restructure this raw OCR text into JSON. Languages: Bengali, Hindi, English.\n\nRAW OCR CONTENT:\n${parsedText}`,
-              },
+          if (!targetQ.diagrams) targetQ.diagrams = [];
+          targetQ.diagrams.push({
+            url: crop.publicUrl,
+            description: "Manually selected diagram",
+            box: [
+              crop.coordinates[0] / 100,
+              crop.coordinates[1] / 100,
+              (crop.coordinates[0] + crop.coordinates[2]) / 100,
+              (crop.coordinates[1] + crop.coordinates[3]) / 100,
             ],
-            temperature: 0.1,
-          }),
-        },
-      );
-
-      if (!openRouterResponse.ok) {
-        const err = await openRouterResponse.text();
-        throw new HttpError(
-          `OpenRouter failed (status ${openRouterResponse.status})`,
-          502,
-          err.slice(0, 1000),
-        );
-      }
-
-      const openRouterResult = await openRouterResponse.json();
-      const openRouterContent = openRouterResult.choices?.[0]?.message?.content;
-
-      if (!openRouterContent) {
-        console.error(
-          "OpenRouter Full Response:",
-          JSON.stringify(openRouterResult),
-        );
-        throw new HttpError(
-          "OpenRouter returned no content. Check logs for details.",
-          502,
-        );
-      }
-
-      const parsedData = extractJsonObject(openRouterContent);
-      return new Response(JSON.stringify(parsedData), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+          });
+          // Append the image link to the question stem
+          targetQ.stem =
+            `${targetQ.stem || ""} [MEDIA:${crop.publicUrl}]`.trim();
+        } else if (crop.type === "option" && crop.optionLabel) {
+          const optIdx = crop.optionLabel.charCodeAt(0) - 65;
+          if (targetQ.options && Array.isArray(targetQ.options)) {
+            targetQ.options[optIdx] =
+              `${targetQ.options[optIdx] || ""} [MEDIA:${crop.publicUrl}]`.trim();
+          }
+        }
       });
     }
+
+    return new Response(JSON.stringify(parsedData), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (error) {
     console.error("Error in process-ocr:", error);
     const typedError =

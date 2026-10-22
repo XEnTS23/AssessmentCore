@@ -14,7 +14,6 @@ import { StatusPage } from "./pages/StatusPage";
 import { SamplePackagePage } from "./pages/resources/SamplePackagePage";
 import { SourcePdfPage } from "./pages/resources/SourcePdfPage";
 import { DocumentationPage } from "./pages/DocumentationPage";
-import { ProtectedPremiumRoute } from "./components/ProtectedPremiumRoute";
 import { SeoManager } from "./components/SeoManager";
 
 const WorkspaceLayout = lazy(() =>
@@ -44,29 +43,9 @@ const BatchCreatorWizard = lazy(() =>
   ),
 );
 
-const LoginPage = lazy(() =>
-  import("./pages/auth/LoginPage").then((module) => ({
-    default: module.LoginPage,
-  })),
-);
 const WorkspaceLoginPage = lazy(() =>
   import("./pages/auth/WorkspaceLoginPage").then((module) => ({
     default: module.WorkspaceLoginPage,
-  })),
-);
-const VerifyEmailPage = lazy(() =>
-  import("./pages/auth/VerifyEmailPage").then((module) => ({
-    default: module.VerifyEmailPage,
-  })),
-);
-const ForgotPasswordPage = lazy(() =>
-  import("./pages/auth/ForgotPasswordPage").then((module) => ({
-    default: module.ForgotPasswordPage,
-  })),
-);
-const ResetPasswordPage = lazy(() =>
-  import("./pages/auth/ResetPasswordPage").then((module) => ({
-    default: module.ResetPasswordPage,
   })),
 );
 
@@ -120,10 +99,6 @@ const publicRoutes = [
       { path: "/docs", Component: DocumentationPage },
       { path: "/resources/sample-package", Component: SamplePackagePage },
       { path: "/resources/source-pdf", Component: SourcePdfPage },
-      { path: "/auth/login", Component: LoginPage },
-      { path: "/auth/verify-email", Component: VerifyEmailPage },
-      { path: "/auth/forgot-password", Component: ForgotPasswordPage },
-      { path: "/auth/reset-password", Component: ResetPasswordPage },
       { path: "*", Component: PublicNotFoundPage },
     ],
   },
@@ -149,22 +124,8 @@ const workspaceRoutes = [
           { path: "dashboard", Component: DashboardPage },
           { path: "ocr", Component: OCRProcessor },
           { path: "batch-creator", Component: BatchCreatorWizard },
-          {
-            path: "qti-renderer",
-            element: (
-              <ProtectedPremiumRoute>
-                <QTIRenderer />
-              </ProtectedPremiumRoute>
-            ),
-          },
-          {
-            path: "lms-export",
-            element: (
-              <ProtectedPremiumRoute>
-                <LMSExportPage />
-              </ProtectedPremiumRoute>
-            ),
-          },
+          { path: "qti-renderer", Component: QTIRenderer },
+          { path: "lms-export", Component: LMSExportPage },
         ],
       },
       {

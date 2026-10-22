@@ -20,7 +20,6 @@ export function Navbar() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
-  const [solutionsOpen, setSolutionsOpen] = useState(false);
 
   const navLinkClass = (path: string) => {
     const isActive =
@@ -74,17 +73,25 @@ export function Navbar() {
                     Assessment Content Services
                   </div>
                   <Link
-                    to="/services#content-development"
+                    to="/services/content-development"
                     onClick={() => setServicesOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                    className={`block rounded-md p-2 transition-colors text-xs ${
+                      location.pathname === "/services/content-development"
+                        ? "bg-muted font-medium text-primary"
+                        : "hover:bg-muted text-muted-foreground"
+                    }`}
                   >
                     <div className="font-medium text-foreground">Content Development</div>
                     <div className="text-xs text-muted-foreground">MCQs, STEM items, explanations</div>
                   </Link>
                   <Link
-                    to="/services#digitization"
+                    to="/services/content-digitization"
                     onClick={() => setServicesOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
+                    className={`block rounded-md p-2 transition-colors text-xs ${
+                      location.pathname === "/services/content-digitization"
+                        ? "bg-muted font-medium text-primary"
+                        : "hover:bg-muted text-muted-foreground"
+                    }`}
                   >
                     <div className="font-medium text-foreground">Content Digitization</div>
                     <div className="text-xs text-muted-foreground">PDFs, Word, scans, handwriting</div>
@@ -104,77 +111,6 @@ export function Navbar() {
                   >
                     <div className="font-medium text-foreground">LMS &amp; Migration</div>
                     <div className="text-xs text-muted-foreground">Canvas, Moodle, QTI, JSON</div>
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Solutions Dropdown */}
-            <div
-              className="relative"
-              onMouseEnter={() => setSolutionsOpen(true)}
-              onMouseLeave={() => setSolutionsOpen(false)}
-            >
-              <Link
-                to="/solutions"
-                className={`flex items-center gap-1 py-2 ${navLinkClass("/solutions")}`}
-              >
-                Solutions
-                <ChevronDown className="h-3 w-3 opacity-60" />
-              </Link>
-
-              {solutionsOpen && (
-                <div className="absolute right-0 top-full w-64 rounded-lg border border-border bg-popover p-2 shadow-lg animate-in fade-in-50 zoom-in-95">
-                  <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Who We Help
-                  </div>
-                  <Link
-                    to="/solutions#platforms"
-                    onClick={() => setSolutionsOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
-                  >
-                    <div className="font-medium text-foreground">Assessment Platforms</div>
-                    <div className="text-xs text-muted-foreground">Item banks &amp; test delivery</div>
-                  </Link>
-                  <Link
-                    to="/solutions#edtech"
-                    onClick={() => setSolutionsOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
-                  >
-                    <div className="font-medium text-foreground">EdTech Companies</div>
-                    <div className="text-xs text-muted-foreground">Digital-learning content ops</div>
-                  </Link>
-                  <Link
-                    to="/solutions#test-prep"
-                    onClick={() => setSolutionsOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
-                  >
-                    <div className="font-medium text-foreground">Test-Prep Companies</div>
-                    <div className="text-xs text-muted-foreground">High-volume question libraries</div>
-                  </Link>
-                  <Link
-                    to="/solutions#publishers"
-                    onClick={() => setSolutionsOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
-                  >
-                    <div className="font-medium text-foreground">Publishers</div>
-                    <div className="text-xs text-muted-foreground">Legacy print &amp; digital banks</div>
-                  </Link>
-                  <Link
-                    to="/solutions#certification"
-                    onClick={() => setSolutionsOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
-                  >
-                    <div className="font-medium text-foreground">Training &amp; Certification</div>
-                    <div className="text-xs text-muted-foreground">LMS &amp; certification systems</div>
-                  </Link>
-                  <Link
-                    to="/solutions#partners"
-                    onClick={() => setSolutionsOpen(false)}
-                    className="block rounded-md p-2 hover:bg-muted transition-colors text-xs"
-                  >
-                    <div className="font-medium text-foreground">Implementation Partners</div>
-                    <div className="text-xs text-muted-foreground">Reliable migration backend</div>
                   </Link>
                 </div>
               )}
@@ -213,20 +149,43 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-border bg-background px-6 py-4 space-y-3">
           <div className="space-y-1">
-            <Link
-              to="/services"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block rounded-md py-2 px-3 text-sm font-medium text-foreground hover:bg-muted"
-            >
-              Services (Content, Digitization, QA, Migration)
-            </Link>
-            <Link
-              to="/solutions"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block rounded-md py-2 px-3 text-sm font-medium text-foreground hover:bg-muted"
-            >
-              Solutions (EdTech, Platforms, Test-Prep, Publishers)
-            </Link>
+            <div>
+              <Link
+                to="/services"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block rounded-md py-2 px-3 text-sm font-medium ${
+                  location.pathname === "/services"
+                    ? "bg-muted text-foreground font-semibold"
+                    : "text-foreground hover:bg-muted"
+                }`}
+              >
+                Services Overview
+              </Link>
+              <div className="ml-3 border-l border-border pl-3 my-1 space-y-1">
+                <Link
+                  to="/services/content-development"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block rounded-md py-1.5 px-2 text-xs font-medium transition-colors ${
+                    location.pathname === "/services/content-development"
+                      ? "bg-muted text-primary font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  Content Development
+                </Link>
+                <Link
+                  to="/services/content-digitization"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block rounded-md py-1.5 px-2 text-xs font-medium transition-colors ${
+                    location.pathname === "/services/content-digitization"
+                      ? "bg-muted text-primary font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  Content Digitization
+                </Link>
+              </div>
+            </div>
 
             <Link
               to="/resources"

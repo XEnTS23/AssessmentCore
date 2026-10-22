@@ -146,7 +146,7 @@ export function Footer() {
             <ul className="mt-4 space-y-2.5 text-xs text-muted-foreground">
               <li>
                 <Link
-                  to="/services#content-development"
+                  to="/services/content-development"
                   className="hover:text-foreground transition-colors"
                 >
                   Content Development
@@ -154,7 +154,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  to="/services#digitization"
+                  to="/services/content-digitization"
                   className="hover:text-foreground transition-colors"
                 >
                   Content Digitization

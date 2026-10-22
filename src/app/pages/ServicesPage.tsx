@@ -161,13 +161,33 @@ export function ServicesPage() {
                     {pillar.title}
                   </h2>
                 </div>
-                <a
-                  href="#contact"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-4 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                >
-                  <span>Scope this service</span>
-                  <ArrowRight className="h-3 w-3" />
-                </a>
+                <div className="flex flex-wrap items-center gap-2">
+                  {pillar.id === "content-development" && (
+                    <Link
+                      to="/services/content-development"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <span>Explore Service Details</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
+                  {pillar.id === "digitization" && (
+                    <Link
+                      to="/services/content-digitization"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <span>Explore Service Details</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
+                  <a
+                    href="#contact"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-4 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    <span>Scope this service</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </a>
+                </div>
               </div>
 
               <p className="mt-5 text-sm leading-relaxed text-muted-foreground max-w-3xl">

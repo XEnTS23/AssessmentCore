@@ -13,15 +13,19 @@ import {
 
 interface ContactProjectFormProps {
   embedded?: boolean;
+  defaultProjectType?: string;
 }
 
-export function ContactProjectForm({ embedded = false }: ContactProjectFormProps) {
+export function ContactProjectForm({
+  embedded = false,
+  defaultProjectType,
+}: ContactProjectFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     company: "",
     role: "",
-    projectType: "Digitization",
+    projectType: defaultProjectType || "Digitization",
     itemCount: "50-200 questions",
     sourceFormat: "PDF documents (scans or native)",
     targetPlatform: "Canvas LMS (QTI)",

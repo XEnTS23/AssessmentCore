@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { LandingPage } from "./pages/LandingPage";
 import { SolutionsPage } from "./pages/SolutionsPage";
 import { ServicesPage } from "./pages/ServicesPage";
+import { ContentDevelopmentPage } from "./pages/services/ContentDevelopmentPage";
+import { ContentDigitizationPage } from "./pages/services/ContentDigitizationPage";
 import { ResourcesPage } from "./pages/ResourcesPage";
 
 import { CompanyPage } from "./pages/CompanyPage";
@@ -104,6 +106,8 @@ const publicRoutes = [
       { path: "/", Component: LandingPage },
       { path: "/solutions", Component: SolutionsPage },
       { path: "/services", Component: ServicesPage },
+      { path: "/services/content-development", Component: ContentDevelopmentPage },
+      { path: "/services/content-digitization", Component: ContentDigitizationPage },
       { path: "/resources", Component: ResourcesPage },
 
       { path: "/company", Component: CompanyPage },

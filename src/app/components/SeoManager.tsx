@@ -109,6 +109,96 @@ export const PUBLIC_SEO: Record<string, SeoConfig> = {
       }
     ]
   },
+  "/services/content-development": {
+    title: "K–12 Content Development Services | Husimi",
+    description:
+      "Curriculum-aligned K–12 educational content and assessment development for CBSE, ICSE, Indian state boards, UK specifications, and US standards.",
+    canonical: "/services/content-development",
+    structuredData: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: "K–12 Educational Content & Assessment Development",
+        provider: {
+          "@type": "Organization",
+          name: "Husimi",
+          url: SITE_URL
+        },
+        serviceType: "Educational Content Development",
+        description:
+          "Curriculum-aligned K–12 educational content and assessment development for CBSE, ICSE, Indian state boards, UK specifications, and US standards."
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: `${SITE_URL}/`
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Services",
+            item: `${SITE_URL}/services`
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: "Content Development",
+            item: `${SITE_URL}/services/content-development`
+          }
+        ]
+      }
+    ]
+  },
+  "/services/content-digitization": {
+    title: "Educational Content Digitization Services | Husimi",
+    description:
+      "Digitize PDFs, Word files, scans, handwriting, and STEM assessments into structured educational content. Content conversion and quality review by Husimi.",
+    canonical: "/services/content-digitization",
+    structuredData: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: "Educational Content Digitization Services",
+        provider: {
+          "@type": "Organization",
+          name: "Husimi",
+          url: SITE_URL
+        },
+        serviceType: "Assessment Digitization & Structuring",
+        description:
+          "Digitize PDFs, Word files, scans, handwriting, and STEM assessments into structured educational content with LaTeX math and metadata."
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: `${SITE_URL}/`
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Services",
+            item: `${SITE_URL}/services`
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: "Content Digitization",
+            item: `${SITE_URL}/services/content-digitization`
+          }
+        ]
+      }
+    ]
+  },
   "/solutions": {
     title: "Assessment Solutions for EdTech & Publishers | Husimi",
     description:

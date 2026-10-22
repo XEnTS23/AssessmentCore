@@ -5,6 +5,8 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { LandingPage } from '../src/app/pages/LandingPage';
 import { ServicesPage } from '../src/app/pages/ServicesPage';
+import { ContentDevelopmentPage } from '../src/app/pages/services/ContentDevelopmentPage';
+import { ContentDigitizationPage } from '../src/app/pages/services/ContentDigitizationPage';
 import { SolutionsPage } from '../src/app/pages/SolutionsPage';
 import { ResourcesPage } from '../src/app/pages/ResourcesPage';
 import { CompanyPage } from '../src/app/pages/CompanyPage';
@@ -21,6 +23,8 @@ import { ThemeContext } from '../src/contexts/ThemeContext';
 const routeComponentMap: Record<string, React.ComponentType> = {
   '/': LandingPage,
   '/services': ServicesPage,
+  '/services/content-development': ContentDevelopmentPage,
+  '/services/content-digitization': ContentDigitizationPage,
   '/solutions': SolutionsPage,
   '/resources': ResourcesPage,
   '/company': CompanyPage,

@@ -285,7 +285,7 @@ export function ContentDigitizationPage() {
                 </div>
                 <div className="space-y-1.5 text-muted-foreground font-sans text-xs">
                   <p className="text-foreground font-medium">
-                    12. A car starts from rest ($u = 0$) and accelerates at $2.5\text{ m/s}^2$ for $6\text{ s}$.
+                    {"12. A car starts from rest ($u = 0$) and accelerates at $2.5\\text{ m/s}^2$ for $6\\text{ s}$."}
                   </p>
                   <p className="text-[11px] pl-2 text-muted-foreground">
                     (A) 12 m/s &nbsp; (B) 15 m/s &nbsp; (C) 18 m/s &nbsp; (D) 20 m/s

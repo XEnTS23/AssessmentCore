@@ -12,11 +12,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
-import { ProfileMenu } from "./ProfileMenu";
 
 export function Navbar() {
-  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
@@ -131,8 +128,6 @@ export function Navbar() {
 
           {/* Action Group */}
           <div className="flex items-center gap-2.5">
-            {isAuthenticated && <ProfileMenu />}
-
             {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

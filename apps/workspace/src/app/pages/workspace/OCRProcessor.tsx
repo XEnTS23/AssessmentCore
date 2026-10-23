@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react";
-import { useLocation } from "react-router";
 import {
   Database,
   Download,
@@ -25,7 +24,6 @@ import { MathMLRenderer } from "../../components/MathMLRenderer";
 import { convertTextWithMath } from "../../utils/mathmlConverter";
 import { Button } from "../../components/ui/button";
 import { Progress } from "../../components/ui/progress";
-import { Navbar } from "../../components/Navbar";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
 import {
@@ -39,7 +37,6 @@ import { generateLatexDocument } from "../../utils/latexExporter";
 type OCRProcessedPage = { filename: string; base64: string; data: OCRResult };
 
 export default function OCRProcessor() {
-  const location = useLocation();
   const { user } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -536,8 +533,6 @@ export default function OCRProcessor() {
         : `${Math.max(1, Math.round(selectedFileSize / 1024))} KB`
       : "0 KB";
 
-  const isStandalone = location.pathname === "/ocr";
-
   const content = (
     <>
       <div className="h-screen flex flex-col bg-workspace-bg p-6 text-foreground transition-colors duration-200 sm:p-8 overflow-hidden">
@@ -946,12 +941,5 @@ export default function OCRProcessor() {
     </>
   );
 
-  return isStandalone ? (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <div className="flex-1">{content}</div>
-    </div>
-  ) : (
-    content
-  );
+  return content;
 }

@@ -422,31 +422,7 @@ export const PUBLIC_SEO: Record<string, SeoConfig> = {
   }
 };
 
-export function getConfig(pathname: string, isWorkspaceHost: boolean): SeoConfig {
-  if (isWorkspaceHost) {
-    return {
-      title: "Husimi Workspace",
-      description: "Authenticated Husimi workspace.",
-      robots: "noindex, nofollow"
-    };
-  }
-
-  if (pathname.startsWith("/auth/")) {
-    return {
-      title: "Husimi Account",
-      description: "Sign in or manage your Husimi account.",
-      robots: "noindex, nofollow"
-    };
-  }
-
-  if (pathname === "/ocr") {
-    return {
-      title: "Husimi Document Processor",
-      description: "Process assessment source documents with the Husimi workflow.",
-      robots: "noindex, follow"
-    };
-  }
-
+export function getConfig(pathname: string): SeoConfig {
   if (pathname === "/docs" || pathname.startsWith("/docs/")) {
     return {
       title: "Question Bank Schemas & Documentation | Husimi",
@@ -520,8 +496,7 @@ export function SeoManager() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const isWorkspaceHost = window.location.hostname.startsWith("workspace.");
-    const config = getConfig(pathname, isWorkspaceHost);
+    const config = getConfig(pathname);
     const canonicalUrl = config.canonical
       ? `${SITE_URL}${config.canonical}`
       : undefined;

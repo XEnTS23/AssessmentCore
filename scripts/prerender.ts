@@ -17,7 +17,6 @@ import { DocumentationPage } from '../src/app/pages/DocumentationPage';
 import { SamplePackagePage } from '../src/app/pages/resources/SamplePackagePage';
 import { SourcePdfPage } from '../src/app/pages/resources/SourcePdfPage';
 import { PUBLIC_SEO, SITE_URL, DEFAULT_IMAGE } from '../src/app/components/SeoManager';
-import { AuthProvider } from '../src/contexts/AuthContext';
 import { ThemeContext } from '../src/contexts/ThemeContext';
 
 const routeComponentMap: Record<string, React.ComponentType> = {
@@ -42,13 +41,9 @@ function renderComponent(Component: React.ComponentType, routePath: string): str
       ThemeContext.Provider,
       { value: { isDark: false, toggleTheme: () => {} } },
       React.createElement(
-        AuthProvider,
-        null,
-        React.createElement(
-          MemoryRouter,
-          { initialEntries: [routePath] },
-          React.createElement(Component)
-        )
+        MemoryRouter,
+        { initialEntries: [routePath] },
+        React.createElement(Component)
       )
     )
   );

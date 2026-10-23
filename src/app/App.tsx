@@ -1,9 +1,7 @@
 import { Suspense, useEffect } from "react";
 import { RouterProvider } from "react-router";
-import { AuthProvider } from "../contexts/AuthContext";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { router } from "./routes";
-import { Toaster } from "./components/ui/sonner";
 
 export default function App() {
   useEffect(() => {
@@ -22,22 +20,15 @@ export default function App() {
 
   return (
     <ThemeContext.Provider value={{ isDark: false, toggleTheme: () => {} }}>
-      <AuthProvider>
-        <Suspense
-          fallback={
-            <div className="grid min-h-screen place-items-center bg-background">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
-            </div>
-          }
-        >
-          <RouterProvider router={router} />
-        </Suspense>
-        <Toaster
-          position="top-right"
-          richColors
-          theme="light"
-        />
-      </AuthProvider>
+      <Suspense
+        fallback={
+          <div className="grid min-h-screen place-items-center bg-background">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+          </div>
+        }
+      >
+        <RouterProvider router={router} />
+      </Suspense>
     </ThemeContext.Provider>
   );
 }

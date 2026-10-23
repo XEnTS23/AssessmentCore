@@ -13,7 +13,7 @@ import {
 
 describe("test1.xlsx mandatory third-pass regression assertions", () => {
   it("executes the full pipeline and verifies all prompt regression assertions", async () => {
-    const filePath = "D:/PC-13-06/download/AssessmentCore/test1.xlsx";
+    const filePath = "test1.xlsx";
     expect(fs.existsSync(filePath)).toBe(true);
 
     const workbook = new ExcelJS.Workbook();

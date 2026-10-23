@@ -17,6 +17,10 @@ export default defineConfig({
     },
   },
 
+  // Read .env from the repository root so one file serves local dev.
+  // On Vercel the variables come from the project settings instead.
+  envDir: path.resolve(__dirname, "../.."),
+
   // Strip console.log and console.warn from production builds.
   // console.error is intentionally preserved for genuine runtime error reporting.
   esbuild: {

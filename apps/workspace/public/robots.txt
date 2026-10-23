@@ -1,0 +1,3 @@
+# Husimi Workspace is a staff-only application.
+User-agent: *
+Disallow: /
